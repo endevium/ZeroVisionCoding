@@ -34,6 +34,9 @@ class ZeroVisionAssistant(tk.Tk):
         self.vscodeLabel = createLabel(self, "Loading...", 20, "white")
         self.vscodeLabel.pack(pady=(0, 0))
 
+        self.currentTextLabel = createLabel(self, "Current Text: ", 20, "white")
+        self.currentTextLabel.pack(pady=(0, 0))
+
         self.server = "http://127.0.0.1:8000/"
         self.server_process: subprocess.Popen | None = None
 
@@ -87,6 +90,7 @@ class ZeroVisionAssistant(tk.Tk):
                 self.subLabel.config(text="Server running on port 8000", fg="white")
                 self.vscodeLabel.config(text="Connecting to VS Code...", fg="white")
                 self.after(200, self.poll_extension_until_ready)
+                self.after(200, self.poll_editor_text)
                 return
         except requests.RequestException:
             pass
@@ -118,6 +122,24 @@ class ZeroVisionAssistant(tk.Tk):
             self.vscodeLabel.config(text="VS Code not connected", fg="red")
 
         self.after(500, self.poll_extension_until_ready)
+    
+    def poll_editor_text(self):
+        try:
+            r = requests.get(self.server.rstrip("/") + "/vscode/editor", timeout=0.5)
+            if r.ok:
+                data = r.json()
+                text = (data.get("text") or "")
+                # Display last 120 characters to keep the UI readable
+                tail = text[-120:].replace("\r\n", "\n").replace("\n", " ⏎ ")
+                if tail.strip():
+                    self.currentTextLabel.config(text=f"Current Text: {tail}", fg="white")
+                else:
+                    self.currentTextLabel.config(text="Current Text: (empty)", fg="white")
+        except (requests.RequestException, ValueError):
+            # If server is temporarily unavailable, don't crash the UI
+            pass
+
+        self.after(300, self.poll_editor_text)
 
     def on_close(self):
         if self.server_process and self.server_process.poll() is None:

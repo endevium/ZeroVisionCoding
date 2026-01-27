@@ -13,6 +13,53 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function postJson(url, body) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+async function sendActiveEditorSnapshot() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return;
+
+    const doc = editor.document;
+
+    await postJson('http://127.0.0.1:8000/vscode/editor', {
+        uri: String(doc.uri),
+        language: doc.languageId,
+        text: doc.getText(),
+    });
+}
+
+function createDebouncer(delayMs, fn) {
+    let timer = undefined;
+    let running = false;
+    let queued = false;
+
+    return async () => {
+        queued = true;
+        if (timer) clearTimeout(timer);
+
+        timer = setTimeout(async () => {
+            if (running) return;
+            running = true;
+
+            try {
+                if (queued) {
+                    queued = false;
+                    await fn();
+                }
+            } finally {
+                running = false;
+            }
+        }, delayMs);
+    };
+}
+
 async function register(output) {
     try {
         const res = await fetch('http://127.0.0.1:8000/vscode/register', {
@@ -58,6 +105,31 @@ function activate(context) {
             await sleep(delayMs);
         }
     })();
+
+    const debouncedSend = createDebouncer(250, async () => {
+        try {
+            await sendActiveEditorSnapshot();
+            // output.appendLine('Sent editor snapshot'); // enable if needed
+        } catch (e) {
+            output.appendLine(`Failed to send editor snapshot: ${e?.message ?? String(e)}`);
+        }
+    });
+
+    // Send once on activation
+    debouncedSend();
+
+    // Send when typing in the active document
+    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((e) => {
+        const active = vscode.window.activeTextEditor?.document;
+        if (!active) return;
+        if (e.document !== active) return;
+        debouncedSend();
+    }));
+
+    // Send when switching editors
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => {
+        debouncedSend();
+    }));
     
     const disposable = vscode.commands.registerCommand('zero-vision-coding.helloWorld', function () {
         output.appendLine('Command executed: zero-vision-coding.helloWorld');

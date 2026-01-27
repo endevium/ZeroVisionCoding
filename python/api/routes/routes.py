@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from api.models.analyze_model import *
 from api.controllers.analyze_controller import *
 from api.services.extension_state import *
+from api.services.editor_state import *
 
 router = APIRouter()
 
@@ -22,3 +23,11 @@ def vscode_register(payload: dict):
 @router.get("/vscode/status")
 def vscode_status():
     return get_status()
+
+@router.post("/vscode/editor")
+def vscode_editor(payload: dict):
+    return update_editor(payload)
+
+@router.get("/vscode/editor")
+def vscode_editor_get():
+    return get_editor()
