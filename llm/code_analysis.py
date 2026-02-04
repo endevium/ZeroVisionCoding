@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import requests
+import subprocess
+import base64
 
 # =========================
 # Configuration
@@ -37,6 +39,28 @@ def _strip_code_fences(s: str) -> str:
             lines = lines[:-1]
         s = "\n".join(lines).strip()
     return s
+
+def speak_text_windows(text: str, rate: int = 0, volume: int = 100, voice: str | None = None) -> None:
+    text_b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
+
+    ps_script = f"""
+$bytes = [System.Convert]::FromBase64String("{text_b64}")
+$text  = [System.Text.Encoding]::UTF8.GetString($bytes)
+
+$voice = New-Object -ComObject SAPI.SpVoice
+$voice.Rate = {int(rate)}
+$voice.Volume = {int(volume)}
+
+{"$voiceName = " + repr(voice) + "; $voice.GetVoices() | ForEach-Object { if ($_.GetDescription() -like ('*' + $voiceName + '*')) { $voice.Voice = $_ } }" if voice else ""}
+
+$voice.Speak($text) | Out-Null
+""".strip()
+
+    encoded = base64.b64encode(ps_script.encode("utf-16le")).decode("ascii")
+    subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded],
+        check=True,
+    )
 
 def summarize_code(code: str, language: str) -> dict:
     messages = [
@@ -86,9 +110,14 @@ def main():
     code = """\
 """
     print("Please wait while we analyze your code...")
+    speak_text_windows("Please wait while we analyze your code", rate=0, volume=100, voice=None)
     summary = summarize_code(code, "javascript")
+    
+    narration = summary["narration"]
+    print(narration)
 
-    print(summary["narration"])
+    # Text-to-speech (Windows)
+    speak_text_windows(narration, rate=0, volume=100, voice="David")
 
 if __name__ == "__main__":
     main()
