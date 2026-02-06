@@ -184,7 +184,6 @@ class ZeroVisionAssistant(tk.Tk):
                 else:
                     self.currentTextLabel.config(text="Current Text: (empty)", fg="white")
         except (requests.RequestException, ValueError):
-            # If server is temporarily unavailable, don't crash the UI
             pass
 
         self.after(300, self.poll_editor_text)

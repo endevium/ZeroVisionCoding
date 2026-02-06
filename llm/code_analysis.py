@@ -34,7 +34,7 @@ def _strip_code_fences(s: str) -> str:
     s = s.strip()
     if s.startswith("```"):
         lines = s.splitlines()
-        lines = lines[1:]  # drop ``` or ```json
+        lines = lines[1:] 
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         s = "\n".join(lines).strip()
@@ -116,7 +116,6 @@ def main():
     narration = summary["narration"]
     print(narration)
 
-    # Text-to-speech (Windows)
     speak_text_windows(narration, rate=0, volume=100, voice="David")
 
 if __name__ == "__main__":
