@@ -1,0 +1,7 @@
+pyaudio
+requests
+pyttsx3
+SpeechRecognition
+fastapi
+uvicorn
+pydantic

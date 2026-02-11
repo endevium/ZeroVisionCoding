@@ -5,7 +5,12 @@ import subprocess
 import base64
 import tkinter as tk
 import threading
+import queue
+import time
+import string
+import traceback
 from tkinter import messagebox
+from typing import Optional
 
 
 def createLabel(self, text, fontSize, color):
@@ -22,10 +27,48 @@ def speak_text_windows(
     text: str,
     rate: int = 0,
     volume: int = 100,
-    voice: str | None = None,
+    voice: Optional[str] = None,
     *,
     wait: bool = False,
 ) -> None:
+    # Try a fast, in-process Windows SAPI call (no PowerShell spawn)
+    if os.name == "nt":
+        try:
+            import win32com.client
+
+            def _speak_win32(text_inner: str, rate_inner: int, volume_inner: int, voice_inner: Optional[str], wait_inner: bool):
+                try:
+                    speaker = win32com.client.Dispatch("SAPI.SpVoice")
+                    speaker.Rate = int(rate_inner)
+                    speaker.Volume = int(volume_inner)
+                    if voice_inner:
+                        try:
+                            voices = speaker.GetVoices()
+                            for v in voices:
+                                if voice_inner.lower() in v.GetDescription().lower():
+                                    speaker.Voice = v
+                                    break
+                        except Exception:
+                            pass
+
+                    if wait_inner:
+                        speaker.Speak(text_inner)
+                    else:
+                        speaker.Speak(text_inner)
+                except Exception:
+                    # If anything goes wrong with win32com, silently fall back
+                    pass
+
+            if wait:
+                _speak_win32(text, rate, volume, voice, True)
+            else:
+                threading.Thread(target=_speak_win32, args=(text, rate, volume, voice, False), daemon=True).start()
+            return
+        except Exception:
+            # win32com not available or failed; fall through to PowerShell fallback
+            pass
+
+    # PowerShell fallback (slower) kept for compatibility
     text_b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
 
     ps_script = f"""
@@ -78,13 +121,44 @@ class ZeroVisionAssistant(tk.Tk):
         self.currentTextLabel = createLabel(self, "Current Text: ", 20, "white")
         self.currentTextLabel.pack(pady=(0, 0))
 
-        self.server = "http://127.0.0.1:8000/"
-        self.server_process: subprocess.Popen | None = None
+        self.speechStatusLabel = createLabel(self, "Speech: unavailable", 14, "red")
+        self.speechStatusLabel.pack(pady=(8, 0))
 
+        # Start server once during initialization (do not start on every status update)
         self.start_server()
         self.after(200, self.poll_server_until_ready)
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+        self.server = "http://127.0.0.1:8000/"
+        self.server_process: Optional[subprocess.Popen] = None
+        self.vscode_announced: bool = False
+        self._extension_connected: Optional[bool] = None
+        self.last_editor_text: str = ""
+        self._current_word: str = ""
+        self._tts_queue: queue.Queue = queue.Queue()
+        self._last_boundary_space: bool = False
+        threading.Thread(target=self._tts_worker, daemon=True).start()
+
+        # Initialize speech recognition availability and bind Shift+Enter to listen once
+        try:
+            import speech_recognition as sr  # type: ignore
+            self._sr_available = True
+            self._sr_module = sr
+            self._set_speech_status("Speech: ready (Shift+Enter)", "green")
+        except Exception:
+            self._sr_available = False
+            self._sr_module = None
+            self._set_speech_status("Speech: unavailable", "red")
+
+        # Bind Shift+Enter to trigger a one-shot listen handler
+        self.bind_all('<Shift-Return>', lambda e: threading.Thread(target=self._speech_command_once, daemon=True).start())
+
+    def _set_speech_status(self, text: str, color: str) -> None:
+        try:
+            self.after(0, lambda: self.speechStatusLabel.config(text=text, fg=color))
+        except Exception:
+            pass
 
     def start_server(self):
         speak_text_windows("Welcome to Zero Vision Coding. Please wait while we're loading.", rate=0, volume=100, voice=None)
@@ -164,10 +238,18 @@ class ZeroVisionAssistant(tk.Tk):
                 text="VS Code connected",
                 fg="white"
             )
-            speak_text_windows("Successfully connected to Visual Studio Code. Your device is ready.", rate=0, volume=100, voice=None)
+            # If we just transitioned to connected, clear any pending "not connected" messages
+            if self._extension_connected is not True:
+                self.clear_tts_queue()
+                self.enqueue_speech("Successfully connected to Visual Studio Code. Your device is ready.")
+                self.vscode_announced = True
+            self._extension_connected = True
         else:
             self.vscodeLabel.config(text="VS Code not connected", fg="red")
-            speak_text_windows("Could not connect to Visual Studio Code. Please make sure to open Visual Studio Code.", rate=0, volume=100, voice=None)
+            # Only enqueue a warning once per disconnected interval
+            if self._extension_connected is not False:
+                self.enqueue_speech("Could not connect to Visual Studio Code. Please make sure to open Visual Studio Code.")
+            self._extension_connected = False
 
         self.after(500, self.poll_extension_until_ready)
     
@@ -183,6 +265,63 @@ class ZeroVisionAssistant(tk.Tk):
                     self.currentTextLabel.config(text=f"Current Text: {tail}", fg="white")
                 else:
                     self.currentTextLabel.config(text="Current Text: (empty)", fg="white")
+
+                # Determine newly added text since last poll using longest common
+                # prefix/suffix to avoid re-speaking existing content.
+                new_text = text or ""
+                old = self.last_editor_text or ""
+
+                # longest common prefix
+                cp = 0
+                max_cp = min(len(old), len(new_text))
+                while cp < max_cp and old[cp] == new_text[cp]:
+                    cp += 1
+
+                # longest common suffix (after removing prefix)
+                cs = 0
+                max_cs = min(len(old) - cp, len(new_text) - cp)
+                while cs < max_cs and old[len(old) - 1 - cs] == new_text[len(new_text) - 1 - cs]:
+                    cs += 1
+
+                # the added segment is the middle part of new_text
+                if cp + cs >= len(new_text):
+                    added = ""
+                else:
+                    added = new_text[cp: len(new_text) - cs if cs else None]
+
+                # Recompute the current pending word from the prefix (text before added)
+                prefix = new_text[:cp]
+                cur_word = ""
+                i = len(prefix) - 1
+                while i >= 0 and (prefix[i].isalnum() or prefix[i] == "_"):
+                    cur_word = prefix[i] + cur_word
+                    i -= 1
+                self._current_word = cur_word
+
+                # Enqueue each character of the added segment and speak completed words
+                for ch in added:
+                    if ch.isalnum() or ch == "_":
+                        # speak the letter and accumulate for the full word
+                        self._current_word += ch
+                        self.enqueue_speech(ch)
+                        self._last_boundary_space = False
+                    else:
+                        # On boundary, speak the completed word (if any)
+                        if self._current_word:
+                            # speak the full word after individual letters
+                            self.enqueue_speech(self._current_word)
+                            self._current_word = ""
+                        # speak physical spaces only when the user typed them
+                        if ch.isspace():
+                            if not self._last_boundary_space:
+                                self.enqueue_speech("space")
+                                self._last_boundary_space = True
+                        else:
+                            self.enqueue_speech(ch)
+                            self._last_boundary_space = False
+
+                # Update tracked editor text
+                self.last_editor_text = new_text
         except (requests.RequestException, ValueError):
             pass
 
@@ -196,6 +335,174 @@ class ZeroVisionAssistant(tk.Tk):
                 pass
 
         self.destroy()
+
+    def enqueue_speech(self, text: str) -> None:
+        try:
+            self._tts_queue.put_nowait(text)
+        except Exception:
+            pass
+
+    def clear_tts_queue(self) -> None:
+        """Remove all pending items from the TTS queue."""
+        try:
+            while True:
+                item = self._tts_queue.get_nowait()
+                try:
+                    self._tts_queue.task_done()
+                except Exception:
+                    pass
+        except queue.Empty:
+            pass
+
+    def _tts_worker(self) -> None:
+        """Worker thread that speaks queued items sequentially."""
+        while True:
+            try:
+                text = self._tts_queue.get()
+            except Exception:
+                time.sleep(0.05)
+                continue
+
+            try:
+                # Block until the speech finishes to keep order
+                speak_text_windows(text, wait=True)
+                # small gap between items
+                time.sleep(0.05)
+            except Exception:
+                pass
+            finally:
+                try:
+                    self._tts_queue.task_done()
+                except Exception:
+                    pass
+
+    def _speech_command_once(self) -> None:
+        """One-shot listener: listens once and triggers actions when activated.
+
+        This is invoked by pressing Shift+Enter and will only perform a single
+        listen/recognize cycle rather than running continuously.
+        """
+        sr = None
+        try:
+            sr = self._sr_module or __import__("speech_recognition")
+        except Exception:
+            self._set_speech_status("Speech: unavailable", "red")
+            return
+
+        # Try to reuse llm_test and optional pyttsx3 like before
+        try:
+            import llm.llm_test as llm_test
+        except Exception:
+            llm_test = None
+
+        try:
+            import pyttsx3
+        except Exception:
+            pyttsx3 = None
+
+        r = sr.Recognizer()
+        try:
+            mic = sr.Microphone()
+        except Exception:
+            self._set_speech_status("Speech: unavailable", "red")
+            return
+
+        engine = None
+        try:
+            if llm_test and getattr(llm_test, "SPEAK_REPLIES", False) and pyttsx3:
+                engine = pyttsx3.init()
+        except Exception:
+            engine = None
+
+        with mic as source:
+            try:
+                r.adjust_for_ambient_noise(source, duration=0.8)
+            except Exception:
+                pass
+
+            self._set_speech_status("Listening...", "orange")
+            try:
+                audio = r.listen(source, timeout=None, phrase_time_limit=6)
+            except Exception:
+                self._set_speech_status("Speech: ready (Shift+Enter)", "green")
+                return
+
+            try:
+                self._set_speech_status("Processing...", "orange")
+                heard = r.recognize_google(audio)
+            except Exception:
+                self._set_speech_status("Speech: ready (Shift+Enter)", "green")
+                return
+
+            self._set_speech_status("Speech: ready (Shift+Enter)", "green")
+
+            if not heard:
+                return
+
+            text = heard.lower()
+
+            # Debug: announce what we heard (also printed)
+            try:
+                print(f"Recognized speech: {text}")
+                self.enqueue_speech(f"Heard: {text}")
+            except Exception:
+                pass
+
+            # If the user explicitly asked to analyze code, handle that immediately
+            if ("analyze the code" in text) or ("analyze" in text and "code" in text):
+                    try:
+                        resp = requests.get(self.server.rstrip("/") + "/vscode/editor", timeout=3)
+                        if not resp.ok:
+                            speak_text_windows("Could not fetch editor text for analysis.", wait=False)
+                            return
+                        data = resp.json()
+                        editor_text = data.get("text") or ""
+                    except Exception:
+                        speak_text_windows("Could not fetch editor text for analysis.", wait=False)
+                        return
+
+                    try:
+                        from llm.code_analysis import summarize_code
+                    except Exception:
+                        speak_text_windows("Code analysis is not available.", wait=False)
+                        return
+
+                    def _do_analysis(code_text: str):
+                        try:
+                            speak_text_windows("Analyzing code, please wait.", wait=False)
+                            result = summarize_code(code_text, "python")
+                            narration = result.get("narration") if isinstance(result, dict) else None
+                            if narration:
+                                speak_text_windows(narration, wait=True)
+                            else:
+                                speak_text_windows("Analysis returned no narration.", wait=False)
+                        except Exception:
+                            speak_text_windows("Code analysis failed.", wait=False)
+
+                    threading.Thread(target=_do_analysis, args=(editor_text,), daemon=True).start()
+                    return  
+
+            prompt = "How can I help?" if remainder == "" else remainder
+
+            try:
+                if llm_test and hasattr(llm_test, "chat"):
+                    bot = llm_test.chat(prompt)
+                else:
+                    speak_text_windows("Chat service not available.", wait=False)
+                    return
+            except Exception:
+                speak_text_windows("Chat failed.", wait=False)
+                return
+
+            reply = bot.get("reply", "") if isinstance(bot, dict) else ""
+            if reply:
+                try:
+                    speak_text_windows(reply, wait=False)
+                    if engine:
+                        engine.say(reply)
+                        engine.runAndWait()
+                except Exception:
+                    pass
 
 if __name__ == "__main__":
     ZeroVisionAssistant().mainloop()

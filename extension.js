@@ -66,16 +66,18 @@ async function register(output) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json'},
             body: JSON.stringify({ name: 'zero-vision-coding', version: '0.0.1'})
-        })
+        });
 
         if (!res.ok) {
-            output.appendLine(`VS Code registration failed: HTTP ${res.status}`)
-            return;
+            output.appendLine(`VS Code registration failed: HTTP ${res.status}`);
+            return false;
         }
 
-        output.appendLine('VS Code successfully registered')
+        output.appendLine('VS Code successfully registered');
+        return true;
     } catch (e) {
-        output.appendLine(`VS Code registration error: ${e?.message ?? String(e)}`)
+        output.appendLine(`VS Code registration error: ${e?.message ?? String(e)}`);
+        return false;
     }
 }
 
@@ -94,9 +96,12 @@ function activate(context) {
 
         while (!stopped) {
             try {
-                await register(output);
-                output.appendLine('VS Code successfully registered');
-                delayMs = okDelayMs;
+                const ok = await register(output);
+                if (ok) {
+                    delayMs = okDelayMs;
+                } else {
+                    delayMs = Math.min(maxDelayMs, Math.max(500, Math.floor(delayMs * 1.6)));
+                }
             } catch (e) {
                 output.appendLine(`VS Code registration error: ${e?.message ?? String(e)}`);
                 delayMs = Math.min(maxDelayMs, Math.max(500, Math.floor(delayMs * 1.6)));
