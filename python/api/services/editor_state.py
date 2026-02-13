@@ -4,24 +4,33 @@ from dataclasses import dataclass
 
 @dataclass
 class EditorState:
-    last_update: float | None = None
-    uri: str | None = None
-    language: str | None = None
-    text: str | None = None
+    uri: str = ""
+    path: str = ""
+    language: str = "plaintext"
+    text: str = ""
+    version: int = 0
+    last_update: float = 0.0
 
 STATE = EditorState()
 
 def update_editor(payload: dict) -> dict:
+    STATE.uri = str(payload.get("uri") or "")
+    STATE.path = str(payload.get("path") or "")
+    STATE.language = str(payload.get("language") or "plaintext")
+    STATE.text = str(payload.get("text") or "")
+    try:
+        STATE.version = int(payload.get("version") or 0)
+    except Exception:
+        STATE.version = 0
     STATE.last_update = time.time()
-    STATE.uri = payload.get("uri")
-    STATE.language = payload.get("language")
-    STATE.text = payload.get("text")
-    return { "ok": True, "lastUpdate": STATE.last_update }
+    return {"ok": True, "lastUpdate": STATE.last_update}
 
 def get_editor() -> dict:
     return {
-        "lastUpdate": STATE.last_update,
         "uri": STATE.uri,
+        "path": STATE.path,
         "language": STATE.language,
-        "text": STATE.text
+        "text": STATE.text,
+        "version": STATE.version,
+        "lastUpdate": STATE.last_update,
     }

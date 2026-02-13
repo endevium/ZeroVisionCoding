@@ -9,6 +9,7 @@ import queue
 import time
 import string
 import traceback
+import re
 from tkinter import messagebox
 from typing import Optional
 
@@ -31,47 +32,49 @@ def speak_text_windows(
     *,
     wait: bool = False,
 ) -> None:
-    # Try a fast, in-process Windows SAPI call (no PowerShell spawn)
+    # 1) Fast in-process SAPI (pywin32)
     if os.name == "nt":
         try:
-            import win32com.client
+            import win32com.client  # type: ignore
 
             def _speak_win32(text_inner: str, rate_inner: int, volume_inner: int, voice_inner: Optional[str], wait_inner: bool):
-                try:
-                    speaker = win32com.client.Dispatch("SAPI.SpVoice")
-                    speaker.Rate = int(rate_inner)
-                    speaker.Volume = int(volume_inner)
-                    if voice_inner:
-                        try:
-                            voices = speaker.GetVoices()
-                            for v in voices:
-                                if voice_inner.lower() in v.GetDescription().lower():
-                                    speaker.Voice = v
-                                    break
-                        except Exception:
-                            pass
+                speaker = win32com.client.Dispatch("SAPI.SpVoice")
+                speaker.Rate = int(rate_inner)
+                speaker.Volume = int(volume_inner)
 
-                    if wait_inner:
-                        speaker.Speak(text_inner)
-                    else:
-                        speaker.Speak(text_inner)
-                except Exception:
-                    # If anything goes wrong with win32com, silently fall back
-                    pass
+                if voice_inner:
+                    try:
+                        for v in speaker.GetVoices():
+                            if voice_inner.lower() in v.GetDescription().lower():
+                                speaker.Voice = v
+                                break
+                    except Exception:
+                        pass
+
+                # 1 = SVSFlagsAsync (do not block)
+                flags = 0 if wait_inner else 1
+                speaker.Speak(text_inner, flags)
 
             if wait:
                 _speak_win32(text, rate, volume, voice, True)
             else:
-                threading.Thread(target=_speak_win32, args=(text, rate, volume, voice, False), daemon=True).start()
+                threading.Thread(
+                    target=_speak_win32, args=(text, rate, volume, voice, False), daemon=True
+                ).start()
             return
-        except Exception:
-            # win32com not available or failed; fall through to PowerShell fallback
-            pass
+        except Exception as e:
+            # fall through to PowerShell fallback
+            # (keep a debug message so failures aren't silent)
+            try:
+                print(f"[TTS] win32com failed: {e}")
+            except Exception:
+                pass
 
-    # PowerShell fallback (slower) kept for compatibility
-    text_b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
+    # 2) PowerShell fallback (can be blocked by policy)
+    try:
+        text_b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
 
-    ps_script = f"""
+        ps_script = f"""
 $bytes = [System.Convert]::FromBase64String("{text_b64}")
 $text  = [System.Text.Encoding]::UTF8.GetString($bytes)
 
@@ -84,25 +87,55 @@ $voice.Volume = {int(volume)}
 $voice.Speak($text) | Out-Null
 """.strip()
 
-    encoded = base64.b64encode(ps_script.encode("utf-16le")).decode("ascii")
+        encoded = base64.b64encode(ps_script.encode("utf-16le")).decode("ascii")
+        cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded]
 
-    cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded]
-
-    def _run():
-        try:
+        if wait:
+            subprocess.run(cmd, check=False)
+        else:
             subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return
+    except Exception as e:
+        try:
+            print(f"[TTS] PowerShell fallback failed: {e}")
         except Exception:
             pass
 
-    if wait:
-        subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    else:
-        threading.Thread(target=_run, daemon=True).start()
+def _kill_port_8000_processes() -> None:
+    if os.name != "nt":
+        return
+    try:
+        # Kill processes listening on 8000 (best-effort)
+        out = subprocess.check_output('netstat -ano | findstr ":8000"', shell=True, text=True, stderr=subprocess.DEVNULL)
+        pids = set()
+        for line in out.splitlines():
+            parts = line.split()
+            if len(parts) >= 5:
+                pid = parts[-1]
+                if pid.isdigit():
+                    pids.add(pid)
+        for pid in pids:
+            subprocess.run(["taskkill", "/PID", pid, "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
 
 class ZeroVisionAssistant(tk.Tk):
     def __init__(self):
         """Initialize Zero Vision Assistant"""
         super().__init__()
+
+        self.server = "http://127.0.0.1:8000/"
+        self.server_process: Optional[subprocess.Popen] = None
+
+        self.vscode_announced: bool = False
+        self._extension_connected: Optional[bool] = None
+        self.last_editor_text: str = ""
+        self._current_word: str = ""
+        self._tts_queue: queue.Queue = queue.Queue()
+        self._last_boundary_space: bool = False
+
+        threading.Thread(target=self._tts_worker, daemon=True).start()
 
         self.title("Zero Vision Coding")
         self.geometry("720x550")
@@ -130,16 +163,6 @@ class ZeroVisionAssistant(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        self.server = "http://127.0.0.1:8000/"
-        self.server_process: Optional[subprocess.Popen] = None
-        self.vscode_announced: bool = False
-        self._extension_connected: Optional[bool] = None
-        self.last_editor_text: str = ""
-        self._current_word: str = ""
-        self._tts_queue: queue.Queue = queue.Queue()
-        self._last_boundary_space: bool = False
-        threading.Thread(target=self._tts_worker, daemon=True).start()
-
         # Initialize speech recognition availability and bind Shift+Enter to listen once
         try:
             import speech_recognition as sr  # type: ignore
@@ -161,6 +184,7 @@ class ZeroVisionAssistant(tk.Tk):
             pass
 
     def start_server(self):
+        _kill_port_8000_processes()
         speak_text_windows("Welcome to Zero Vision Coding. Please wait while we're loading.", rate=0, volume=100, voice=None)
         python_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -441,68 +465,199 @@ class ZeroVisionAssistant(tk.Tk):
 
             text = heard.lower()
 
+            remainder = None
             # Debug: announce what we heard (also printed)
             try:
                 print(f"Recognized speech: {text}")
-                self.enqueue_speech(f"Heard: {text}")
             except Exception:
-                pass
+                remainder = None
 
+            if ("run the program" in text) or ("run program" in text) or ("run the code" in text):
+                cmd_id = self._enqueue_vscode_command("run_program", {})
+                if not cmd_id:
+                    speak_text_windows("Failed to send run command to Visual Studio Code.", wait=False)
+                    return
+
+                speak_text_windows("Running the program.", wait=False)
+
+                def _wait_result():
+                    deadline = time.time() + 8
+                    while time.time() < deadline:
+                        try:
+                            rr = requests.get(
+                                self.server.rstrip("/") + f"/vscode/command-result/{cmd_id}",
+                                timeout=1.5
+                            )
+                            if rr.ok:
+                                data = rr.json()
+                                ok = bool(data.get("ok"))
+                                msg = (data.get("message") or "").strip() or ("Started." if ok else "Failed.")
+                                speak_text_windows(msg, wait=False)
+
+                                if ok:
+                                    threading.Thread(target=self._speak_last_run_output, daemon=True).start()
+                                return
+                        except Exception:
+                            pass
+                        time.sleep(0.5)
+
+                    speak_text_windows("No confirmation from Visual Studio Code.", wait=False)
+
+                threading.Thread(target=_wait_result, daemon=True).start()
+                return
+
+            # Command: move to line N (simple parse)
+            if "move to line" in text:
+                m = re.search(r"\b(\d+)\b", text)
+                line = int(m.group(1)) if m else 0
+
+                if line > 0:
+                    cmd_id = self._enqueue_vscode_command("move_to_line", {"line": line})
+                    if not cmd_id:
+                        speak_text_windows("Failed to send move command to Visual Studio Code.", wait=False)
+                    else:
+                        speak_text_windows(f"Moving to line {line}.", wait=False)
+                else:
+                    speak_text_windows("Please say a line number, for example: move to line 12.", wait=False)
+                return
+
+            if text.strip() in ("save file", "save the file", "save"):
+                cmd_id = self._enqueue_vscode_command("save_file", {})
+                if cmd_id:
+                    speak_text_windows("Saving.", wait=False)
+                else:
+                    speak_text_windows("Failed to send save command.", wait=False)
+                return
+            
+            if text.startswith("find "):
+                query = text.split("find ", 1)[1].strip()
+                cmd_id = self._enqueue_vscode_command("find", {"query": query})
+                if cmd_id:
+                    speak_text_windows(f"Finding {query}.", wait=False)
+                else:
+                    speak_text_windows("Failed to send find command.", wait=False)
+                return
+            
+            if text.startswith("scroll down"):
+                cmd_id = self._enqueue_vscode_command("scroll", {"direction": "down", "lines": 12})
+                if cmd_id:
+                    speak_text_windows("Scrolling down.", wait=False)
+                return
+
+            if text.startswith("scroll up"):
+                cmd_id = self._enqueue_vscode_command("scroll", {"direction": "up", "lines": 12})
+                if cmd_id:
+                    speak_text_windows("Scrolling up.", wait=False)
+                return
+            
+            if text.startswith("go to function "):
+                name = text.split("go to function ", 1)[1].strip().replace(" ", "_")
+                cmd_id = self._enqueue_vscode_command("goto_function", {"name": name})
+                if cmd_id:
+                    speak_text_windows(f"Going to function {name}.", wait=False)
+                else:
+                    speak_text_windows("Failed to send go to function command.", wait=False)
+                return
+            
             # If the user explicitly asked to analyze code, handle that immediately
             if ("analyze the code" in text) or ("analyze" in text and "code" in text):
+                def _do_analysis():
                     try:
-                        resp = requests.get(self.server.rstrip("/") + "/vscode/editor", timeout=3)
-                        if not resp.ok:
-                            speak_text_windows("Could not fetch editor text for analysis.", wait=False)
+                        speak_text_windows("Analyzing code, please wait.", wait=False)
+                        r2 = requests.post(self.server.rstrip("/") + "/analyze-active-editor", timeout=180)
+                        if not r2.ok:
+                            speak_text_windows("Analysis request failed.", wait=False)
                             return
-                        data = resp.json()
-                        editor_text = data.get("text") or ""
+                        result = r2.json()
+                        narration = result.get("narration") if isinstance(result, dict) else None
+                        if narration:
+                            speak_text_windows(narration, wait=True)
+                        else:
+                            speak_text_windows("Analysis returned no narration.", wait=False)
                     except Exception:
-                        speak_text_windows("Could not fetch editor text for analysis.", wait=False)
-                        return
+                        speak_text_windows("Code analysis failed.", wait=False)
 
-                    try:
-                        from llm.code_analysis import summarize_code
-                    except Exception:
-                        speak_text_windows("Code analysis is not available.", wait=False)
-                        return
+                threading.Thread(target=_do_analysis, daemon=True).start()
+                return
 
-                    def _do_analysis(code_text: str):
-                        try:
-                            speak_text_windows("Analyzing code, please wait.", wait=False)
-                            result = summarize_code(code_text, "python")
-                            narration = result.get("narration") if isinstance(result, dict) else None
-                            if narration:
-                                speak_text_windows(narration, wait=True)
-                            else:
-                                speak_text_windows("Analysis returned no narration.", wait=False)
-                        except Exception:
-                            speak_text_windows("Code analysis failed.", wait=False)
-
-                    threading.Thread(target=_do_analysis, args=(editor_text,), daemon=True).start()
-                    return  
-
-            prompt = "How can I help?" if remainder == "" else remainder
+            # Otherwise, normal chat: send to server LLM
+            prompt = text.strip()
+            if not prompt:
+                prompt = "How can I help?"
 
             try:
-                if llm_test and hasattr(llm_test, "chat"):
-                    bot = llm_test.chat(prompt)
-                else:
-                    speak_text_windows("Chat service not available.", wait=False)
+                r3 = requests.post(
+                    self.server.rstrip("/") + "/chat",
+                    json={"message": prompt},
+                    timeout=120,
+                )
+                if not r3.ok:
+                    speak_text_windows("Chat request failed.", wait=False)
                     return
+                bot = r3.json()
             except Exception:
                 speak_text_windows("Chat failed.", wait=False)
                 return
 
             reply = bot.get("reply", "") if isinstance(bot, dict) else ""
             if reply:
+                speak_text_windows(reply, wait=False)
+    
+    def _enqueue_vscode_command(self, type: str, payload: dict | None = None) -> str | None:
+        try:
+            r = requests.post(
+                self.server.rstrip("/") + "/vscode/command",
+                json={"type": type, "payload": payload or {}},
+                timeout=5,
+            )
+            if not r.ok:
                 try:
-                    speak_text_windows(reply, wait=False)
-                    if engine:
-                        engine.say(reply)
-                        engine.runAndWait()
+                    print(f"[enqueue] failed: HTTP {r.status_code} body={r.text[:300]}")
                 except Exception:
                     pass
+                return None
+            data = r.json()
+            return data.get("id")
+        except Exception as e:
+            try:
+                print(f"[enqueue] exception: {e}")
+            except Exception:
+                pass
+            return None
+        
+    def _speak_last_run_output(self) -> None:
+        try:
+            deadline = time.time() + 25
+            snap: Optional[dict] = None
+
+            while time.time() < deadline:
+                rr = requests.get(self.server.rstrip("/") + "/terminal/snapshot", timeout=2)
+                if rr.ok:
+                    snap = rr.json()
+                    if isinstance(snap, dict) and snap.get("running") is False and snap.get("exit_code") is not None:
+                        break
+                time.sleep(0.5)
+
+            if not isinstance(snap, dict):
+                speak_text_windows("I could not read the program output.", wait=False)
+                return
+
+            code = snap.get("exit_code")
+            out = (snap.get("stdout") or "").strip()
+            err = (snap.get("stderr") or "").strip()
+
+            # Speak a short, latest tail only
+            if err:
+                speak_text_windows(f"Program exited with code {code}. Error output:", wait=False)
+                speak_text_windows(err[-1200:], wait=True)
+            elif out:
+                speak_text_windows(f"Program exited with code {code}. Output:", wait=False)
+                speak_text_windows(out[-1200:], wait=True)
+            else:
+                speak_text_windows(f"Program exited with code {code}. No output.", wait=False)
+
+        except Exception:
+            speak_text_windows("Failed to read program output.", wait=False)
 
 if __name__ == "__main__":
     ZeroVisionAssistant().mainloop()

@@ -11,14 +11,21 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "onCommand:zero-vision-coding.helloWorld"
+    "onCommand:zero-vision-coding.helloWorld",
+    "onCommand:zero-vision-coding.runProgram"
   ],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "zero-vision-coding.helloWorld",
-      "title": "Zero Vision Coding: Hello World"
-    }]
+    "commands": [
+      {
+        "command": "zero-vision-coding.helloWorld",
+        "title": "Zero Vision Coding: Hello World"
+      },
+      {
+        "command": "zero-vision-coding.runProgram",
+        "title": "Zero Vision Coding: Run Program"
+      }
+    ]
   },
   "scripts": {
     "lint": "eslint .",

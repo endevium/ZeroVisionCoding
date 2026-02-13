@@ -4,25 +4,29 @@ from dataclasses import dataclass
 
 @dataclass
 class ExtensionState:
-    last_seen_timestamp: float | None = None
-    name: str | None = None
-    version: str | None = None
+    connected: bool = False
+    name: str = ""
+    version: str = ""
+    last_seen: float = 0.0
 
 STATE = ExtensionState()
 
 def register_extension(name: str | None, version: str | None) -> dict:
-    STATE.last_seen_timestamp = time.time()
-    STATE.name = name
-    STATE.version = version
-    return { "ok": True, "lastSeen": STATE.last_seen_timestamp}
+    STATE.connected = True
+    STATE.name = name or ""
+    STATE.version = version or ""
+    STATE.last_seen = time.time()
+    return {"ok": True}
 
 def get_status(max_age_seconds: float = 3.0) -> dict:
     now = time.time()
-    connected = STATE.last_seen_timestamp is not None and (now - STATE.last_seen_timestamp) <= max_age_seconds
+    connected = STATE.connected and (now - STATE.last_seen) <= max_age_seconds
+    if not connected:
+        STATE.connected = False
 
     return {
         "connected": connected,
         "name": STATE.name,
         "version": STATE.version,
-        "lastSeen": STATE.last_seen_timestamp
+        "lastSeen": STATE.last_seen,
     }
