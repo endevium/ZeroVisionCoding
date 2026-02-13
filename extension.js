@@ -6,6 +6,7 @@ const { spawn } = require('child_process');
 
 let _registeredOnce = false;
 let output;
+let runningChild = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 
@@ -34,10 +35,11 @@ async function sendActiveEditorSnapshot() {
 
     const doc = editor.document;
 
-    // Save last python file path so voice-run is stable even if focus changes
     if (doc.languageId === 'python' && !doc.isUntitled) {
         lastPythonPath = doc.uri.fsPath;
     }
+
+    const sel = editor.selection;
 
     await postJson(`${SERVER}/vscode/editor`, {
         uri: String(doc.uri),
@@ -45,6 +47,14 @@ async function sendActiveEditorSnapshot() {
         text: doc.getText(),
         version: doc.version,
         path: doc.uri.fsPath,
+
+        // NEW: context
+        cursor: { line: sel.active.line, character: sel.active.character },
+        selection: {
+            anchor: { line: sel.anchor.line, character: sel.anchor.character },
+            active: { line: sel.active.line, character: sel.active.character },
+            isReversed: sel.isReversed,
+        },
     });
 }
 

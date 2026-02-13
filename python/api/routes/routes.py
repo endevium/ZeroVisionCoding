@@ -8,6 +8,7 @@ from api.controllers.analyze_controller import chat_controller, analyze_code_con
 from api.models.commands_model import EnqueueCommandRequest, EnqueueCommandResponse, NextCommandResponse, CommandResultRequest, CommandResultResponse
 from api.services.command_queue import QUEUE
 from api.services import terminal_state
+from api.services.editor_buffer import BUFFER
 
 router = APIRouter()
 
@@ -33,6 +34,11 @@ def vscode_editor(payload: dict):
 def vscode_editor_get():
     return get_editor()
 
+@router.get("/vscode/editor-buffer")
+def vscode_editor_buffer(n: int = 10):
+    # returns last n snapshots (each includes text, cursor, selection)
+    n = max(1, min(int(n), 60))
+    return {"items": BUFFER.tail(n)}
 
 
 @router.post("/chat", response_model=ChatResponse)
