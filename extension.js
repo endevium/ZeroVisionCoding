@@ -1,6 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
+const path = require('path');
 const SERVER = 'http://127.0.0.1:8000';
 const { spawn } = require('child_process');
 
@@ -206,6 +207,16 @@ async function handleCommand(cmd) {
             return;
         }
 
+        if (type === 'press_f5') {
+            try {
+                await vscode.commands.executeCommand('workbench.action.debug.start');
+                await postCommandResult(id, true, 'F5 triggered');
+            } catch (e) {
+                await postCommandResult(id, false, e?.message ?? String(e));
+            }
+            return;
+        }
+
         if (type === 'stop_program') {
             if (!runningChild) {
                 await postCommandResult(id, false, 'No running program');
@@ -241,6 +252,23 @@ async function handleCommand(cmd) {
             return;
         }
 
+        if (type === 'open_file') {
+            const targetPath = String(payload.path || '').trim();
+            if (!targetPath) {
+                await postCommandResult(id, false, 'Missing target path');
+                return;
+            }
+            try {
+                const uri = vscode.Uri.file(targetPath);
+                const doc = await vscode.workspace.openTextDocument(uri);
+                await vscode.window.showTextDocument(doc, { preview: false });
+                await postCommandResult(id, true, `Opened ${path.basename(targetPath)}`, { path: targetPath });
+            } catch (e) {
+                await postCommandResult(id, false, e?.message ?? String(e));
+            }
+            return;
+        }
+
         if (type === 'save_file') {
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
@@ -249,6 +277,34 @@ async function handleCommand(cmd) {
             }
             await editor.document.save();
             await postCommandResult(id, true, 'File saved');
+            return;
+        }
+
+        if (type === 'save_file_as') {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                await postCommandResult(id, false, 'No active editor');
+                return;
+            }
+
+            const targetPath = String(payload.path || '').trim();
+            if (!targetPath) {
+                await postCommandResult(id, false, 'Missing target path');
+                return;
+            }
+
+            try {
+                const uri = vscode.Uri.file(targetPath);
+                const data = Buffer.from(editor.document.getText(), 'utf8');
+                await vscode.workspace.fs.writeFile(uri, data);
+
+                const doc = await vscode.workspace.openTextDocument(uri);
+                await vscode.window.showTextDocument(doc, { preview: false });
+
+                await postCommandResult(id, true, `Saved as ${path.basename(targetPath)}`, { path: targetPath });
+            } catch (e) {
+                await postCommandResult(id, false, e?.message ?? String(e));
+            }
             return;
         }
 

@@ -5,3 +5,5 @@ SpeechRecognition
 fastapi
 uvicorn
 pydantic
+keyboard
+edge-tts

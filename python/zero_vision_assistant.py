@@ -7,11 +7,39 @@ import tkinter as tk
 import threading
 import queue
 import time
+import tempfile
 import string
 import traceback
-import re
+import winsound
 from tkinter import messagebox
 from typing import Optional
+from urllib.parse import quote
+
+# TTS interruption state
+_TTS_LOCK = threading.Lock()
+_TTS_POPEN: Optional[subprocess.Popen] = None
+_TTS_SPEAKER = None
+# SAPI flags (if using win32com SAPI)
+_SAPI_ASYNC_FLAG = 1
+_SAPI_PURGE_FLAG = 2
+
+# Optional AI TTS backend (Edge Neural voices)
+_AI_TTS_ENABLED = os.getenv("ZERO_VISION_AI_TTS", "0").strip().lower() in ("1", "true", "yes", "on")
+_AI_TTS_VOICE = os.getenv("ZERO_VISION_TTS_VOICE", "en-US-AriaNeural")
+_AI_TTS_PROC: Optional[subprocess.Popen] = None
+_AI_TTS_CHECKED = False
+_AI_TTS_READY = False
+
+# Default Windows SAPI voice (substring match against installed voices)
+_SAPI_DEFAULT_VOICE = os.getenv("ZERO_VISION_SAPI_VOICE", "").strip() or None
+
+# Speech performance tuning
+_SPEAK_WORDS_ONLY = True
+# items shorter than this length will be spoken asynchronously (non-blocking)
+_TTS_SHORT_ASYNC_MAX = 40
+# small gap between queued items
+_TTS_GAP = 0.05
+_TTS_POP_TOKEN = "__ZV_POP__"
 
 
 def createLabel(self, text, fontSize, color):
@@ -24,6 +52,124 @@ def createLabel(self, text, fontSize, color):
         bg="black",
     )
 
+def _extract_after_phrase(text: str, phrases: list[str]) -> str:
+    text = (text or "").strip().lower()
+    for phrase in phrases:
+        idx = text.find(phrase)
+        if idx != -1:
+            return text[idx + len(phrase):].strip()
+    return ""
+
+def _normalize_spoken_filename(spoken: str) -> str:
+    spoken = (spoken or "").strip().lower().replace('"', "").replace("'", "")
+    tokens = [t for t in spoken.replace("/", " ").replace("\\", " ").split() if t]
+
+    parts: list[str] = []
+    for tok in tokens:
+        if tok in ("dot", "period", "point"):
+            parts.append(".")
+            continue
+        if tok in ("dash", "hyphen"):
+            parts.append("-")
+            continue
+        if tok in ("underscore", "under", "under-score"):
+            parts.append("_")
+            continue
+
+        cleaned = "".join(ch for ch in tok if ch.isalnum())
+        if cleaned:
+            parts.append(cleaned)
+
+    name = "".join(parts)
+    if name and "." not in name:
+        name = name + ".py"
+    return name
+
+
+def _speak_text_ai_edge(
+    text: str,
+    voice: Optional[str] = None,
+    *,
+    wait: bool = False,
+) -> bool:
+    """Attempt AI TTS via edge-tts CLI.
+
+    Returns True when AI TTS was started successfully, otherwise False.
+    """
+    if not _AI_TTS_ENABLED:
+        return False
+
+    global _AI_TTS_CHECKED, _AI_TTS_READY
+    if not _AI_TTS_CHECKED:
+        try:
+            probe = subprocess.run(
+                [sys.executable, "-m", "edge_tts", "--help"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=8,
+            )
+            _AI_TTS_READY = (probe.returncode == 0)
+        except Exception:
+            _AI_TTS_READY = False
+        _AI_TTS_CHECKED = True
+
+    if not _AI_TTS_READY:
+        return False
+
+    selected_voice = voice or _AI_TTS_VOICE
+
+    def _run_ai() -> None:
+        global _AI_TTS_PROC
+        wav_path = None
+        try:
+            fd, wav_path = tempfile.mkstemp(suffix=".wav", prefix="zv_tts_")
+            os.close(fd)
+
+            cmd = [
+                sys.executable,
+                "-m",
+                "edge_tts",
+                "--voice",
+                selected_voice,
+                "--text",
+                text,
+                "--write-media",
+                wav_path,
+            ]
+
+            with _TTS_LOCK:
+                _AI_TTS_PROC = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            code = _AI_TTS_PROC.wait()
+            with _TTS_LOCK:
+                _AI_TTS_PROC = None
+
+            if code != 0 or not wav_path or not os.path.exists(wav_path):
+                return
+
+            # Blocking playback in this worker so queue order remains stable
+            winsound.PlaySound(wav_path, winsound.SND_FILENAME | winsound.SND_SYNC)
+        except Exception:
+            pass
+        finally:
+            try:
+                if wav_path and os.path.exists(wav_path):
+                    os.remove(wav_path)
+            except Exception:
+                pass
+            with _TTS_LOCK:
+                _AI_TTS_PROC = None
+
+    try:
+        if wait:
+            _run_ai()
+        else:
+            threading.Thread(target=_run_ai, daemon=True).start()
+        return True
+    except Exception:
+        return False
+
 def speak_text_windows(
     text: str,
     rate: int = 0,
@@ -31,50 +177,75 @@ def speak_text_windows(
     voice: Optional[str] = None,
     *,
     wait: bool = False,
+    prefer_local_sapi: bool = False,
 ) -> None:
-    # 1) Fast in-process SAPI (pywin32)
+    sapi_voice = voice if voice is not None else _SAPI_DEFAULT_VOICE
+
+    # Try AI TTS backend first (Edge Neural)
+    if os.name == "nt" and not prefer_local_sapi:
+        try:
+            if _speak_text_ai_edge(text=text, voice=voice, wait=wait):
+                return
+        except Exception:
+            pass
+
+    # Try a fast, in-process Windows SAPI call (no PowerShell spawn)
     if os.name == "nt":
         try:
-            import win32com.client  # type: ignore
+            import win32com.client
+            global _TTS_SPEAKER
+
+            # create a shared speaker so we can purge/interrupt
+            try:
+                if _TTS_SPEAKER is None:
+                    _TTS_SPEAKER = win32com.client.Dispatch("SAPI.SpVoice")
+            except Exception:
+                _TTS_SPEAKER = None
 
             def _speak_win32(text_inner: str, rate_inner: int, volume_inner: int, voice_inner: Optional[str], wait_inner: bool):
-                speaker = win32com.client.Dispatch("SAPI.SpVoice")
-                speaker.Rate = int(rate_inner)
-                speaker.Volume = int(volume_inner)
+                try:
+                    if _TTS_SPEAKER is None:
+                        # fallback to local dispatch
+                        speaker = win32com.client.Dispatch("SAPI.SpVoice")
+                    else:
+                        speaker = _TTS_SPEAKER
 
-                if voice_inner:
-                    try:
-                        for v in speaker.GetVoices():
-                            if voice_inner.lower() in v.GetDescription().lower():
-                                speaker.Voice = v
-                                break
-                    except Exception:
-                        pass
+                    speaker.Rate = int(rate_inner)
+                    speaker.Volume = int(volume_inner)
+                    if voice_inner:
+                        try:
+                            voices = speaker.GetVoices()
+                            for v in voices:
+                                if voice_inner.lower() in v.GetDescription().lower():
+                                    speaker.Voice = v
+                                    break
+                        except Exception:
+                            pass
 
-                # 1 = SVSFlagsAsync (do not block)
-                flags = 0 if wait_inner else 1
-                speaker.Speak(text_inner, flags)
+                    # Normal speaking should NOT purge; purge is handled explicitly
+                    # by stop_current_tts()/interrupt_and_speak().
+                    flags = 0
+                    if not wait_inner:
+                        flags = _SAPI_ASYNC_FLAG
+
+                    speaker.Speak(text_inner, flags)
+                except Exception:
+                    # If anything goes wrong with win32com, silently fall back
+                    pass
 
             if wait:
-                _speak_win32(text, rate, volume, voice, True)
+                _speak_win32(text, rate, volume, sapi_voice, True)
             else:
-                threading.Thread(
-                    target=_speak_win32, args=(text, rate, volume, voice, False), daemon=True
-                ).start()
+                threading.Thread(target=_speak_win32, args=(text, rate, volume, sapi_voice, False), daemon=True).start()
             return
-        except Exception as e:
-            # fall through to PowerShell fallback
-            # (keep a debug message so failures aren't silent)
-            try:
-                print(f"[TTS] win32com failed: {e}")
-            except Exception:
-                pass
+        except Exception:
+            # win32com not available or failed; fall through to PowerShell fallback
+            pass
 
-    # 2) PowerShell fallback (can be blocked by policy)
-    try:
-        text_b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
+    # PowerShell fallback (slower) kept for compatibility
+    text_b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
 
-        ps_script = f"""
+    ps_script = f"""
 $bytes = [System.Convert]::FromBase64String("{text_b64}")
 $text  = [System.Text.Encoding]::UTF8.GetString($bytes)
 
@@ -82,60 +253,47 @@ $voice = New-Object -ComObject SAPI.SpVoice
 $voice.Rate = {int(rate)}
 $voice.Volume = {int(volume)}
 
-{"$voiceName = " + repr(voice) + "; $voice.GetVoices() | ForEach-Object { if ($_.GetDescription() -like ('*' + $voiceName + '*')) { $voice.Voice = $_ } }" if voice else ""}
+{"$voiceName = " + repr(sapi_voice) + "; $voice.GetVoices() | ForEach-Object { if ($_.GetDescription() -like ('*' + $voiceName + '*')) { $voice.Voice = $_ } }" if sapi_voice else ""}
 
 $voice.Speak($text) | Out-Null
 """.strip()
 
-        encoded = base64.b64encode(ps_script.encode("utf-16le")).decode("ascii")
-        cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded]
+    encoded = base64.b64encode(ps_script.encode("utf-16le")).decode("ascii")
 
-        if wait:
-            subprocess.run(cmd, check=False)
-        else:
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return
-    except Exception as e:
+    cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded]
+
+    def _run():
+        global _TTS_POPEN
         try:
-            print(f"[TTS] PowerShell fallback failed: {e}")
+            with _TTS_LOCK:
+                _TTS_POPEN = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            try:
+                _TTS_POPEN.wait()
+            finally:
+                with _TTS_LOCK:
+                    _TTS_POPEN = None
+        except Exception:
+            with _TTS_LOCK:
+                _TTS_POPEN = None
+
+    if wait:
+        # start and wait synchronously but keep a handle so it can be killed
+        with _TTS_LOCK:
+            _TTS_POPEN = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            _TTS_POPEN.wait()
         except Exception:
             pass
-
-def _kill_port_8000_processes() -> None:
-    if os.name != "nt":
-        return
-    try:
-        # Kill processes listening on 8000 (best-effort)
-        out = subprocess.check_output('netstat -ano | findstr ":8000"', shell=True, text=True, stderr=subprocess.DEVNULL)
-        pids = set()
-        for line in out.splitlines():
-            parts = line.split()
-            if len(parts) >= 5:
-                pid = parts[-1]
-                if pid.isdigit():
-                    pids.add(pid)
-        for pid in pids:
-            subprocess.run(["taskkill", "/PID", pid, "/F"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
-
+        finally:
+            with _TTS_LOCK:
+                _TTS_POPEN = None
+    else:
+        threading.Thread(target=_run, daemon=True).start()
 
 class ZeroVisionAssistant(tk.Tk):
     def __init__(self):
         """Initialize Zero Vision Assistant"""
         super().__init__()
-
-        self.server = "http://127.0.0.1:8000/"
-        self.server_process: Optional[subprocess.Popen] = None
-
-        self.vscode_announced: bool = False
-        self._extension_connected: Optional[bool] = None
-        self.last_editor_text: str = ""
-        self._current_word: str = ""
-        self._tts_queue: queue.Queue = queue.Queue()
-        self._last_boundary_space: bool = False
-
-        threading.Thread(target=self._tts_worker, daemon=True).start()
 
         self.title("Zero Vision Coding")
         self.geometry("720x550")
@@ -151,17 +309,39 @@ class ZeroVisionAssistant(tk.Tk):
         self.vscodeLabel = createLabel(self, "Loading...", 20, "white")
         self.vscodeLabel.pack(pady=(0, 0))
 
-        self.currentTextLabel = createLabel(self, "Current Text: ", 20, "white")
+        self.currentTextLabel = createLabel(self, "Current Text:(empty)", 20, "white")
         self.currentTextLabel.pack(pady=(0, 0))
 
         self.speechStatusLabel = createLabel(self, "Speech: unavailable", 14, "red")
         self.speechStatusLabel.pack(pady=(8, 0))
+
+        self.server = "http://127.0.0.1:8000/"
+        self.server_process: Optional[subprocess.Popen] = None
+        self.vscode_announced: bool = False
+        self._extension_connected: Optional[bool] = None
+        self._disconnect_since: Optional[float] = None
+        self._disconnect_announced: bool = False
+        self._pending_overwrite_path: Optional[str] = None
+        self._pending_overwrite_name: Optional[str] = None
+        self._saved_files: dict[str, str] = {}
+        self.last_editor_text: str = ""
+        self._current_word: str = ""
+        self._tts_queue: queue.Queue = queue.Queue()
+        self._last_boundary_space: bool = False
+        self._tts_generation = 0
+        self._tts_gen_lock = threading.Lock()
+
+        self._vscode_launch_attempted = False
+        self._last_vscode_launch_attempt = 0.0
+        self._startup_f5_triggered = False
+        self._launch_vscode()
 
         # Start server once during initialization (do not start on every status update)
         self.start_server()
         self.after(200, self.poll_server_until_ready)
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+        threading.Thread(target=self._tts_worker, daemon=True).start()
 
         # Initialize speech recognition availability and bind Shift+Enter to listen once
         try:
@@ -183,8 +363,313 @@ class ZeroVisionAssistant(tk.Tk):
         except Exception:
             pass
 
+    def _play_ding(self) -> None:
+        """Play a short, high-pitched success tone."""
+        def _run() -> None:
+            try:
+                winsound.Beep(1760, 90)
+            except Exception:
+                pass
+
+        try:
+            threading.Thread(target=_run, daemon=True).start()
+        except Exception:
+            pass
+
+    def _play_buzz(self) -> None:
+        """Play a short, low-pitched error tone."""
+        def _run() -> None:
+            try:
+                winsound.Beep(220, 220)
+            except Exception:
+                pass
+
+        try:
+            threading.Thread(target=_run, daemon=True).start()
+        except Exception:
+            pass
+
+    def _play_pop(self) -> None:
+        """Play a tiny pop tone used for deletion feedback."""
+        def _run() -> None:
+            try:
+                winsound.Beep(1320, 35)
+            except Exception:
+                pass
+
+        try:
+            threading.Thread(target=_run, daemon=True).start()
+        except Exception:
+            pass
+
+    def _reset_current_text_on_startup(self) -> None:
+        """Reset current text locally and on server so UI starts empty."""
+        try:
+            self.last_editor_text = ""
+            self._current_word = ""
+            self._last_boundary_space = False
+            self.currentTextLabel.config(text="Current Text:(empty)", fg="white")
+        except Exception:
+            pass
+
+    def _launch_vscode(self, force: bool = False) -> None:
+        """Launch VS Code once, opening the workspace folder."""
+        now = time.time()
+        if not force and self._vscode_launch_attempted:
+            return
+        if force and (now - float(self._last_vscode_launch_attempt or 0.0) < 8.0):
+            return
+
+        self._vscode_launch_attempted = True
+        self._last_vscode_launch_attempt = now
+
+        try:
+            workspace_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+        except Exception:
+            workspace_root = os.getcwd()
+
+        launched = False
+
+        launch_args = ["--reuse-window", "--extensionDevelopmentPath", workspace_root, workspace_root]
+        launch_candidates: list[list[str]] = [["code", *launch_args]]
+        try:
+            local_app_data = os.getenv("LOCALAPPDATA") or ""
+            program_files = os.getenv("ProgramFiles") or ""
+            program_files_x86 = os.getenv("ProgramFiles(x86)") or ""
+            candidate_bins = [
+                os.path.join(local_app_data, "Programs", "Microsoft VS Code", "bin", "code.cmd"),
+                os.path.join(local_app_data, "Programs", "Microsoft VS Code", "Code.exe"),
+                os.path.join(program_files, "Microsoft VS Code", "bin", "code.cmd"),
+                os.path.join(program_files, "Microsoft VS Code", "Code.exe"),
+                os.path.join(program_files_x86, "Microsoft VS Code", "bin", "code.cmd"),
+                os.path.join(program_files_x86, "Microsoft VS Code", "Code.exe"),
+            ]
+
+            for candidate in candidate_bins:
+                if candidate and os.path.exists(candidate):
+                    launch_candidates.append([candidate, *launch_args])
+        except Exception:
+            pass
+
+        for cmd in launch_candidates:
+            try:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                launched = True
+                break
+            except Exception:
+                continue
+
+        if not launched:
+            try:
+                uri = "vscode://file/" + quote(workspace_root.replace("\\", "/"))
+                os.startfile(uri)
+            except Exception:
+                pass
+
+        try:
+            requests.post(
+                self.server.rstrip("/") + "/vscode/editor",
+                json={
+                    "uri": "",
+                    "path": "",
+                    "language": "plaintext",
+                    "text": "",
+                    "version": 0,
+                    "cursor": {},
+                    "selection": {},
+                },
+                timeout=0.8,
+            )
+        except Exception:
+            pass
+
+    def _speak_current_line(self) -> None:
+        """Speak current line number and content from active editor state."""
+        try:
+            resp = requests.get(self.server.rstrip("/") + "/vscode/editor", timeout=3)
+            if not resp.ok:
+                speak_text_windows("I could not read the current line.", wait=False)
+                return
+            data = resp.json() or {}
+        except Exception:
+            speak_text_windows("I could not read the current line.", wait=False)
+            return
+
+        text = str(data.get("text") or "")
+        cursor = data.get("cursor") or {}
+        selection = data.get("selection") or {}
+
+        line_index = None
+        try:
+            if isinstance(cursor, dict) and cursor.get("line") is not None:
+                line_index = int(cursor.get("line"))
+            elif isinstance(selection, dict):
+                active = selection.get("active") or {}
+                if isinstance(active, dict) and active.get("line") is not None:
+                    line_index = int(active.get("line"))
+        except Exception:
+            line_index = None
+
+        if line_index is None:
+            line_index = 0
+
+        lines = text.splitlines()
+        if not lines:
+            speak_text_windows("Line 1. empty.", wait=False)
+            return
+
+        if line_index < 0:
+            line_index = 0
+        if line_index >= len(lines):
+            line_index = len(lines) - 1
+
+        line_content = lines[line_index].strip()
+        if not line_content:
+            line_content = "empty"
+
+        if len(line_content) > 220:
+            line_content = line_content[:220] + " ..."
+
+        speak_text_windows(f"Line {line_index + 1}. {line_content}", wait=False)
+
+    def _speak_active_file_name(self) -> None:
+        """Speak the active file name from editor state."""
+        try:
+            resp = requests.get(self.server.rstrip("/") + "/vscode/editor", timeout=3)
+            if not resp.ok:
+                speak_text_windows("I could not read the active file.", wait=False)
+                return
+            data = resp.json() or {}
+        except Exception:
+            speak_text_windows("I could not read the active file.", wait=False)
+            return
+
+        path = str(data.get("path") or "").strip()
+        uri = str(data.get("uri") or "").strip()
+        name = os.path.basename(path) if path else ""
+
+        if not name:
+            if uri:
+                name = uri.split("/")[-1] or uri
+        if not name:
+            name = "untitled"
+
+        speak_text_windows(f"Active file is {name}.", wait=False)
+
+    def _speak_full_editor(self) -> None:
+        """Speak the entire editor content in manageable chunks."""
+        try:
+            resp = requests.get(self.server.rstrip("/") + "/vscode/editor", timeout=5)
+            if not resp.ok:
+                speak_text_windows("I could not read the editor content.", wait=False)
+                return
+            data = resp.json() or {}
+        except Exception:
+            speak_text_windows("I could not read the editor content.", wait=False)
+            return
+
+        text = str(data.get("text") or "")
+        if not text.strip():
+            speak_text_windows("The editor is empty.", wait=False)
+            return
+
+        chunk_size = 800
+        idx = 0
+        while idx < len(text):
+            chunk = text[idx: idx + chunk_size]
+            speak_text_windows(chunk, wait=True)
+            idx += chunk_size
+
+    def _speak_help(self) -> None:
+        """Speak available voice commands."""
+        help_text = (
+            "Available commands: "
+            "Help or what can I say. "
+            "Where am I or current line. "
+            "What file is this. "
+            "Read the whole thing. "
+            "Save the file or save work. "
+            "Save this file as <name>. "
+            "Open file <name>. "
+            "Run code or run the program. "
+            "Analyze the code."
+        )
+        speak_text_windows(help_text, wait=False)
+
+    def _get_active_file_name(self) -> str:
+        """Return active file name for feedback, or a safe fallback."""
+        try:
+            resp = requests.get(self.server.rstrip("/") + "/vscode/editor", timeout=3)
+            if not resp.ok:
+                return "file"
+            data = resp.json() or {}
+        except Exception:
+            return "file"
+
+        path = str(data.get("path") or "").strip()
+        uri = str(data.get("uri") or "").strip()
+        name = os.path.basename(path) if path else ""
+        if not name and uri:
+            name = uri.split("/")[-1] or uri
+        return name or "file"
+
+    def _get_active_file_dir(self) -> str:
+        """Return directory of active file, or workspace root as fallback."""
+        try:
+            resp = requests.get(self.server.rstrip("/") + "/vscode/editor", timeout=3)
+            if resp.ok:
+                data = resp.json() or {}
+                path = str(data.get("path") or "").strip()
+                if path:
+                    return os.path.dirname(path)
+        except Exception:
+            pass
+
+        try:
+            root = os.path.dirname(os.path.abspath(__file__))
+            return os.path.abspath(os.path.join(root, os.pardir))
+        except Exception:
+            return os.getcwd()
+
+    def _send_save_as_command(self, target_path: str, target_name: str) -> None:
+        """Send save-as command to VS Code and announce result."""
+        try:
+            url = self.server.rstrip("/") + "/vscode/command"
+            resp = requests.post(
+                url,
+                json={"type": "save_file_as", "payload": {"path": target_path}},
+                timeout=3,
+            )
+            if not resp.ok:
+                speak_text_windows("Save failed.", wait=False)
+                return
+
+            data = resp.json()
+            cmd_id = data.get("id")
+
+            start = time.time()
+            timeout = 12.0
+            while time.time() - start < timeout:
+                try:
+                    rr = requests.get(self.server.rstrip("/") + f"/vscode/command-result/{cmd_id}", timeout=2)
+                    if rr.ok:
+                        res = rr.json()
+                        ok = bool(res.get("ok"))
+                        if ok:
+                            self._saved_files[target_name.lower()] = target_path
+                            speak_text_windows(f"Saved as {target_name}.", wait=False)
+                        else:
+                            speak_text_windows("Save failed.", wait=False)
+                        return
+                except Exception:
+                    pass
+                time.sleep(0.4)
+
+            speak_text_windows("Save command enqueued; no result yet.", wait=False)
+        except Exception:
+            speak_text_windows("Could not communicate with server to save.", wait=False)
+
     def start_server(self):
-        _kill_port_8000_processes()
         speak_text_windows("Welcome to Zero Vision Coding. Please wait while we're loading.", rate=0, volume=100, voice=None)
         python_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -232,6 +717,7 @@ class ZeroVisionAssistant(tk.Tk):
             if r.ok:
                 self.subLabel.config(text="Server running on port 8000", fg="white")
                 self.vscodeLabel.config(text="Connecting to VS Code...", fg="white")
+                self._reset_current_text_on_startup()
                 self.after(200, self.poll_extension_until_ready)
                 self.after(200, self.poll_editor_text)
                 speak_text_windows("The server is ready. Connecting to your Visual Studio Code", rate=0, volume=100, voice=None)
@@ -262,20 +748,61 @@ class ZeroVisionAssistant(tk.Tk):
                 text="VS Code connected",
                 fg="white"
             )
-            # If we just transitioned to connected, clear any pending "not connected" messages
+            self._disconnect_since = None
+            self._disconnect_announced = False
+            # If we just transitioned to connected, interrupt current speech and speak immediately
             if self._extension_connected is not True:
-                self.clear_tts_queue()
-                self.enqueue_speech("Successfully connected to Visual Studio Code. Your device is ready.")
+                try:
+                    # stop any current TTS and clear queue, then play success tone
+                    self.stop_current_tts()
+                    self.clear_tts_queue()
+                    self._play_ding()
+                except Exception:
+                    self._play_ding()
                 self.vscode_announced = True
+                if not self._startup_f5_triggered:
+                    self._startup_f5_triggered = True
+                    threading.Thread(target=self._trigger_startup_f5, daemon=True).start()
             self._extension_connected = True
         else:
             self.vscodeLabel.config(text="VS Code not connected", fg="red")
-            # Only enqueue a warning once per disconnected interval
-            if self._extension_connected is not False:
-                self.enqueue_speech("Could not connect to Visual Studio Code. Please make sure to open Visual Studio Code.")
+            if self._disconnect_since is None:
+                self._disconnect_since = time.time()
+
+            try:
+                elapsed = time.time() - float(self._disconnect_since or 0.0)
+                if elapsed >= 2.0:
+                    self._launch_vscode(force=True)
+            except Exception:
+                pass
+
+            # Only announce after a 3-second silence window
+            if not self._disconnect_announced:
+                elapsed = 0.0
+                try:
+                    elapsed = time.time() - float(self._disconnect_since or 0.0)
+                except Exception:
+                    elapsed = 0.0
+
+                if elapsed >= 3.0:
+                    try:
+                        self.stop_current_tts()
+                        self.clear_tts_queue()
+                    except Exception:
+                        pass
+                    self._play_buzz()
+                    self._disconnect_announced = True
             self._extension_connected = False
 
         self.after(500, self.poll_extension_until_ready)
+
+    def _trigger_startup_f5(self) -> None:
+        """Send a one-time command equivalent to pressing F5 in VS Code."""
+        try:
+            url = self.server.rstrip("/") + "/vscode/command"
+            requests.post(url, json={"type": "press_f5", "payload": {}}, timeout=3)
+        except Exception:
+            pass
     
     def poll_editor_text(self):
         try:
@@ -288,12 +815,13 @@ class ZeroVisionAssistant(tk.Tk):
                 if tail.strip():
                     self.currentTextLabel.config(text=f"Current Text: {tail}", fg="white")
                 else:
-                    self.currentTextLabel.config(text="Current Text: (empty)", fg="white")
+                    self.currentTextLabel.config(text="Current Text:(empty)", fg="white")
 
                 # Determine newly added text since last poll using longest common
                 # prefix/suffix to avoid re-speaking existing content.
                 new_text = text or ""
                 old = self.last_editor_text or ""
+                text_was_deleted = len(new_text) < len(old)
 
                 # longest common prefix
                 cp = 0
@@ -313,6 +841,26 @@ class ZeroVisionAssistant(tk.Tk):
                 else:
                     added = new_text[cp: len(new_text) - cs if cs else None]
 
+                # If text was deleted, speak the removed character, then a tiny pop.
+                if text_was_deleted:
+                    if cp + cs >= len(old):
+                        removed = ""
+                    else:
+                        removed = old[cp: len(old) - cs if cs else None]
+
+                    try:
+                        self.stop_current_tts()
+                    except Exception:
+                        pass
+                    try:
+                        self.clear_tts_queue()
+                    except Exception:
+                        pass
+
+                    if removed:
+                        self.enqueue_speech(removed[-1])
+                        self.enqueue_pop()
+
                 # Recompute the current pending word from the prefix (text before added)
                 prefix = new_text[:cp]
                 cur_word = ""
@@ -322,27 +870,38 @@ class ZeroVisionAssistant(tk.Tk):
                     i -= 1
                 self._current_word = cur_word
 
-                # Enqueue each character of the added segment and speak completed words
+                # Enqueue words (not per-letter) for faster, clearer speech.
+                # We only enqueue a completed word when a non-word boundary is typed,
+                # but keep immediate feedback by reading the last typed character when
+                # the user is still in the middle of a word.
+                word_buf = ""
+                saw_boundary = False
                 for ch in added:
                     if ch.isalnum() or ch == "_":
-                        # speak the letter and accumulate for the full word
-                        self._current_word += ch
-                        self.enqueue_speech(ch)
+                        word_buf += ch
                         self._last_boundary_space = False
                     else:
-                        # On boundary, speak the completed word (if any)
-                        if self._current_word:
-                            # speak the full word after individual letters
-                            self.enqueue_speech(self._current_word)
-                            self._current_word = ""
+                        saw_boundary = True
+                        if word_buf:
+                            # speak the completed word
+                            self.enqueue_speech(word_buf)
+                            word_buf = ""
                         # speak physical spaces only when the user typed them
                         if ch.isspace():
                             if not self._last_boundary_space:
                                 self.enqueue_speech("space")
                                 self._last_boundary_space = True
                         else:
+                            # punctuation or symbols
                             self.enqueue_speech(ch)
                             self._last_boundary_space = False
+
+                # If there's a trailing partial word, keep it as the current pending word
+                if word_buf:
+                    self._current_word += word_buf
+                    # Immediate feedback while typing a word (no boundary yet)
+                    if not saw_boundary:
+                        self.enqueue_speech(word_buf[-1])
 
                 # Update tracked editor text
                 self.last_editor_text = new_text
@@ -362,7 +921,17 @@ class ZeroVisionAssistant(tk.Tk):
 
     def enqueue_speech(self, text: str) -> None:
         try:
-            self._tts_queue.put_nowait(text)
+            with self._tts_gen_lock:
+                gen = self._tts_generation
+            self._tts_queue.put_nowait((gen, text))
+        except Exception:
+            pass
+
+    def enqueue_pop(self) -> None:
+        try:
+            with self._tts_gen_lock:
+                gen = self._tts_generation
+            self._tts_queue.put_nowait((gen, _TTS_POP_TOKEN))
         except Exception:
             pass
 
@@ -378,20 +947,141 @@ class ZeroVisionAssistant(tk.Tk):
         except queue.Empty:
             pass
 
+    def stop_current_tts(self) -> None:
+        """Attempt to stop any currently-playing TTS output (powershell or SAPI)."""
+        # kill any PowerShell subprocess
+        try:
+            global _TTS_POPEN, _TTS_SPEAKER, _AI_TTS_PROC
+
+            # bump generation so worker ignores older queued items
+            try:
+                with self._tts_gen_lock:
+                    self._tts_generation += 1
+            except Exception:
+                pass
+
+            with _TTS_LOCK:
+                if _AI_TTS_PROC is not None:
+                    try:
+                        _AI_TTS_PROC.terminate()
+                    except Exception:
+                        try:
+                            _AI_TTS_PROC.kill()
+                        except Exception:
+                            pass
+                    _AI_TTS_PROC = None
+
+                if _TTS_POPEN is not None:
+                    try:
+                        _TTS_POPEN.terminate()
+                    except Exception:
+                        try:
+                            _TTS_POPEN.kill()
+                        except Exception:
+                            pass
+                    _TTS_POPEN = None
+
+            # If we have an in-process SAPI speaker, purge queued speech and recreate speaker
+            try:
+                try:
+                    winsound.PlaySound(None, winsound.SND_PURGE)
+                except Exception:
+                    pass
+
+                if _TTS_SPEAKER is not None:
+                    try:
+                        _TTS_SPEAKER.Speak("", _SAPI_PURGE_FLAG)
+                    except Exception:
+                        pass
+                    try:
+                        # recreate speaker instance to ensure any queued audio is reset
+                        _TTS_SPEAKER = None
+                    except Exception:
+                        _TTS_SPEAKER = None
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def interrupt_and_speak(self, text: str) -> None:
+        """Stop current TTS, clear queue, and speak the provided text immediately."""
+        try:
+            # increment generation and clear pending items so worker will ignore them
+            with self._tts_gen_lock:
+                self._tts_generation += 1
+        except Exception:
+            pass
+
+        try:
+            self.stop_current_tts()
+        except Exception:
+            pass
+
+        try:
+            self.clear_tts_queue()
+        except Exception:
+            pass
+
+        # Speak immediately synchronously to ensure it is heard first
+        try:
+            speak_text_windows(text, wait=True)
+        except Exception:
+            pass
+
     def _tts_worker(self) -> None:
         """Worker thread that speaks queued items sequentially."""
         while True:
             try:
-                text = self._tts_queue.get()
+                item = self._tts_queue.get()
             except Exception:
-                time.sleep(0.05)
+                time.sleep(0.01)
                 continue
 
             try:
-                # Block until the speech finishes to keep order
-                speak_text_windows(text, wait=True)
+                # support legacy string items or new (gen, text) tuples
+                gen = None
+                text = None
+                if isinstance(item, tuple) and len(item) >= 2:
+                    gen, text = item[0], item[1]
+                else:
+                    text = item
+
+                # if generation attached and it's stale, skip it
+                if gen is not None:
+                    try:
+                        with self._tts_gen_lock:
+                            if gen != self._tts_generation:
+                                try:
+                                    self._tts_queue.task_done()
+                                except Exception:
+                                    pass
+                                continue
+                    except Exception:
+                        pass
+
+                if text == _TTS_POP_TOKEN:
+                    self._play_pop()
+                    time.sleep(_TTS_GAP)
+                    continue
+
+                # Keep playback mostly blocking so short typed feedback remains audible.
+                wait_flag = True
+                prefer_local_sapi = False
+                try:
+                    if isinstance(text, str) and len(text) <= 1:
+                        wait_flag = False
+                    if isinstance(text, str):
+                        text_trim = text.strip()
+                        # Instant local feedback for typing: single character or single word
+                        if text_trim and (len(text_trim) == 1 or len(text_trim.split()) == 1):
+                            prefer_local_sapi = True
+                except Exception:
+                    wait_flag = True
+                    prefer_local_sapi = False
+
+                speak_text_windows(text, wait=wait_flag, prefer_local_sapi=prefer_local_sapi)
                 # small gap between items
-                time.sleep(0.05)
+                time.sleep(_TTS_GAP)
             except Exception:
                 pass
             finally:
@@ -465,199 +1155,257 @@ class ZeroVisionAssistant(tk.Tk):
 
             text = heard.lower()
 
-            remainder = None
             # Debug: announce what we heard (also printed)
             try:
                 print(f"Recognized speech: {text}")
+                self.enqueue_speech(f"Heard: {text}")
             except Exception:
-                remainder = None
+                pass
 
-            if ("run the program" in text) or ("run program" in text) or ("run the code" in text):
-                cmd_id = self._enqueue_vscode_command("run_program", {})
-                if not cmd_id:
-                    speak_text_windows("Failed to send run command to Visual Studio Code.", wait=False)
+            if self._pending_overwrite_path:
+                if ("yes" in text) or ("overwrite" in text):
+                    target_path = self._pending_overwrite_path
+                    target_name = self._pending_overwrite_name or os.path.basename(target_path)
+                    self._pending_overwrite_path = None
+                    self._pending_overwrite_name = None
+                    self._send_save_as_command(target_path, target_name)
+                    return
+                if ("no" in text) or ("cancel" in text):
+                    self._pending_overwrite_path = None
+                    self._pending_overwrite_name = None
+                    speak_text_windows("Save canceled.", wait=False)
+                    return
+                speak_text_windows("Please say yes to overwrite or no to cancel.", wait=False)
+                return
+
+            if ("where am i" in text) or ("current line" in text):
+                self._speak_current_line()
+                return
+
+            if "what file is this" in text:
+                self._speak_active_file_name()
+                return
+
+            if "read the whole thing" in text:
+                self._speak_full_editor()
+                return
+
+            if ("help" in text) or ("what can i say" in text):
+                self._speak_help()
+                return
+
+            if ("save this file as" in text) or ("save file as" in text) or ("save as" in text):
+                remainder = _extract_after_phrase(text, ["save this file as", "save file as", "save as"])
+                file_name = _normalize_spoken_filename(remainder)
+                if not file_name:
+                    speak_text_windows("Please say a file name.", wait=False)
                     return
 
-                speak_text_windows("Running the program.", wait=False)
+                target_dir = self._get_active_file_dir()
+                target_path = os.path.join(target_dir, file_name)
 
-                def _wait_result():
-                    deadline = time.time() + 8
-                    while time.time() < deadline:
+                if os.path.exists(target_path):
+                    self._pending_overwrite_path = target_path
+                    self._pending_overwrite_name = file_name
+                    speak_text_windows("File exists. Say yes to overwrite or no to cancel.", wait=False)
+                    return
+
+                self._send_save_as_command(target_path, file_name)
+                return
+
+            if "open file" in text:
+                remainder = _extract_after_phrase(text, ["open file"]).strip()
+                name = _normalize_spoken_filename(remainder)
+                if not name:
+                    speak_text_windows("Please say the file name to open.", wait=False)
+                    return
+
+                target_path = self._saved_files.get(name.lower())
+                if not target_path:
+                    speak_text_windows("I could not find that saved file.", wait=False)
+                    return
+
+                try:
+                    url = self.server.rstrip("/") + "/vscode/command"
+                    resp = requests.post(
+                        url,
+                        json={"type": "open_file", "payload": {"path": target_path}},
+                        timeout=3,
+                    )
+                    if not resp.ok:
+                        speak_text_windows("Open failed.", wait=False)
+                        return
+
+                    data = resp.json()
+                    cmd_id = data.get("id")
+
+                    start = time.time()
+                    timeout = 10.0
+                    while time.time() - start < timeout:
                         try:
-                            rr = requests.get(
-                                self.server.rstrip("/") + f"/vscode/command-result/{cmd_id}",
-                                timeout=1.5
-                            )
+                            rr = requests.get(self.server.rstrip("/") + f"/vscode/command-result/{cmd_id}", timeout=2)
                             if rr.ok:
-                                data = rr.json()
-                                ok = bool(data.get("ok"))
-                                msg = (data.get("message") or "").strip() or ("Started." if ok else "Failed.")
-                                speak_text_windows(msg, wait=False)
-
+                                res = rr.json()
+                                ok = bool(res.get("ok"))
                                 if ok:
-                                    threading.Thread(target=self._speak_last_run_output, daemon=True).start()
+                                    speak_text_windows("Open successful.", wait=False)
+                                else:
+                                    speak_text_windows("Open failed.", wait=False)
                                 return
                         except Exception:
                             pass
-                        time.sleep(0.5)
+                        time.sleep(0.4)
 
-                    speak_text_windows("No confirmation from Visual Studio Code.", wait=False)
-
-                threading.Thread(target=_wait_result, daemon=True).start()
+                    speak_text_windows("Open command enqueued; no result yet.", wait=False)
+                except Exception:
+                    speak_text_windows("Could not communicate with server to open file.", wait=False)
                 return
 
-            # Command: move to line N (simple parse)
-            if "move to line" in text:
-                m = re.search(r"\b(\d+)\b", text)
-                line = int(m.group(1)) if m else 0
+            remainder = None
 
-                if line > 0:
-                    cmd_id = self._enqueue_vscode_command("move_to_line", {"line": line})
-                    if not cmd_id:
-                        speak_text_windows("Failed to send move command to Visual Studio Code.", wait=False)
+            # If the user explicitly asked to run the code, enqueue a run_program command
+            if ("run the code" in text) or ("run code" in text) or ("run the program" in text) or ("run program" in text):
+                try:
+                    url = self.server.rstrip("/") + "/vscode/command"
+                    resp = requests.post(url, json={"type": "run_program", "payload": {}}, timeout=3)
+                    if not resp.ok:
+                        speak_text_windows("Could not enqueue run command.", wait=False)
+                        return
+                    data = resp.json()
+                    cmd_id = data.get("id")
+                    speak_text_windows("Running code, please wait.", wait=False)
+
+                    # Poll for command result (short timeout)
+                    start = time.time()
+                    timeout = 30.0
+                    while time.time() - start < timeout:
+                        try:
+                            rr = requests.get(self.server.rstrip("/") + f"/vscode/command-result/{cmd_id}", timeout=2)
+                            if rr.ok:
+                                res = rr.json()
+                                ok = bool(res.get("ok"))
+                                msg = res.get("message") or ""
+                                if ok:
+                                    speak_text_windows("Run started: " + (msg or ""), wait=False)
+                                else:
+                                    speak_text_windows("Run failed: " + (msg or ""), wait=False)
+                                break
+                        except Exception:
+                            pass
+                        time.sleep(0.6)
                     else:
-                        speak_text_windows(f"Moving to line {line}.", wait=False)
-                else:
-                    speak_text_windows("Please say a line number, for example: move to line 12.", wait=False)
+                        speak_text_windows("Run command enqueued; no result yet.", wait=False)
+                except Exception:
+                    speak_text_windows("Could not communicate with server to run code.", wait=False)
                 return
 
-            if text.strip() in ("save file", "save the file", "save"):
-                cmd_id = self._enqueue_vscode_command("save_file", {})
-                if cmd_id:
-                    speak_text_windows("Saving.", wait=False)
-                else:
-                    speak_text_windows("Failed to send save command.", wait=False)
-                return
-            
-            if text.startswith("find "):
-                query = text.split("find ", 1)[1].strip()
-                cmd_id = self._enqueue_vscode_command("find", {"query": query})
-                if cmd_id:
-                    speak_text_windows(f"Finding {query}.", wait=False)
-                else:
-                    speak_text_windows("Failed to send find command.", wait=False)
-                return
-            
-            if text.startswith("scroll down"):
-                cmd_id = self._enqueue_vscode_command("scroll", {"direction": "down", "lines": 12})
-                if cmd_id:
-                    speak_text_windows("Scrolling down.", wait=False)
+            if "save" in text:
+                try:
+                    file_name = self._get_active_file_name()
+                    speak_text_windows(f"Saving {file_name}", wait=False)
+
+                    url = self.server.rstrip("/") + "/vscode/command"
+                    resp = requests.post(url, json={"type": "save_file", "payload": {}}, timeout=3)
+                    if not resp.ok:
+                        speak_text_windows("Save failed.", wait=False)
+                        return
+
+                    data = resp.json()
+                    cmd_id = data.get("id")
+
+                    start = time.time()
+                    timeout = 10.0
+                    while time.time() - start < timeout:
+                        try:
+                            rr = requests.get(self.server.rstrip("/") + f"/vscode/command-result/{cmd_id}", timeout=2)
+                            if rr.ok:
+                                res = rr.json()
+                                ok = bool(res.get("ok"))
+                                if ok:
+                                    speak_text_windows("Save successful.", wait=False)
+                                else:
+                                    speak_text_windows("Save failed.", wait=False)
+                                break
+                        except Exception:
+                            pass
+                        time.sleep(0.4)
+                    else:
+                        speak_text_windows("Save command enqueued; no result yet.", wait=False)
+                except Exception:
+                    speak_text_windows("Could not communicate with server to save.", wait=False)
                 return
 
-            if text.startswith("scroll up"):
-                cmd_id = self._enqueue_vscode_command("scroll", {"direction": "up", "lines": 12})
-                if cmd_id:
-                    speak_text_windows("Scrolling up.", wait=False)
-                return
-            
-            if text.startswith("go to function "):
-                name = text.split("go to function ", 1)[1].strip().replace(" ", "_")
-                cmd_id = self._enqueue_vscode_command("goto_function", {"name": name})
-                if cmd_id:
-                    speak_text_windows(f"Going to function {name}.", wait=False)
-                else:
-                    speak_text_windows("Failed to send go to function command.", wait=False)
-                return
-            
-            # If the user explicitly asked to analyze code, handle that immediately
+            # If the user explicitly asked to analyze code, handle that via server (Ollama)
             if ("analyze the code" in text) or ("analyze" in text and "code" in text):
-                def _do_analysis():
-                    try:
-                        speak_text_windows("Analyzing code, please wait.", wait=False)
-                        r2 = requests.post(self.server.rstrip("/") + "/analyze-active-editor", timeout=180)
-                        if not r2.ok:
-                            speak_text_windows("Analysis request failed.", wait=False)
-                            return
-                        result = r2.json()
-                        narration = result.get("narration") if isinstance(result, dict) else None
+                # Try server endpoint first
+                spoke = False
+                try:
+                    speak_text_windows("Analyzing code, please wait.", wait=False)
+                    r = requests.post(self.server.rstrip("/") + "/analyze-active-editor", timeout=30)
+                    if r.ok:
+                        data = r.json()
+                        narration = data.get("narration") if isinstance(data, dict) else None
                         if narration:
                             speak_text_windows(narration, wait=True)
                         else:
                             speak_text_windows("Analysis returned no narration.", wait=False)
-                    except Exception:
-                        speak_text_windows("Code analysis failed.", wait=False)
+                        spoke = True
+                    else:
+                        # server returned error; we'll try fallback
+                        pass
+                except Exception:
+                    # network/server error; try local fallback
+                    pass
 
-                threading.Thread(target=_do_analysis, daemon=True).start()
+                if not spoke:
+                    # Fallback: try local code analysis function if available
+                    try:
+                        from llm.code_analysis import summarize_code
+                        try:
+                            speak_text_windows("Analyzing code locally, please wait.", wait=False)
+                            # fetch active editor text directly from server (best-effort)
+                            editor_text = ""
+                            try:
+                                resp = requests.get(self.server.rstrip("/") + "/vscode/editor", timeout=3)
+                                if resp.ok:
+                                    editor_text = resp.json().get("text") or ""
+                            except Exception:
+                                pass
+
+                            result = summarize_code(editor_text, "python")
+                            narration = result.get("narration") if isinstance(result, dict) else None
+                            if narration:
+                                speak_text_windows(narration, wait=True)
+                            else:
+                                speak_text_windows("Local analysis returned no narration.", wait=False)
+                        except Exception:
+                            speak_text_windows("Local code analysis failed.", wait=False)
+                    except Exception:
+                        speak_text_windows("Code analysis service not available.", wait=False)
+
                 return
 
-            # Otherwise, normal chat: send to server LLM
-            prompt = text.strip()
-            if not prompt:
-                prompt = "How can I help?"
+            prompt = "How can I help?" if remainder == "" else remainder
 
             try:
-                r3 = requests.post(
-                    self.server.rstrip("/") + "/chat",
-                    json={"message": prompt},
-                    timeout=120,
-                )
-                if not r3.ok:
-                    speak_text_windows("Chat request failed.", wait=False)
+                if llm_test and hasattr(llm_test, "chat"):
+                    bot = llm_test.chat(prompt)
+                else:
+                    speak_text_windows("Chat service not available.", wait=False)
                     return
-                bot = r3.json()
             except Exception:
                 speak_text_windows("Chat failed.", wait=False)
                 return
 
             reply = bot.get("reply", "") if isinstance(bot, dict) else ""
             if reply:
-                speak_text_windows(reply, wait=False)
-    
-    def _enqueue_vscode_command(self, type: str, payload: dict | None = None) -> str | None:
-        try:
-            r = requests.post(
-                self.server.rstrip("/") + "/vscode/command",
-                json={"type": type, "payload": payload or {}},
-                timeout=5,
-            )
-            if not r.ok:
                 try:
-                    print(f"[enqueue] failed: HTTP {r.status_code} body={r.text[:300]}")
+                    speak_text_windows(reply, wait=False)
+                    if engine:
+                        engine.say(reply)
+                        engine.runAndWait()
                 except Exception:
                     pass
-                return None
-            data = r.json()
-            return data.get("id")
-        except Exception as e:
-            try:
-                print(f"[enqueue] exception: {e}")
-            except Exception:
-                pass
-            return None
-        
-    def _speak_last_run_output(self) -> None:
-        try:
-            deadline = time.time() + 25
-            snap: Optional[dict] = None
-
-            while time.time() < deadline:
-                rr = requests.get(self.server.rstrip("/") + "/terminal/snapshot", timeout=2)
-                if rr.ok:
-                    snap = rr.json()
-                    if isinstance(snap, dict) and snap.get("running") is False and snap.get("exit_code") is not None:
-                        break
-                time.sleep(0.5)
-
-            if not isinstance(snap, dict):
-                speak_text_windows("I could not read the program output.", wait=False)
-                return
-
-            code = snap.get("exit_code")
-            out = (snap.get("stdout") or "").strip()
-            err = (snap.get("stderr") or "").strip()
-
-            # Speak a short, latest tail only
-            if err:
-                speak_text_windows(f"Program exited with code {code}. Error output:", wait=False)
-                speak_text_windows(err[-1200:], wait=True)
-            elif out:
-                speak_text_windows(f"Program exited with code {code}. Output:", wait=False)
-                speak_text_windows(out[-1200:], wait=True)
-            else:
-                speak_text_windows(f"Program exited with code {code}. No output.", wait=False)
-
-        except Exception:
-            speak_text_windows("Failed to read program output.", wait=False)
 
 if __name__ == "__main__":
     ZeroVisionAssistant().mainloop()
