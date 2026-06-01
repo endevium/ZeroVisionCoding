@@ -7,3 +7,5 @@ uvicorn
 pydantic
 keyboard
 edge-tts
+sentence-transformers
+faiss-cpu

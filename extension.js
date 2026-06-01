@@ -358,6 +358,29 @@ async function handleCommand(cmd) {
             return;
         }
 
+        if (type === 'apply_file_content') {
+            const targetPath = String(payload.path || '').trim();
+            const content = String(payload.content ?? '');
+            if (!targetPath) {
+                await postCommandResult(id, false, 'Missing target path');
+                return;
+            }
+            try {
+                const uri = vscode.Uri.file(targetPath);
+                const data = Buffer.from(content, 'utf8');
+                await vscode.workspace.fs.writeFile(uri, data);
+
+                const doc = await vscode.workspace.openTextDocument(uri);
+                await vscode.window.showTextDocument(doc, { preview: false });
+                try { await doc.save(); } catch {}
+
+                await postCommandResult(id, true, `Patched ${path.basename(targetPath)}`, { path: targetPath });
+            } catch (e) {
+                await postCommandResult(id, false, e?.message ?? String(e));
+            }
+            return;
+        }
+
         await postCommandResult(id, false, `Unknown command type: ${type}`);
     } catch (e) {
         output.appendLine(`[cmd] error: ${e?.stack ?? (e?.message ?? String(e))}`);

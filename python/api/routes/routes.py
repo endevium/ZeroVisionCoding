@@ -4,7 +4,7 @@ from api.controllers.analyze_controller import *
 from api.services.extension_state import *
 from api.services.editor_state import *
 from api.models.analyze_model import ChatRequest, ChatResponse, AnalyzeRequest, ExplainResponse
-from api.controllers.analyze_controller import chat_controller, analyze_code_controller, analyze_active_editor_controller
+from api.controllers.analyze_controller import chat_controller, analyze_code_controller, analyze_active_editor_controller, explain_symbol_controller
 from api.models.commands_model import EnqueueCommandRequest, EnqueueCommandResponse, NextCommandResponse, CommandResultRequest, CommandResultResponse
 from api.services.command_queue import QUEUE
 from api.services import terminal_state
@@ -45,7 +45,7 @@ def vscode_editor_buffer(n: int = 10):
 def llm_chat(req: ChatRequest):
     return chat_controller(req.message)
 
-@router.post("/analyze", response_model=ExplainResponse)
+@router.post("/llm/analyze", response_model=ExplainResponse)
 def llm_analyze(req: AnalyzeRequest):
     return analyze_code_controller(req.code, req.language)
 
@@ -53,6 +53,9 @@ def llm_analyze(req: AnalyzeRequest):
 def llm_analyze_active_editor():
     return analyze_active_editor_controller()
 
+@router.post("/llm/explain_symbol", response_model=ExplainSymbolResponse)
+def llm_explain_symbol(req: ExplainSymbolRequest):
+    return explain_symbol_controller(req.code, req.language, req.symbol, req.kind)
 
 
 @router.post("/vscode/command", response_model=EnqueueCommandResponse)
@@ -107,3 +110,8 @@ def terminal_finish(payload: dict):
 @router.get("/terminal/snapshot")
 def terminal_snapshot():
     return terminal_state.snapshot()
+
+
+@router.post("/llm/fix-python-error", response_model=FixPythonErrorResponse)
+def llm_fix_python_error(req: FixPythonErrorRequest):
+    return fix_python_error_controller(req.code, req.error)
