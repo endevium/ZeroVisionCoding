@@ -112,13 +112,6 @@ class TTSQueue:
 
                 wait_flag = True
                 prefer_local_sapi = False
-                try:
-                    t = (text or "").strip()
-                    if len(t) <= 1:
-                        wait_flag = False
-                        prefer_local_sapi = True
-                except Exception:
-                    pass
 
                 speak_text_windows(
                     text,

@@ -100,7 +100,7 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         app.speak_active_file_name()
         return
 
-    if "read the whole thing" in t:
+    if "read the whole thing" in t or "read the code" in t:
         app.speak_full_editor()
         return
 
@@ -108,32 +108,6 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         app.speak_help()
         return
     
-    # Echo typing
-    if "echo typing" in t or "typing echo" in t or "echo typed" in t:
-        if ("off" in t) or ("disable" in t) or ("stop" in t):
-            app.set_typing_echo(False)
-            app.interrupt_and_speak("Typing echo disabled.")
-            return
-
-        # mode selection
-        if "letter" in t or "character" in t:
-            app.set_typing_echo(True, mode="letter")
-            app.interrupt_and_speak("Typing echo enabled: echo each character.")
-            return
-        if "enter" in t:
-            app.set_typing_echo(True, mode="enter")
-            app.interrupt_and_speak("Typing echo enabled: echo on enter.")
-            return
-        if "word" in t:
-            app.set_typing_echo(True, mode="word")
-            app.interrupt_and_speak("Typing echo enabled: echo words.")
-            return
-
-        # default: pause mode
-        app.set_typing_echo(True, mode="letter")
-        app.interrupt_and_speak("Typing echo enabled: echo each character.")
-        return
-
     # Speech speed
     if any(phrase in t for phrase in ("speak faster", "faster speech", "speed up speech", "increase speech speed", "faster voice")):
         app._speech_fast_mode = True
@@ -167,7 +141,7 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         return
 
     # Run code
-    if ("run the code" in t) or ("run code" in t) or ("run the program" in t) or ("run program" in t):
+    if ("run the code" in t) or ("run code" in t) or ("run the program" in t) or ("run program" in t) or ("execute the code" in t) or ("execute code" in t) or ("execute the program" in t) or ("execute program" in t) or ("start the code" in t) or ("start code" in t) or ("start the program" in t) or ("start program" in t) or ("launch the code" in t) or ("launch code" in t) or ("launch the program" in t) or ("launch program" in t):
         _handle_run_program(app)
         return
 
@@ -177,7 +151,7 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         return
 
     # Analyze
-    if ("analyze the code" in t) or (("analyze" in t) and ("code" in t)):
+    if ("analyze the code" in t) or (("analyze" in t) or ("analyse" in t) and ("code" in t)):
         _handle_analyze(app)
         return
 

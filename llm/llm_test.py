@@ -10,12 +10,15 @@ import subprocess
 
 # =========================
 # Configuration
-# =========================sass
+# =========================
 
 OLLAMA_URL = "http://127.0.0.1:11434"
 MODEL = "qwen2.5-coder:3b"
-WAKE_WORDS = ("hello",)
-SPEAK_REPLIES = False
+WAKE_WORDS = ("hello", "hey zero", "zero")  # FIX: added more wake words
+SPEAK_REPLIES = True                          # FIX: unified speech flag, now controls ALL speech
+
+SAPI_VOICE = "Guy"   # FIX: changed from hardcoded "David" — set your preferred voice here
+                      # Options: "Ava", "Jenny", "Guy" (after NaturalVoiceSAPIAdapter install)
 
 SYSTEM_PROMPT = (
     "You are a friendly AI chatbot.\n"
@@ -31,6 +34,27 @@ SYSTEM_PROMPT = (
     "No markdown. No extra text."
 )
 
+# FIX: conversation memory — Zero now remembers the conversation
+conversation_history: list[dict] = []
+
+# =========================
+# Mood-based speech profiles
+# FIX: different tones for different situations
+# =========================
+
+SPEECH_MOODS = {
+    "normal":   {"rate": 0,  "volume": 100},
+    "error":    {"rate": -2, "volume": 100},   # slower, more serious
+    "success":  {"rate": 2,  "volume": 100},   # upbeat, faster
+    "thinking": {"rate": -1, "volume": 80},    # calm, slightly slower
+    "reading":  {"rate": 1,  "volume": 100},   # slightly faster for code readout
+}
+
+
+# =========================
+# JSON Helpers
+# =========================
+
 def _strip_code_fences(s: str) -> str:
     s = s.strip()
     if s.startswith("```"):
@@ -40,6 +64,7 @@ def _strip_code_fences(s: str) -> str:
             lines = lines[:-1]
         s = "\n".join(lines).strip()
     return s
+
 
 def _extract_json_object(s: str) -> str | None:
     """
@@ -79,6 +104,7 @@ def _extract_json_object(s: str) -> str | None:
 
     return None
 
+
 def _to_reply_json(content: str) -> dict:
     """
     Always return a dict like {'reply': string}, even if the model didn't output JSON.
@@ -107,11 +133,33 @@ def _to_reply_json(content: str) -> dict:
             pass
 
     # 3) Fallback: wrap raw text
-    # (Optional) strip leading "Sure," etc. Keep it simple.
     return {"reply": content}
 
-def speak_text_windows(text: str, rate: int = 0, volume: int = 100, voice: str | None = None) -> None:
+
+# =========================
+# TTS (Text-to-Speech)
+# =========================
+
+def speak_text_windows(
+    text: str,
+    rate: int = 0,
+    volume: int = 100,
+    voice: str | None = None,
+) -> None:
+    """Speak text using Windows SAPI via PowerShell."""
+    # FIX: guard — do nothing if speech is disabled
+    if not SPEAK_REPLIES:
+        return
+
     text_b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
+
+    voice_line = ""
+    if voice:
+        voice_line = (
+            f'$voiceName = {json.dumps(voice)}; '
+            '$voice.GetVoices() | ForEach-Object { '
+            'if ($_.GetDescription() -like ("*" + $voiceName + "*")) { $voice.Voice = $_ } }'
+        )
 
     ps_script = f"""
 $bytes = [System.Convert]::FromBase64String("{text_b64}")
@@ -121,7 +169,7 @@ $voice = New-Object -ComObject SAPI.SpVoice
 $voice.Rate = {int(rate)}
 $voice.Volume = {int(volume)}
 
-{"$voiceName = " + repr(voice) + "; $voice.GetVoices() | ForEach-Object { if ($_.GetDescription() -like ('*' + $voiceName + '*')) { $voice.Voice = $_ } }" if voice else ""}
+{voice_line}
 
 $voice.Speak($text) | Out-Null
 """.strip()
@@ -132,11 +180,36 @@ $voice.Speak($text) | Out-Null
         check=True,
     )
 
+
+def speak(text: str, mood: str = "normal") -> None:
+    """
+    FIX: Unified speak function with mood support.
+    Use this everywhere instead of calling speak_text_windows() directly.
+    mood options: 'normal', 'error', 'success', 'thinking', 'reading'
+    """
+    if not SPEAK_REPLIES:
+        print(f"[TTS disabled] {text}")
+        return
+
+    cfg = SPEECH_MOODS.get(mood, SPEECH_MOODS["normal"])
+    speak_text_windows(text, rate=cfg["rate"], volume=cfg["volume"], voice=SAPI_VOICE)
+
+
+# =========================
+# LLM Chat
+# =========================
+
 def chat(message: str) -> dict:
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": message},
-    ]
+    """
+    FIX: now maintains conversation history so Zero remembers context.
+    """
+    global conversation_history
+
+    # Add user message to history
+    conversation_history.append({"role": "user", "content": message})
+
+    # Build full message list with system prompt + history
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + conversation_history
 
     payload = {
         "model": MODEL,
@@ -152,18 +225,39 @@ def chat(message: str) -> dict:
     response.raise_for_status()
 
     raw = response.json()["message"]["content"]
-    return _to_reply_json(raw)
+    result = _to_reply_json(raw)
 
-def _speak(text: str, engine: pyttsx3.Engine | None) -> None:
+    # Save assistant reply to history
+    conversation_history.append({"role": "assistant", "content": result.get("reply", "")})
+
+    return result
+
+
+def reset_conversation() -> None:
+    """FIX: lets user reset Zero's memory mid-session."""
+    global conversation_history
+    conversation_history = []
+    speak("Conversation reset. How can I help you?")
+
+
+# =========================
+# Speech Utilities
+# =========================
+
+def _speak_pyttsx3(text: str, engine: pyttsx3.Engine | None) -> None:
+    """Legacy pyttsx3 fallback — only used if engine is provided."""
     if not engine:
         return
     engine.say(text)
     engine.runAndWait()
 
+
 _WORD_RE = re.compile(r"[a-z0-9']+", re.IGNORECASE)
+
 
 def _normalize_words(text: str) -> list[str]:
     return [w.lower() for w in _WORD_RE.findall(text)]
+
 
 def _extract_after_wake(text: str) -> str | None:
     words = _normalize_words(text)
@@ -175,19 +269,40 @@ def _extract_after_wake(text: str) -> str | None:
         if not ww_words:
             continue
 
-        # Find the wake phrase as a contiguous sequence
         for i in range(0, len(words) - len(ww_words) + 1):
             if words[i : i + len(ww_words)] == ww_words:
-                remainder_words = words[i + len(ww_words) :]
+                remainder_words = words[i + len(ww_words):]
                 return "" if not remainder_words else " ".join(remainder_words)
 
     return None
 
+
+# =========================
+# Microphone
+# =========================
+
+def list_mics() -> None:
+    # FIX: removed erroneous `print(list_mics())` — function prints itself, returns nothing
+    print("Microphone devices:")
+    names = sr.Microphone.list_microphone_names()
+    if not names:
+        print("  (none found)")
+        return
+    for i, name in enumerate(names):
+        print(f"  [{i}] {name}")
+
+
+# =========================
+# Speech Loop
+# =========================
+
 def speech_loop(device_index: int | None = None) -> None:
     r = sr.Recognizer()
-    engine = pyttsx3.init() if SPEAK_REPLIES else None
 
-    list_mics()
+    # FIX: pyttsx3 engine only initialized if needed as fallback
+    engine = pyttsx3.init() if not SPEAK_REPLIES else None
+
+    list_mics()  # FIX: just call, don't print return value
 
     try:
         mic = sr.Microphone(device_index=device_index)
@@ -197,11 +312,12 @@ def speech_loop(device_index: int | None = None) -> None:
 
     with mic as source:
         r.adjust_for_ambient_noise(source, duration=0.8)
-        print(f"Speech mode on. Wake words: {WAKE_WORDS}. Ctrl+C to stop.")
+        print(f"Speech mode on. Wake words: {WAKE_WORDS}. Say 'reset' to clear memory. Ctrl+C to stop.")
 
         while True:
             print("Listening...")
-            speak_text_windows("Listening...", rate=0, volume=100, voice="David")
+            speak("Listening.", mood="normal")
+
             try:
                 audio = r.listen(source, timeout=None, phrase_time_limit=6)
             except Exception as e:
@@ -213,40 +329,48 @@ def speech_loop(device_index: int | None = None) -> None:
                 print(f"Heard: {heard}")
             except sr.UnknownValueError:
                 print("Heard audio but could not understand.")
-                speak_text_windows("Audio could not be understood", rate=0, volume=100, voice="David")
+                speak("Sorry, I could not understand that.", mood="error")
                 continue
             except sr.RequestError as e:
                 print(f"Speech recognition request error (internet?): {e}")
                 continue
 
+            # FIX: allow voice reset command
+            if _normalize_words(heard) == ["reset"]:
+                reset_conversation()
+                continue
+
             remainder = _extract_after_wake(heard)
             if remainder is None:
-                print("Command not heard")
-                speak_text_windows("Command not heard...", rate=0, volume=100, voice="David")
+                print("No wake word detected.")
+                speak("I did not hear a wake word.", mood="normal")
                 continue
 
             prompt = "How can I help?" if remainder == "" else remainder
 
             print("Zero is thinking...")
-            speak_text_windows("Zero is thinking...", rate=0, volume=100, voice="David")
-            bot = chat(prompt)
-            reply = bot.get("reply", "")
-            print(reply)
-            speak_text_windows(reply, rate=0, volume=100, voice="David")
-            _speak(reply, engine)
+            speak("Zero is thinking.", mood="thinking")
 
-def list_mics() -> None:
-    print("Microphone devices:")
-    names = sr.Microphone.list_microphone_names()
-    if not names:
-        print("  (none found)")
-        return
-    for i, name in enumerate(names):
-        print(f"  [{i}] {name}")
+            try:
+                bot = chat(prompt)
+                reply = bot.get("reply", "")
+                print(reply)
+                speak(reply, mood="normal")
+                _speak_pyttsx3(reply, engine)
+            except Exception as e:
+                print(f"Chat error: {e}")
+                speak("Sorry, something went wrong. Please try again.", mood="error")
 
-def main():
-    print(list_mics())
+
+# =========================
+# Main Entry Point
+# =========================
+
+def main() -> None:
+    list_mics()  # FIX: just call, don't print
     print("Welcome to Zero Vision Coding")
+    speak("Welcome to Zero Vision Coding. I am Zero, your coding assistant.", mood="normal")
+
     mode = input("Type 't' for text chat or 's' for speech: ").strip().lower()
 
     if mode == "s":
@@ -255,11 +379,33 @@ def main():
         speech_loop(device_index=device_index)
         return
 
+    # Text chat loop
     while True:
-        prompt = input("You: ")
-        print("Zero is thinking...")
-        bot = chat(prompt)
-        print(bot["reply"])
+        try:
+            prompt = input("You: ").strip()
+            if not prompt:
+                continue
+
+            # FIX: allow reset in text mode too
+            if prompt.lower() == "reset":
+                reset_conversation()
+                print("Zero: Conversation reset.")
+                continue
+
+            print("Zero is thinking...")
+            bot = chat(prompt)
+            reply = bot.get("reply", "")
+            print(f"Zero: {reply}")
+            speak(reply, mood="normal")
+
+        except KeyboardInterrupt:
+            print("\nGoodbye!")
+            speak("Goodbye!", mood="normal")
+            break
+        except Exception as e:
+            print(f"Error: {e}")
+            speak("Something went wrong.", mood="error")
+
 
 if __name__ == "__main__":
     main()
