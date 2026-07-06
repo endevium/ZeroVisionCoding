@@ -97,6 +97,7 @@ class ZeroVisionAssistant(tk.Tk):
         self._typing_letter_buffer: list[str] = []
         self._typing_letter_flush_after_id: Optional[str] = None
         self._typing_letter_flush_ms: int = 140
+        self._last_delete_buzz_time: float = 0.0
 
         # SERVICES
         self.server = ServerProcess()
@@ -225,6 +226,17 @@ class ZeroVisionAssistant(tk.Tk):
         prev_text = getattr(self, "_typing_last_editor_text", "")
         changed = (text != prev_text)
 
+        if changed and self._typing_echo_enabled:
+            try:
+                if len(text) < len(prev_text):
+                    now = time.time()
+                    last = getattr(self, "_last_delete_buzz_time", 0.0)
+                    if (now - last) >= 0.08:
+                        self._last_delete_buzz_time = now
+                        self.buzz()
+            except Exception:
+                 pass
+
         # always update last known text immediately
         self._typing_last_editor_text = text
         self._typing_last_cursor = ed.get("cursor") or {}
@@ -267,58 +279,8 @@ class ZeroVisionAssistant(tk.Tk):
                             self._typing_last_letter_time = now
                             ch = delta
 
-                            if ch == " ":
-                                speak = "space"
-                            elif ch == "\t":
-                                speak = "tab"
-                            elif ch == "\n" or ch == "\r":
-                                speak = "new line"
-                            elif ch == ",":
-                                speak = "comma"
-                            elif ch == ".":
-                                speak = "dot"
-                            elif ch == ":":
-                                speak = "colon"
-                            elif ch == ";":
-                                speak = "semicolon"
-                            elif ch == "(":
-                                speak = "open parenthesis"
-                            elif ch == ")":
-                                speak = "close parenthesis"
-                            elif ch == "[":
-                                speak = "open bracket"
-                            elif ch == "]":
-                                speak = "close bracket"
-                            elif ch == "{":
-                                speak = "open brace"
-                            elif ch == "}":
-                                speak = "close brace"
-                            elif ch == "_":
-                                speak = "underscore"
-                            elif ch == "-":
-                                speak = "dash"
-                            elif ch == "+":
-                                speak = "plus"
-                            elif ch == "*":
-                                speak = "star"
-                            elif ch == "/":
-                                speak = "slash"
-                            elif ch == "\\":
-                                speak = "backslash"
-                            elif ch == "=":
-                                speak = "equals"
-                            elif ch == "'":
-                                speak = "single quote"
-                            elif ch == '"':
-                                speak = "double quote"
-                            else:
-                                speak = ch
-
-                            # Don't interrupt in letter mode (less choppy)
-                            try:
-                                self.speak(speak)
-                            except Exception:
-                                pass
+                            token = self._typing_symbol_to_words(ch)
+                            self._push_letter_echo(token)
 
         if not text.strip():
             self.currentTextLabel.config(text="Current Text:(empty)")
