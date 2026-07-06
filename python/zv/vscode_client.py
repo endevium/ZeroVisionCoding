@@ -36,6 +36,13 @@ class VSCodeClient:
         except Exception:
             return {}
 
+    def editor_buffer(self, n: int = 10) -> Dict[str, Any]:
+        try:
+            r = requests.get(self.base_url + f"/vscode/editor-buffer?n={int(n)}", timeout=2.0)
+            return r.json() if r.ok else {"items": []}
+        except Exception:
+            return {"items": []}
+
     def terminal_snapshot(self) -> Dict[str, Any]:
         try:
             r = requests.get(self.base_url + "/terminal/snapshot", timeout=2.0)

@@ -9,3 +9,4 @@ keyboard
 edge-tts
 sentence-transformers
 faiss-cpu
+Pillow
