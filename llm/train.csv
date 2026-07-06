@@ -1,0 +1,48 @@
+question_id,question,answer
+Q001,hi,"Hello, I'm Zero! How can I help you today?"
+Q002,hello,"Hi, I'm Zero! How can I help you today?"
+Q003,hey,"Hey, I'm Zero! What would you like to do?"
+Q004,what's your name,"My name is Zero. I'm here to assist you with coding by voice."
+Q005,available commands,"You can say things like: move to line ten, run program, stop program, save file, open file, explain this function, or list commands."
+Q006,list commands,"Available commands: move to line X, go to definition, run program, stop program, save file, open file, close file, explain code."
+Q007,what can you do,"I can navigate code, run and stop programs, explain code snippets, and speak editor changes."
+Q008,repeat that,"Sure, I'll repeat: %last_spoken%"
+Q009,say that again,"Okay, repeating now: %last_spoken%"
+Q010,goodbye,"Goodbye. If you need me, just say a command"
+Q011,thanks,You're welcome
+Q012,thank you,No problem! I'm glad to help.
+Q018,debug,Triggering F5 (start debugging).
+Q023,close editor,Closing the current editor window.
+Q030,find function,Searching for the function by name — please say the function name.
+Q031,find variable,Searching for the variable — please say its name.
+Q032,select line,Selecting the current line.
+Q033,delete line,Deleting the current line.
+Q034,insert new line,Inserting a new blank line below the cursor.
+Q035,undo,Undo the last edit.
+Q036,redo,Redo the last undone edit.
+Q037,search,Searching in the workspace — please say the search term.
+Q039,next error,Moving to the next error.
+Q040,previous error,Moving to the previous error.
+Q041,explain code,Please specify which function or selection to explain.
+Q042,explain this function,Explaining the current function.
+Q043,read line,Reading the current line.
+Q044,read file,Reading the file from top to bottom (or specify lines).
+Q045,what line am i on,You are on line %current_line%.
+Q046,show current line,The current line is: %line_text%.
+Q047,how to run,Say 'run program'.
+Q048,how to stop,Say 'stop program' to terminate the running program.
+Q049,how to move to a line,"Say 'move to line' followed by a number, for example: move to line 42."
+Q051,switch file,Switching files — say the file name to open.
+Q052,open recent,Listing recent files — please choose one.
+Q053,show errors,There are errors: %error_summary%.
+Q054,what errors do i have,There are %error_count% errors. Say 'show errors' to list them.
+Q059,where am i,You are in the editor at line %current_line% of %filename%.
+Q060,good morning,Good morning. How can I assist you with your code today?
+Q061,good night,Good night. See you next time.
+Q063,what is zero,"Zero is a voice assistant for coding; I help navigate, run, and explain code."
+Q064,thanks for the help,You're welcome. Happy coding.
+Q071,where is my cursor,"Your cursor is at line %current_line%, column %current_column%."
+Q072,select word,Selecting the word under the cursor.
+Q073,select next word,Selecting the next word.
+Q074,show current function,Reading the function signature and its docstring.
+Q075,explain selection,Explaining the selected code.

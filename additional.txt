@@ -1,0 +1,4 @@
+Run in PowerShell
+
+setx ZERO_VISION_AI_TTS 1
+setx ZERO_VISION_TTS_VOICE "en-US-AndrewNeural"

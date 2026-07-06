@@ -1,0 +1,12 @@
+pyaudio
+requests
+pyttsx3
+SpeechRecognition
+fastapi
+uvicorn
+pydantic
+keyboard
+edge-tts
+sentence-transformers
+faiss-cpu
+Pillow
