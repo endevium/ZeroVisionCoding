@@ -97,6 +97,37 @@ class VSCodeClient:
         except Exception:
             return {"ok": False}
 
+    def review_code(self, code: str, language: str = "python") -> Dict[str, Any]:
+        try:
+            r = requests.post(
+                self.base_url + "/llm/review",
+                json={"code": code, "language": language},
+                timeout=180,
+            )
+            r.raise_for_status()
+
+            data = r.json()
+            return (
+                data
+                if isinstance(data, dict)
+                else {
+                    "overall_summary": "",
+                    "strengths": [],
+                    "issues": [],
+                    "final_assessment": "",
+                    "narration": "",
+                }
+            )
+
+        except Exception:
+            return {
+                "overall_summary": "",
+                "strengths": [],
+                "issues": [],
+                "final_assessment": "",
+                "narration": "Code review failed. The local LLM service returned an error.",
+            }
+
     def chat(self, message: str) -> Dict[str, Any]:
         try:
             r = requests.post(self.base_url + "/chat", json={"message": message}, timeout=35.0)

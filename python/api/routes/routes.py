@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from api.models.analyze_model import *
 from api.controllers.analyze_controller import *
+from api.controllers.review_controller import *
 from api.services.extension_state import *
 from api.services.editor_state import *
 from api.models.analyze_model import ChatRequest, ChatResponse, AnalyzeRequest, ExplainResponse
+from api.models.review_model import *
 from api.controllers.analyze_controller import chat_controller, analyze_code_controller, analyze_active_editor_controller, explain_symbol_controller
 from api.models.commands_model import EnqueueCommandRequest, EnqueueCommandResponse, NextCommandResponse, CommandResultRequest, CommandResultResponse
 from api.services.command_queue import QUEUE
@@ -57,6 +59,9 @@ def llm_analyze_active_editor():
 def llm_explain_symbol(req: ExplainSymbolRequest):
     return explain_symbol_controller(req.code, req.language, req.symbol, req.kind)
 
+@router.post("/llm/review", response_model=ReviewCodeResponse)
+def llm_code_review(req: ReviewCodeRequest):
+    return code_review_editor_controller(req.code, req.language)
 
 @router.post("/vscode/command", response_model=EnqueueCommandResponse)
 def enqueue_vscode_command(req: EnqueueCommandRequest):

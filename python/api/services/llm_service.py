@@ -101,6 +101,70 @@ FIX_PYTHON_ERROR_PROMPT = (
     "No markdown. No extra text."
 )
 
+''' FOR AI CODE REVIEW '''
+PYTHON_CODE_REVIEW_PROMPT = (
+    "You are an expert Python code reviewer designed for blind and visually-impaired programmers.\n"
+    "Your purpose is to review code and explain your findings in a way that is easy to understand when spoken aloud through text-to-speech.\n\n"
+
+    "Review the code for:\n"
+    "- Correctness and logical errors.\n"
+    "- Syntax mistakes.\n"
+    "- Runtime errors or possible exceptions.\n"
+    "- Code readability and maintainability.\n"
+    "- Python best practices and style.\n"
+    "- Performance issues when appropriate.\n"
+    "- Security concerns if present.\n"
+    "- Unused variables, imports, or unreachable code.\n"
+    "- Opportunities to simplify the implementation.\n\n"
+
+    "When giving feedback:\n"
+    "- Explain *why* something is an issue before suggesting a fix.\n"
+    "- Use beginner-friendly language unless the concept is advanced.\n"
+    "- Avoid unnecessary jargon.\n"
+    "- Do not overwhelm the user with minor style issues.\n"
+    "- Prioritize bugs over code style.\n"
+    "- If the code is already good, say so.\n\n"
+
+    "Organize your response into these sections:\n"
+    "1. Overall Summary\n"
+    "2. Strengths\n"
+    "3. Issues Found (ordered by importance)\n"
+    "4. Suggestions for Improvement\n"
+    "5. Final Assessment\n\n"
+
+    "For each issue, include:\n"
+    "- The location (function name or approximate line if obvious).\n"
+    "- A clear explanation.\n"
+    "- The impact.\n"
+    "- A recommended fix.\n\n"
+
+    "Since the response will be read aloud:\n"
+    "- Keep sentences short.\n"
+    "- Avoid long bullet lists.\n"
+    "- Do not dump large blocks of rewritten code unless specifically requested.\n"
+    "- Refer to variables and functions exactly as written.\n"
+    "- Read symbols naturally (for example, say 'equals' instead of '=' when explaining concepts).\n"
+    "- Focus on clarity over completeness.\n\n"
+
+    "Do not invent problems that are not present in the code."
+
+    "Return ONLY valid JSON with this exact schema:\n" 
+    "{\n" 
+    ' "overall_summary": string,\n' 
+    ' "strengths": [string, ...],\n' 
+    ' "issues": [\n' " {\n" 
+    ' "severity": "Critical|High|Medium|Low",\n' 
+    ' "location": string,\n' ' "explanation": string,\n' 
+    ' "impact": string,\n' ' "recommendation": string\n' 
+    " }\n" " ],\n" ' "final_assessment": string,\n' 
+    ' "narration": string\n' "}\n\n" 
+    
+    "The 'narration' field should be a concise spoken summary of the review that sounds natural when read aloud. Do not simply repeat every issue verbatim.\n\n"
+
+    "No markdown. No extra text."
+)
+
+
 _QA_INDEX = None
 _QA_LOAD_ERROR: str | None = None
 _QA_ATTEMPTED = False
@@ -451,3 +515,99 @@ def _python_outline(code: str) -> str:
                 lines.append(f"{', '.join(targets)} = ...")
 
     return "\n".join(lines).strip()
+
+def ollama_code_review(code: str, language: str, *, temperature: float = 0.3, num_predict: int = 120) -> dict:
+    # TODO: Fix narrator saying the _ or other symbols
+    language = (language or "python").lower()
+    outline = _python_outline(code)
+    snippet = (code or "")[:4000]
+    code_for_llm = f"OUTLINE:\n{outline}\n\nSNIPPET:\n{snippet}"
+
+    payload = {
+        "model": MODEL,
+        "stream": False,
+        "messages": [
+            {"role": "system", "content": PYTHON_CODE_REVIEW_PROMPT},
+            {
+                "role": "user",
+                "content": f"Language: {language}\n\nCode:\n{code_for_llm}",
+            },
+        ],
+        "options": {
+            "temperature": temperature,
+            "num_predict": num_predict,
+        },
+    }
+
+    empty_response = {
+        "overall_summary": "",
+        "strengths": [],
+        "issues": [],
+        "final_assessment": "",
+        "narration": "",
+    }
+
+    try:
+        r = requests.post(f"{OLLAMA_URL}/api/chat", json=payload, timeout=60)
+        r.raise_for_status()
+        raw = r.json()["message"]["content"]
+    except Exception:
+        empty_response["narration"] = (
+            "Failed to generate review failed. The local LLM service returned an error."
+        )
+        return empty_response
+
+    data = _to_json(raw)
+
+    if not data:
+        text = _strip_code_fences(raw).strip()
+        if len(text) > 1400:
+            text = text[:1400] + " ..."
+
+        empty_response["narration"] = (
+            text or "I could not parse the code review output."
+        )
+        return empty_response
+
+    response = {
+        "overall_summary": data.get("overall_summary", ""),
+        "strengths": data.get("strengths", []),
+        "issues": data.get("issues", []),
+        "final_assessment": data.get("final_assessment", ""),
+        "narration": data.get("narration", ""),
+    }
+
+    # Validate strengths
+    if not (
+        isinstance(response["strengths"], list)
+        and all(isinstance(x, str) for x in response["strengths"])
+    ):
+        response["strengths"] = []
+
+    if not isinstance(response["issues"], list):
+        response["issues"] = []
+
+    valid_issues = []
+    for issue in response["issues"]:
+        if not isinstance(issue, dict):
+            continue
+
+        valid_issues.append({
+            "severity": str(issue.get("severity", "Low")),
+            "location": str(issue.get("location", "")),
+            "explanation": str(issue.get("explanation", "")),
+            "impact": str(issue.get("impact", "")),
+            "recommendation": str(issue.get("recommendation", "")),
+        })
+
+    response["issues"] = valid_issues
+
+    for key in (
+        "overall_summary",
+        "final_assessment",
+        "narration",
+    ):
+        if not isinstance(response[key], str):
+            response[key] = ""
+
+    return response

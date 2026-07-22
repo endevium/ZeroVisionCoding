@@ -16,8 +16,7 @@ from .vscode_client import VSCodeClient
 from .error_parser import parse_python_traceback
 
 # ── Voice to use across the whole app ──────────────────────────────────────
-DEFAULT_VOICE = "Guy"   # Change to "Ava" or "Jenny" if you prefer
-
+DEFAULT_VOICE = "Zira"   # Change to "Ava" or "Jenny" if you prefer
 
 def createLabel(parent: tk.Misc, text: str, fontSize: int, color: str) -> tk.Label:
     """Create a label"""
@@ -28,7 +27,6 @@ def createLabel(parent: tk.Misc, text: str, fontSize: int, color: str) -> tk.Lab
         fg=color,
         bg="black",
     )
-
 
 class ZeroVisionAssistant(tk.Tk):
     def __init__(self) -> None:

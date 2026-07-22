@@ -155,6 +155,11 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         _handle_analyze(app)
         return
 
+    # Code reviewer
+    if ("review my code" in t) or (("review" in t) and ("code" in t)):
+        _handle_code_review(app)
+        return
+    
     def _do_llm() -> None:
         try:
             # import and run llm code here (lazy import)
@@ -341,7 +346,6 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
 
     threading.Thread(target=_do, daemon=True).start()
 
-
 def _handle_chat(app: "ZeroVisionAssistant", user_text: str) -> None:
     try:
         from api.services import llm_service
@@ -354,3 +358,60 @@ def _handle_chat(app: "ZeroVisionAssistant", user_text: str) -> None:
             app.speak("I'm sorry, I didn't quite get that.")
     except Exception:
         app.speak("Chat failed.")
+    
+def _handle_code_review(app: "ZeroVisionAssistant") -> None:
+    app.interrupt_and_speak("Generating code review, please wait.")
+
+    try:
+        ed = app.client.editor()
+        editor_text = str(ed.get("text") or "")
+        lang = str(ed.get("language") or "python")
+    except Exception:
+        editor_text = ""
+        lang = "python"
+
+    MAX_CHARS = 12000
+    if len(editor_text) > MAX_CHARS:
+        head = editor_text[: MAX_CHARS // 2]
+        tail = editor_text[-MAX_CHARS // 2 :]
+        code = head + "\n\n... truncated ...\n\n" + tail
+    else:
+        code = editor_text
+
+    def _do() -> None:
+        data = app.client.review_code(code, language=lang)
+
+        narration = str(data.get("narration") or "").strip()
+        overall_summary = str(data.get("overall_summary") or "").strip()
+        final_assessment = str(data.get("final_assessment") or "").strip()
+        issues = data.get("issues") or []
+
+        def _deliver() -> None:
+            if narration:
+                app.interrupt_and_speak(narration)
+                return
+
+            if overall_summary:
+                app.interrupt_and_speak(overall_summary)
+                return
+
+            if issues:
+                issue = issues[0]
+                explanation = issue.get("explanation", "")
+                recommendation = issue.get("recommendation", "")
+
+                message = explanation
+                if recommendation:
+                    message += f" Recommendation: {recommendation}"
+
+                app.interrupt_and_speak(message)
+                return
+
+            if final_assessment:
+                app.interrupt_and_speak(final_assessment)
+            else:
+                app.interrupt_and_speak("I could not review the code.")
+
+        app.after(0, _deliver)
+
+    threading.Thread(target=_do, daemon=True).start()
