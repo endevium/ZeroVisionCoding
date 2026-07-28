@@ -16,6 +16,12 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
     if not t:
         return
 
+    def _is_yes(value: str) -> bool:
+        return value in ("yes", "yeah", "yep", "confirm", "correct", "looks good", "keep it", "save it", "save")
+
+    def _is_no(value: str) -> bool:
+        return value in ("no", "nope", "revert", "undo", "wrong", "cancel", "take it back", "discard")
+
     explain_triggers: list[tuple[str, str]] = [
         ("explain function", "function"),
         ("explain the function", "function"),
@@ -89,6 +95,15 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         if t.strip() in ("no", "nope", "cancel", "stop"):
             app._pending_fix_request = None
             app.interrupt_and_speak("Okay. I will not change the code.")
+            return
+
+    # Fix confirmation
+    if getattr(app, "_pending_fix_confirmation", None):
+        if _is_yes(t.strip()):
+            app.confirm_fix()
+            return
+        if _is_no(t.strip()):
+            app.revert_fix()
             return
 
     # Navigation / readout
@@ -320,7 +335,7 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
         editor_text = ""
         lang = "python"
 
-    # Cap input to protect RAM / Ollama
+    # Cap input to protect RAM / llama.cpp
     MAX_CHARS = 12000
     if len(editor_text) > MAX_CHARS:
         head = editor_text[: MAX_CHARS // 2]

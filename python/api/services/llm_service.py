@@ -1,10 +1,61 @@
 from __future__ import annotations
 import json
-import requests
+import logging
 from pathlib import Path
 
-OLLAMA_URL = "http://127.0.0.1:11434"
-MODEL = "qwen2.5-coder:3b"
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Model configuration
+# ---------------------------------------------------------------------------
+MODEL_REPO = "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF"
+MODEL_FILENAME = "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
+
+_llm = None  # lazy singleton
+
+
+def _models_dir() -> Path:
+    """Return <repo_root>/models."""
+    return Path(__file__).resolve().parents[3] / "models"
+
+
+def _model_path() -> Path:
+    return _models_dir() / MODEL_FILENAME
+
+
+def _ensure_model_downloaded() -> Path:
+    """Download the GGUF model from Hugging Face if it doesn't exist."""
+    path = _model_path()
+    if path.exists():
+        return path
+    logger.info("Model not found at %s — downloading from Hugging Face...", path)
+    print(f"[llm_service] Downloading {MODEL_FILENAME} from {MODEL_REPO} (~1 GB)...")
+    from huggingface_hub import hf_hub_download
+    downloaded = hf_hub_download(
+        repo_id=MODEL_REPO,
+        filename=MODEL_FILENAME,
+        local_dir=str(_models_dir()),
+    )
+    print(f"[llm_service] Model downloaded to {downloaded}")
+    return Path(downloaded)
+
+
+def _get_llm():
+    """Lazy-load the llama.cpp model (singleton)."""
+    global _llm
+    if _llm is not None:
+        return _llm
+    model_file = _ensure_model_downloaded()
+    from llama_cpp import Llama
+    _llm = Llama(
+        model_path=str(model_file),
+        n_ctx=4096,
+        n_threads=4,
+        n_gpu_layers=0,  # CPU-only
+        verbose=False,
+    )
+    print("[llm_service] Model loaded.")
+    return _llm
 
 ''' 
 FOR CHATBOT 
@@ -89,16 +140,29 @@ EXPLAIN_SYMBOL_PROMPT = (
 
 ''' FOR AI-ASSISTED DEBUGGING '''
 FIX_PYTHON_ERROR_PROMPT = (
-    "You are a code assistant.\n"
+    "You are an expert Python code fixing assistant.\n"
     "You will be given a Python file and a traceback/error message.\n"
     "Fix the error with the smallest reasonable change.\n"
-    "Do NOT change unrelated formatting.\n"
+    "CRITICAL REQUIREMENT:\n"
+    "- Do NOT output the entire file. Use the 'replacements' array to specify EXACT lines to search for and what to replace them with.\n"
+    "- Your 'search' text MUST match the original code exactly, including leading spaces.\n"
+    "- CRITICAL: The 'replace' text MUST be different from the 'search' text. Do not output a replacement that makes no changes.\n"
+    "- Ensure your 'replacements' block actually implements the solution you proposed in your 'reasoning' field.\n"
+    "- If the error is an environment issue (like FileNotFoundError), leave the 'replacements' array empty and provide your recommendation in the 'summary' field.\n"
+    "- If fixing an IndexError, explicitly reason about list lengths and loop bounds in your 'reasoning' field.\n"
+    "- If fixing a KeyError, explicitly reason about key existence and proper dictionary handling.\n"
     "Return ONLY valid JSON with this exact schema:\n"
     "{\n"
-    '  "content": string,\n'
+    '  "reasoning": string,\n'
+    '  "replacements": [\n'
+    '    {\n'
+    '      "search": string,\n'
+    '      "replace": string\n'
+    '    }\n'
+    '  ],\n'
     '  "summary": string\n'
     "}\n"
-    "No markdown. No extra text."
+    "No markdown fences around the JSON. No extra text."
 )
 
 ''' FOR AI CODE REVIEW '''
@@ -115,7 +179,8 @@ PYTHON_CODE_REVIEW_PROMPT = (
     "- Performance issues when appropriate.\n"
     "- Security concerns if present.\n"
     "- Unused variables, imports, or unreachable code.\n"
-    "- Opportunities to simplify the implementation.\n\n"
+    "- Opportunities to simplify the implementation.\n"
+    "- Explicitly check for infinite loops (e.g., 'while True' without a break) and missing base cases in recursive functions. These are severe logic errors.\n\n"
 
     "When giving feedback:\n"
     "- Explain *why* something is an issue before suggesting a fix.\n"
@@ -150,6 +215,7 @@ PYTHON_CODE_REVIEW_PROMPT = (
 
     "Return ONLY valid JSON with this exact schema:\n" 
     "{\n" 
+    ' "analysis": string,\n'
     ' "overall_summary": string,\n' 
     ' "strengths": [string, ...],\n' 
     ' "issues": [\n' " {\n" 
@@ -159,7 +225,9 @@ PYTHON_CODE_REVIEW_PROMPT = (
     " }\n" " ],\n" ' "final_assessment": string,\n' 
     ' "narration": string\n' "}\n\n" 
     
-    "The 'narration' field should be a concise spoken summary of the review that sounds natural when read aloud. Do not simply repeat every issue verbatim.\n\n"
+    "The 'analysis' field MUST contain your step-by-step semantic reasoning about what the code does and where it might fail. Think carefully before listing issues.\n"
+    "The 'narration' field should be a concise spoken summary of the review that sounds natural when read aloud. Do not simply repeat every issue verbatim.\n"
+    "CRITICAL: Do not use underscores (like 'overall_summary') anywhere in your text fields, as this text will be read aloud by a text-to-speech engine.\n\n"
 
     "No markdown. No extra text."
 )
@@ -287,27 +355,22 @@ def _to_json(content: str) -> dict:
 
     return {}
 
-def ollama_chat(user_message: str, *, temperature: float = 0.3, num_predict: int = 120) -> dict:
+def llm_chat(user_message: str, *, temperature: float = 0.3, num_predict: int = 120) -> dict:
     qa_ctx = _build_qa_context(user_message, k=3)
     combined_message = f"{user_message}\n\n{qa_ctx}" if qa_ctx else user_message
 
-    payload = {
-        "model": MODEL,
-        "stream": False,
-        "messages": [
-            {"role": "system", "content": CHAT_SYSTEM_PROMPT},
-            {"role": "user", "content": combined_message},
-        ],
-        "options": {
-            "temperature": temperature,
-            "num_predict": num_predict,
-        },
-    }
+    messages = [
+        {"role": "system", "content": CHAT_SYSTEM_PROMPT},
+        {"role": "user", "content": combined_message},
+    ]
 
     try:
-        r = requests.post(f"{OLLAMA_URL}/api/chat", json=payload, timeout=120)
-        r.raise_for_status()
-        raw = r.json()["message"]["content"]
+        result = _get_llm().create_chat_completion(
+            messages=messages,
+            temperature=temperature,
+            max_tokens=num_predict,
+        )
+        raw = result["choices"][0]["message"]["content"]
     except Exception:
         return {"reply": "Chat failed. The local LLM service returned an error.", "question_id": None}
     data = _to_json(raw)
@@ -321,7 +384,7 @@ def ollama_chat(user_message: str, *, temperature: float = 0.3, num_predict: int
 
     return {"reply": _strip_code_fences(raw).strip() or "No response.", "question_id": None}
 
-def ollama_analyze(code: str, language: str, *, temperature: float = 0.2, num_predict: int = 1000) -> dict:
+def llm_analyze(code: str, language: str, *, temperature: float = 0.2, num_predict: int = 1000) -> dict:
     language = (language or "python").lower()
     if language in ("python", "py"):
         outline = _python_outline(code)
@@ -329,24 +392,19 @@ def ollama_analyze(code: str, language: str, *, temperature: float = 0.2, num_pr
         code_for_llm = f"OUTLINE:\n{outline}\n\nSNIPPET:\n{snippet}"
     else:
         code_for_llm = (code or "")[:8000]
-    
-    payload = {
-        "model": MODEL,
-        "stream": False,
-        "messages": [
-            {"role": "system", "content": ANALYZE_SYSTEM_PROMPT},
-            {"role": "user", "content": f"Language: {language}\n\nCode:\n{code_for_llm}"},
-        ],
-        "options": {
-            "temperature": temperature,
-            "num_predict": num_predict,
-        },
-    }
+
+    messages = [
+        {"role": "system", "content": ANALYZE_SYSTEM_PROMPT},
+        {"role": "user", "content": f"Language: {language}\n\nCode:\n{code_for_llm}"},
+    ]
 
     try:
-        r = requests.post(f"{OLLAMA_URL}/api/chat", json=payload, timeout=60)
-        r.raise_for_status()
-        raw = r.json()["message"]["content"]
+        result = _get_llm().create_chat_completion(
+            messages=messages,
+            temperature=temperature,
+            max_tokens=num_predict,
+        )
+        raw = result["choices"][0]["message"]["content"]
     except Exception as e:
         return {"steps": [], "narration": "Code analysis failed. The local LLM service returned an error."}
     data = _to_json(raw)
@@ -367,29 +425,27 @@ def ollama_analyze(code: str, language: str, *, temperature: float = 0.2, num_pr
 
     return {"steps": steps, "narration": narration}
 
-def ollama_explain_symbol(code: str, language: str, symbol: str, kind: str = "") -> dict:
-    payload = {
-        "model": MODEL,
-        "stream": False,
-        "messages": [
-            {"role": "system", "content": EXPLAIN_SYMBOL_PROMPT},
-            {
-                "role": "user",
-                "content": (
-                    f"Language: {language}\n"
-                    f"Requested symbol: {symbol}\n"
-                    f"Kind (optional): {kind}\n\n"
-                    f"Code snippet:\n{code}\n"
-                ),
-            },
-        ],
-        "options": {"temperature": 0.2, "num_predict": 160},
-    }
+def llm_explain_symbol(code: str, language: str, symbol: str, kind: str = "") -> dict:
+    messages = [
+        {"role": "system", "content": EXPLAIN_SYMBOL_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                f"Language: {language}\n"
+                f"Requested symbol: {symbol}\n"
+                f"Kind (optional): {kind}\n\n"
+                f"Code snippet:\n{code}\n"
+            ),
+        },
+    ]
 
     try:
-        r = requests.post(f"{OLLAMA_URL}/api/chat", json=payload, timeout=120)
-        r.raise_for_status()
-        raw = r.json()["message"]["content"]
+        result = _get_llm().create_chat_completion(
+            messages=messages,
+            temperature=0.2,
+            max_tokens=160,
+        )
+        raw = result["choices"][0]["message"]["content"]
     except Exception:
         return {"summary": "Explain failed. The local LLM service returned an error.", "details": []}
 
@@ -402,41 +458,84 @@ def ollama_explain_symbol(code: str, language: str, symbol: str, kind: str = "")
         details = []
     return {"summary": summary, "details": details}
 
-def ollama_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 600) -> dict:
-    payload = {
-        "model": MODEL,
-        "stream": False,
-        "messages": [
-            {"role": "system", "content": FIX_PYTHON_ERROR_PROMPT},
-            {
-                "role": "user",
-                "content": (
-                    "Python file content:\n"
-                    f"{code}\n\n"
-                    "Traceback / error:\n"
-                    f"{error}\n"
-                ),
-            },
-        ],
-        "options": {"temperature": temperature, "num_predict": num_predict},
-    }
+def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 1000) -> dict:
+    messages = [
+        {"role": "system", "content": FIX_PYTHON_ERROR_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                "Python file content:\n"
+                f"{code}\n\n"
+                "Traceback / error:\n"
+                f"{error}\n"
+            ),
+        },
+    ]
 
     try:
-        r = requests.post(f"{OLLAMA_URL}/api/chat", json=payload, timeout=120)
-        r.raise_for_status()
-        raw = r.json()["message"]["content"]
+        result = _get_llm().create_chat_completion(
+            messages=messages,
+            temperature=temperature,
+            max_tokens=num_predict,
+        )
+        raw = result["choices"][0]["message"]["content"]
     except Exception:
         return {"content": "", "summary": "Fix failed. The local LLM service returned an error."}
 
     data = _to_json(raw)
-    content = data.get("content")
-    summary = data.get("summary")
+    
+    summary = str(data.get("summary") or "").strip()
+    replacements = data.get("replacements")
+    
+    content = code
+    applied_changes = False
+    if isinstance(replacements, list):
+        for rep in replacements:
+            if isinstance(rep, dict):
+                search = rep.get("search", "")
+                replace = rep.get("replace", "")
+                if search and isinstance(search, str) and isinstance(replace, str):
+                    if search == replace:
+                        continue
+                    if search in content:
+                        content = content.replace(search, replace, 1)
+                        applied_changes = True
 
-    if not isinstance(content, str) or not content.strip():
-        return {"content": "", "summary": _strip_code_fences(raw).strip() or "Fix failed."}
+    def _is_safe_python_source(source: str) -> bool:
+        import ast
 
-    if not isinstance(summary, str):
-        summary = "Applied a fix."
+        source = (source or "").strip()
+        if not source:
+            return False
+
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return False
+
+        if len(tree.body) == 1:
+            only_node = tree.body[0]
+            if isinstance(only_node, ast.Expr) and isinstance(getattr(only_node, "value", None), ast.Constant):
+                if isinstance(only_node.value.value, str):
+                    return False
+
+        return True
+
+    # Validate that the patched code is valid python
+    if content.strip() != code.strip() and applied_changes:
+        if not _is_safe_python_source(content):
+            content = ""
+            summary = summary or "The generated fix produced invalid Python code and was rejected."
+    else:
+        content = ""
+        if not summary:
+            summary = "The proposed fix did not change the program logic, so it was rejected."
+
+    if not content.strip():
+        return {"content": "", "summary": summary or _strip_code_fences(raw).strip() or "I could not generate a safe fix for the file."}
+
+    if not summary:
+        summary = "Applied a fix to resolve the error."
 
     return {"content": content, "summary": summary}
 
@@ -448,6 +547,85 @@ def _strip_code_fences(s: str) -> str:
             lines = lines[:-1]
         s = "\n".join(lines).strip()
     return s
+
+
+def _python_ast_dump(code: str) -> str:
+    import ast
+
+    tree = ast.parse(code or "")
+    return ast.dump(tree, include_attributes=False)
+
+
+def _python_static_review_issues(code: str) -> list[dict]:
+    import ast
+
+    code = code or ""
+    issues: list[dict] = []
+
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as exc:
+        issues.append({
+            "severity": "Critical",
+            "location": f"line {getattr(exc, 'lineno', '?')}",
+            "explanation": f"Python cannot parse this file: {exc.msg}.",
+            "impact": "The code will not run at all until the syntax error is fixed.",
+            "recommendation": "Correct the syntax error reported by Python and run the file again.",
+        })
+        return issues
+
+    env: dict[str, str] = {}
+
+    def infer_type(node: ast.AST) -> str | None:
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, str):
+                return "str"
+            if isinstance(node.value, bool):
+                return "bool"
+            if isinstance(node.value, int):
+                return "int"
+            if isinstance(node.value, float):
+                return "float"
+            return None
+        if isinstance(node, ast.Name):
+            return env.get(node.id)
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left_type = infer_type(node.left)
+            right_type = infer_type(node.right)
+            if left_type == right_type:
+                return left_type
+            if {left_type, right_type} <= {"int", "float"}:
+                return "float" if "float" in (left_type, right_type) else "int"
+            if "str" in (left_type, right_type) and ("int" in (left_type, right_type) or "float" in (left_type, right_type) or "bool" in (left_type, right_type)):
+                return "type_error"
+        return None
+
+    class Collector(ast.NodeVisitor):
+        def visit_Assign(self, node: ast.Assign) -> None:
+            value_type = infer_type(node.value)
+            if value_type and value_type != "type_error":
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        env[target.id] = value_type
+            self.generic_visit(node)
+
+        def visit_BinOp(self, node: ast.BinOp) -> None:
+            if isinstance(node.op, ast.Add):
+                left_type = infer_type(node.left)
+                right_type = infer_type(node.right)
+                if {left_type, right_type} == {"str", "int"} or {left_type, right_type} == {"str", "float"} or {left_type, right_type} == {"str", "bool"}:
+                    snippet = ast.get_source_segment(code, node) or "x + y"
+                    issues.append({
+                        "severity": "High",
+                        "location": snippet,
+                        "explanation": "This addition mixes a string with a number, so Python will raise a TypeError.",
+                        "impact": "The program will crash when it reaches this expression.",
+                        "recommendation": "Convert the number to a string, or change the logic so you are not adding incompatible types.",
+                    })
+            self.generic_visit(node)
+
+    Collector().visit(tree)
+    return issues
 
 def chat(message: str) -> dict:
     _ensure_qa_loaded()
@@ -516,28 +694,20 @@ def _python_outline(code: str) -> str:
 
     return "\n".join(lines).strip()
 
-def ollama_code_review(code: str, language: str, *, temperature: float = 0.3, num_predict: int = 120) -> dict:
+def llm_code_review(code: str, language: str, *, temperature: float = 0.3, num_predict: int = 120) -> dict:
     # TODO: Fix narrator saying the _ or other symbols
     language = (language or "python").lower()
     outline = _python_outline(code)
     snippet = (code or "")[:4000]
     code_for_llm = f"OUTLINE:\n{outline}\n\nSNIPPET:\n{snippet}"
 
-    payload = {
-        "model": MODEL,
-        "stream": False,
-        "messages": [
-            {"role": "system", "content": PYTHON_CODE_REVIEW_PROMPT},
-            {
-                "role": "user",
-                "content": f"Language: {language}\n\nCode:\n{code_for_llm}",
-            },
-        ],
-        "options": {
-            "temperature": temperature,
-            "num_predict": num_predict,
+    messages = [
+        {"role": "system", "content": PYTHON_CODE_REVIEW_PROMPT},
+        {
+            "role": "user",
+            "content": f"Language: {language}\n\nCode:\n{code_for_llm}",
         },
-    }
+    ]
 
     empty_response = {
         "overall_summary": "",
@@ -548,12 +718,15 @@ def ollama_code_review(code: str, language: str, *, temperature: float = 0.3, nu
     }
 
     try:
-        r = requests.post(f"{OLLAMA_URL}/api/chat", json=payload, timeout=60)
-        r.raise_for_status()
-        raw = r.json()["message"]["content"]
+        result = _get_llm().create_chat_completion(
+            messages=messages,
+            temperature=temperature,
+            max_tokens=num_predict,
+        )
+        raw = result["choices"][0]["message"]["content"]
     except Exception:
         empty_response["narration"] = (
-            "Failed to generate review failed. The local LLM service returned an error."
+            "Failed to generate review. The local LLM service returned an error."
         )
         return empty_response
 
@@ -601,6 +774,23 @@ def ollama_code_review(code: str, language: str, *, temperature: float = 0.3, nu
         })
 
     response["issues"] = valid_issues
+
+    static_issues = _python_static_review_issues(code) if language in ("python", "py") else []
+    if static_issues:
+        seen = {(issue.get("location", ""), issue.get("explanation", "")) for issue in response["issues"]}
+        for issue in static_issues:
+            key = (issue.get("location", ""), issue.get("explanation", ""))
+            if key not in seen:
+                response["issues"].insert(0, issue)
+                seen.add(key)
+
+        if not response["overall_summary"] or "works well" in response["overall_summary"].lower() or "no issues" in response["overall_summary"].lower():
+            response["overall_summary"] = "I found at least one likely runtime problem in the code."
+        if not response["final_assessment"] or "works well" in response["final_assessment"].lower() or "no issues" in response["final_assessment"].lower():
+            response["final_assessment"] = "The code is not correct as written."
+        if not response["narration"] or "works well" in response["narration"].lower() or "no issues" in response["narration"].lower():
+            first_issue = response["issues"][0]
+            response["narration"] = f"I found a likely problem at {first_issue['location']}: {first_issue['explanation']}"
 
     for key in (
         "overall_summary",

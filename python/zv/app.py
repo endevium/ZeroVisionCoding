@@ -89,6 +89,7 @@ class ZeroVisionAssistant(tk.Tk):
         self._pending_overwrite_path: Optional[str] = None
         self._pending_overwrite_name: Optional[str] = None
         self._pending_fix_request: Optional[dict] = None
+        self._pending_fix_confirmation: Optional[dict] = None
         self._last_editor_fingerprint: str = ""
         self._typing_echo_enabled: bool = True
         self._typing_echo_mode: str = "letter"
@@ -871,11 +872,11 @@ class ZeroVisionAssistant(tk.Tk):
 
         def _do() -> None:
             ed = self.client.editor()
-            code = str(ed.get("text") or "")
-            if not code.strip():
-                code = str(req.get("code") or "")
+            original_code = str(ed.get("text") or "")
+            if not original_code.strip():
+                original_code = str(req.get("code") or "")
 
-            fix = self.client.fix_python_error(code=code, error=err)
+            fix = self.client.fix_python_error(code=original_code, error=err)
             new_content = str(fix.get("content") or "")
             summary = str(fix.get("summary") or "").strip()
 
@@ -899,18 +900,19 @@ class ZeroVisionAssistant(tk.Tk):
                     break
                 time.sleep(0.3)
 
-            if "ok" not in res:
-                self.after(0, lambda: self.interrupt_and_speak(
-                    (summary or "I generated a fix.") + " I applied it, but I'm still waiting for confirmation."
-                ))
-                return
-
             ok = bool(res.get("ok"))
 
             def _deliver() -> None:
                 if ok:
                     self._pending_fix_request = None
-                    self.interrupt_and_speak((summary or "I applied a fix.") + " Saved the file.")
+                    self._pending_fix_confirmation = {
+                        "path": path,
+                        "original_code": original_code,
+                        "new_code": new_content,
+                        "summary": summary,
+                    }
+                    spoken_msg = f"I changed: {summary or 'applied a fix.'} Is this change correct? Say yes to confirm or no to revert."
+                    self.interrupt_and_speak(spoken_msg)
                 else:
                     msg = str(res.get("message") or "").strip()
                     self.interrupt_and_speak(
@@ -921,3 +923,39 @@ class ZeroVisionAssistant(tk.Tk):
             self.after(0, _deliver)
 
         threading.Thread(target=_do, daemon=True).start()
+
+    def confirm_fix(self) -> None:
+        info = self._pending_fix_confirmation
+        if not info:
+            self.interrupt_and_speak("There is no fix pending confirmation.")
+            return
+
+        path = str(info.get("path") or "")
+        summary = str(info.get("summary") or "").strip()
+        self._pending_fix_confirmation = None
+        self.client.enqueue_command("save_file", {})
+        if summary:
+            self.interrupt_and_speak(f"Fix confirmed. {summary}. File saved.")
+        else:
+            self.interrupt_and_speak("Fix confirmed and file saved.")
+
+    def revert_fix(self) -> None:
+        info = self._pending_fix_confirmation
+        if not info:
+            self.interrupt_and_speak("There is no fix pending confirmation.")
+            return
+
+        path = str(info.get("path") or "")
+        original_code = str(info.get("original_code") or "")
+        summary = str(info.get("summary") or "").strip()
+        self._pending_fix_confirmation = None
+
+        if path and original_code:
+            self.client.apply_file_content(path, original_code)
+            self.client.enqueue_command("save_file", {})
+            if summary:
+                self.interrupt_and_speak(f"Reverted the change. {summary}.")
+            else:
+                self.interrupt_and_speak("Reverted code back to the original state.")
+        else:
+            self.interrupt_and_speak("Could not revert code.")

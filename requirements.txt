@@ -10,3 +10,6 @@ edge-tts
 sentence-transformers
 faiss-cpu
 Pillow
+llama-cpp-python
+huggingface-hub
+piper-tts

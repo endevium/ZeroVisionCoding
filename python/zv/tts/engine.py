@@ -7,10 +7,12 @@ import os
 import subprocess
 import sys
 import tempfile
+import wave
 import threading
 import uuid
 import shutil
 from ctypes import wintypes
+from pathlib import Path
 from typing import Optional
 
 _TTS_LOCK = threading.Lock()
@@ -39,6 +41,7 @@ _SAPI_FALLBACK_VOICE = os.getenv("ZERO_VISION_SAPI_VOICE", "Guy")
 _AI_TTS_PROC: Optional[subprocess.Popen] = None
 _AI_TTS_CHECKED = False
 _AI_TTS_READY = False
+_PIPER_ENABLED = os.getenv("ZERO_VISION_PIPER_TTS", "0").strip().lower() in ("1", "true", "yes", "on")
 
 
 # ── MCI audio playback ──────────────────────────────────────────────────────
@@ -243,6 +246,145 @@ def _speak_text_ai_edge(text: str, voice: Optional[str], *, wait: bool) -> bool:
 
 # ── Main public entry point ─────────────────────────────────────────────────
 
+# ── Piper TTS (offline neural voice) ───────────────────────────────────────
+_PIPER_CHECKED = False
+_PIPER_READY = False
+_PIPER_ONNX_PATH: Optional[Path] = None
+_PIPER_JSON_PATH: Optional[Path] = None
+
+
+def _piper_models_dir() -> Path:
+    return Path(__file__).resolve().parents[3] / "models" / "piper"
+
+
+def _ensure_piper_model() -> tuple[Optional[Path], Optional[Path]]:
+    global _PIPER_ONNX_PATH, _PIPER_JSON_PATH
+    if _PIPER_ONNX_PATH and _PIPER_ONNX_PATH.exists() and _PIPER_JSON_PATH and _PIPER_JSON_PATH.exists():
+        return _PIPER_ONNX_PATH, _PIPER_JSON_PATH
+
+    dir_path = _piper_models_dir()
+    dir_path.mkdir(parents=True, exist_ok=True)
+
+    found_onnx = list(dir_path.rglob("*.onnx"))
+    found_json = list(dir_path.rglob("*.json"))
+
+    if found_onnx and found_json:
+        _PIPER_ONNX_PATH = found_onnx[0]
+        _PIPER_JSON_PATH = found_json[0]
+        return _PIPER_ONNX_PATH, _PIPER_JSON_PATH
+
+    try:
+        print("[tts] Downloading Piper offline male voice (en_US-ryan-medium ~60MB)...", flush=True)
+        from huggingface_hub import hf_hub_download
+        hf_hub_download(
+            repo_id="rhasspy/piper-voices",
+            filename="en/en_US/ryan/medium/en_US-ryan-medium.onnx",
+            local_dir=str(dir_path),
+        )
+        hf_hub_download(
+            repo_id="rhasspy/piper-voices",
+            filename="en/en_US/ryan/medium/en_US-ryan-medium.onnx.json",
+            local_dir=str(dir_path),
+        )
+        found_onnx = list(dir_path.rglob("*.onnx"))
+        found_json = list(dir_path.rglob("*.json"))
+        if found_onnx and found_json:
+            _PIPER_ONNX_PATH = found_onnx[0]
+            _PIPER_JSON_PATH = found_json[0]
+            return _PIPER_ONNX_PATH, _PIPER_JSON_PATH
+    except Exception as e:
+        if _DEBUG_TTS:
+            print(f"[tts] Piper model download failed: {e!r}", flush=True)
+
+    return None, None
+
+
+def _speak_text_piper(text: str, *, wait: bool) -> bool:
+    if not _PIPER_ENABLED:
+        return False
+
+    global _PIPER_CHECKED, _PIPER_READY
+    if not _PIPER_CHECKED:
+        try:
+            probe = subprocess.run(
+                [sys.executable, "-m", "piper", "--help"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=8,
+            )
+            _PIPER_READY = (probe.returncode == 0)
+        except Exception:
+            _PIPER_READY = False
+        _PIPER_CHECKED = True
+
+    if not _PIPER_READY:
+        return False
+
+    onnx_path, json_path = _ensure_piper_model()
+    if not onnx_path or not json_path:
+        return False
+
+    def _run_piper() -> None:
+        wav_path = None
+        try:
+            fd, wav_path = tempfile.mkstemp(suffix=".wav", prefix="zv_piper_")
+            os.close(fd)
+
+            # Try PiperVoice Python API first if installed.
+            synthesized = False
+            for module_name in ("piper.voice", "piper"):
+                try:
+                    mod = __import__(module_name, fromlist=["PiperVoice"])
+                    piper_voice = getattr(mod, "PiperVoice", None)
+                    if piper_voice is None:
+                        continue
+                    voice_obj = piper_voice.load(str(onnx_path), str(json_path))
+                    with wave.open(wav_path, "wb") as wav_file:
+                        voice_obj.synthesize_wav(text, wav_file)
+                    synthesized = True
+                    break
+                except Exception:
+                    synthesized = False
+
+            if not synthesized:
+                piper_exe = shutil.which("piper") or shutil.which("piper.exe")
+                cmd = (
+                    [piper_exe, "--model", str(onnx_path), "--output_file", wav_path]
+                    if piper_exe
+                    else [sys.executable, "-m", "piper", "--model", str(onnx_path), "--output_file", wav_path]
+                )
+                subprocess.run(
+                    cmd,
+                    input=text,
+                    text=True,
+                    encoding="utf-8",
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=True,
+                    timeout=30,
+                )
+
+            if wav_path and os.path.exists(wav_path) and os.path.getsize(wav_path) > 100:
+                _mci_play_sync(wav_path)
+
+        except Exception as e:
+            if _DEBUG_TTS:
+                print(f"[tts] piper synthesis failed: {e!r}", flush=True)
+        finally:
+            if wav_path and os.path.exists(wav_path):
+                try:
+                    os.remove(wav_path)
+                except Exception:
+                    pass
+
+    if wait:
+        _run_piper()
+    else:
+        threading.Thread(target=_run_piper, daemon=True).start()
+    return True
+
+
 def speak_text_windows(
     text: str,
     rate: int = 0,
@@ -256,16 +398,7 @@ def speak_text_windows(
     if not text:
         return
 
-    # 1) Try edge-tts neural voice (online, best quality)
-    if os.name == "nt" and not prefer_local_sapi:
-        try:
-            if _speak_text_ai_edge(text=text, voice=voice, wait=wait):
-                return
-        except Exception as e:
-            if _DEBUG_TTS:
-                print(f"[tts] edge-tts raised: {e!r}", flush=True)
-
-    # 2) SAPI fallback (offline, local voices)
+    # 1) Use Windows SAPI first again. Piper is opt-in only now.
     if os.name == "nt":
         try:
             import win32com.client  # type: ignore
@@ -299,7 +432,25 @@ def speak_text_windows(
             if _DEBUG_TTS:
                 print(f"[tts] SAPI failed: {e!r}", flush=True)
 
-    # 3) PowerShell last resort (no voice selection — system default)
+    # 2) Try Piper only when explicitly enabled.
+    if _PIPER_ENABLED:
+        try:
+            if _speak_text_piper(text=text, wait=wait):
+                return
+        except Exception as e:
+            if _DEBUG_TTS:
+                print(f"[tts] piper-tts raised: {e!r}", flush=True)
+
+    # 3) Try edge-tts neural voice (online fallback if SAPI/Piper unavailable)
+    if os.name == "nt" and not prefer_local_sapi:
+        try:
+            if _speak_text_ai_edge(text=text, voice=voice, wait=wait):
+                return
+        except Exception as e:
+            if _DEBUG_TTS:
+                print(f"[tts] edge-tts raised: {e!r}", flush=True)
+
+    # 4) PowerShell last resort (no voice selection — system default)
     if _DEBUG_TTS:
         print("[tts] falling back to PowerShell", flush=True)
 

@@ -63,3 +63,6 @@ Desktop.ini
 
 # VS Code extension packages
 *.vsix
+
+# LLM model files (downloaded at runtime)
+models/*.gguf
