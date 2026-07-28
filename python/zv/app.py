@@ -650,17 +650,26 @@ class ZeroVisionAssistant(tk.Tk):
             text = str(ed.get("text") or "")
             cursor = ed.get("cursor") or {}
             line_index = 0
-            if isinstance(cursor, dict) and cursor.get("line") is not None:
-                line_index = int(cursor.get("line"))
+            col_index = 0
+            if isinstance(cursor, dict):
+                if cursor.get("line") is not None:
+                    line_index = int(cursor.get("line"))
+                col_val = cursor.get("character")
+                if col_val is None:
+                    col_val = cursor.get("column")
+                if col_val is None:
+                    col_val = cursor.get("col")
+                if col_val is not None:
+                    col_index = int(col_val)
             lines = text.splitlines()
             if not lines:
-                self.interrupt_and_speak("Line 1 is empty.")
+                self.interrupt_and_speak(f"Line 1, column {col_index + 1} is empty.")
                 return
             line_index = max(0, min(line_index, len(lines) - 1))
             line_content = (lines[line_index] or "").strip() or "empty"
             if len(line_content) > 220:
                 line_content = line_content[:220] + " ..."
-            self.interrupt_and_speak(f"Line {line_index + 1}. {line_content}")
+            self.interrupt_and_speak(f"Line {line_index + 1}, column {col_index + 1}. {line_content}")
         except Exception:
             self.interrupt_and_speak("Could not read the current line.")
 
@@ -691,11 +700,80 @@ class ZeroVisionAssistant(tk.Tk):
         except Exception:
             self.interrupt_and_speak("Could not read the editor content.")
 
+    def find_errors_in_code(self) -> None:
+        """Find syntax or logical errors in the active editor code and speak findings."""
+        try:
+            ed = self.client.editor()
+            text = str(ed.get("text") or "")
+            lang = str(ed.get("language") or "python").lower()
+            path = str(ed.get("path") or "")
+        except Exception:
+            self.interrupt_and_speak("Could not access the editor content.")
+            return
+
+        if not text.strip():
+            self.interrupt_and_speak("The editor is empty.")
+            return
+
+        self.interrupt_and_speak("Checking code for errors, please wait.")
+
+        # 1. Fast Python AST syntax check if Python code
+        if lang in ("python", "py") or path.endswith(".py"):
+            import ast
+            try:
+                ast.parse(text, filename=path or "<editor>")
+            except SyntaxError as e:
+                line_no = e.lineno or 1
+                col_no = e.offset or 1
+                msg = e.msg or "syntax error"
+                lines = text.splitlines()
+                line_text = (lines[line_no - 1].strip() if 0 <= line_no - 1 < len(lines) else "")
+                
+                spoken_msg = f"Found a syntax error at line {line_no}, column {col_no}: {msg}."
+                if line_text:
+                    spoken_msg += f" Line content: {line_text}. Say 'fix it' if you want me to automatically fix it."
+                
+                self.interrupt_and_speak(spoken_msg)
+                
+                self._pending_fix_request = {
+                    "path": path,
+                    "line": line_no,
+                    "column": col_no,
+                    "stderr": f"SyntaxError: {msg} at line {line_no}, column {col_no}"
+                }
+                return
+
+        # 2. Advanced LLM / static error analysis in background thread
+        MAX_CHARS = 12000
+        if len(text) > MAX_CHARS:
+            head = text[: MAX_CHARS // 2]
+            tail = text[-MAX_CHARS // 2 :]
+            code_sample = head + "\n\n... truncated ...\n\n" + tail
+        else:
+            code_sample = text
+
+        def _do() -> None:
+            data = self.client.analyze_code(code_sample, language=lang)
+            narration = str(data.get("narration") or "").strip()
+            steps = data.get("steps") or []
+
+            def _deliver() -> None:
+                if narration:
+                    self.interrupt_and_speak(f"Error analysis result: {narration}")
+                elif isinstance(steps, list) and steps:
+                    self.interrupt_and_speak(f"Error analysis result: {steps[0]}")
+                else:
+                    self.interrupt_and_speak("No errors found in the active code.")
+
+            self.after(0, _deliver)
+
+        threading.Thread(target=_do, daemon=True).start()
+
     def speak_help(self) -> None:
-        # FIX: added explain, fix it commands that were missing
+        # FIX: added explain, fix it, find errors commands that were missing
         self.interrupt_and_speak(
             "Commands: where am I, what file is this, read the whole thing, "
-            "save, save as, open file, run code, analyze the code, "
+            "save, save as, open file, run code, find errors in the code, analyze the code, "
             "explain function, explain class, explain for loop, "
             "fix it, change voice, speak faster, speak slower."
         )
@@ -856,18 +934,61 @@ class ZeroVisionAssistant(tk.Tk):
     def stop_terminal_reader(self) -> None:
         self._terminal_reader_running = False
 
+    def find_errors_and_fix(self) -> None:
+        """Find syntax or logical errors in active file and fix immediately."""
+        try:
+            ed = self.client.editor()
+            text = str(ed.get("text") or "")
+            lang = str(ed.get("language") or "python").lower()
+            path = str(ed.get("path") or "")
+        except Exception:
+            self.interrupt_and_speak("Could not access the editor content.")
+            return
+
+        if not text.strip():
+            self.interrupt_and_speak("The editor is empty.")
+            return
+
+        if lang in ("python", "py") or path.endswith(".py"):
+            import ast
+            try:
+                ast.parse(text, filename=path or "<editor>")
+            except SyntaxError as e:
+                line_no = e.lineno or 1
+                col_no = e.offset or 1
+                msg = e.msg or "syntax error"
+                self._pending_fix_request = {
+                    "path": path,
+                    "line": line_no,
+                    "column": col_no,
+                    "stderr": f"SyntaxError: {msg} at line {line_no}, column {col_no}"
+                }
+                self.interrupt_and_speak(f"Found syntax error at line {line_no}: {msg}. Fixing it now.")
+                self.begin_fix_last_run_error()
+                return
+
+        self.interrupt_and_speak("No syntax error found to fix.")
+
     def begin_fix_last_run_error(self) -> None:
         req = self._pending_fix_request
         if not req:
-            self.interrupt_and_speak("There is no error to fix.")
+            self.find_errors_and_fix()
             return
 
-        path = str(req.get("path") or "")
+        path = str(req.get("path") or "").strip()
+        if not path:
+            try:
+                ed = self.client.editor()
+                path = str(ed.get("path") or "").strip()
+            except Exception:
+                path = ""
+
         err = str(req.get("stderr") or "")
         if not path:
             self.interrupt_and_speak("I could not determine which file to fix.")
             return
 
+        self.interrupt_and_speak("Generating fix, please wait.")
         self.client.enqueue_command("open_file", {"path": path})
 
         def _do() -> None:

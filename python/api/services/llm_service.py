@@ -458,86 +458,157 @@ def llm_explain_symbol(code: str, language: str, symbol: str, kind: str = "") ->
         details = []
     return {"summary": summary, "details": details}
 
+def _apply_code_replacement(code: str, search: str, replace: str, err_line: Optional[int] = None) -> tuple[str, bool]:
+    code_norm = code.replace("\r\n", "\n")
+    search_norm = search.replace("\r\n", "\n").strip("\r\n")
+    replace_norm = replace.replace("\r\n", "\n").strip("\r\n")
+
+    if not search_norm or search_norm == replace_norm:
+        return code, False
+
+    # 1. Exact match
+    if search_norm in code_norm:
+        return code_norm.replace(search_norm, replace_norm, 1), True
+
+    lines = code_norm.split("\n")
+    search_clean = search_norm.strip()
+    replace_clean = replace_norm.strip()
+
+    # 2. Stripped line match
+    for i, line in enumerate(lines):
+        if line.strip() == search_clean and search_clean != "":
+            indent = line[: len(line) - len(line.lstrip())]
+            lines[i] = indent + replace_clean
+            return "\n".join(lines), True
+
+    # 3. Line-index fallback if err_line available
+    if err_line is not None and 1 <= err_line <= len(lines):
+        idx = err_line - 1
+        target_line = lines[idx]
+        if search_clean in target_line or target_line.strip() in search_clean or len(search_clean) < 3:
+            indent = target_line[: len(target_line) - len(target_line.lstrip())]
+            lines[idx] = indent + replace_clean
+            return "\n".join(lines), True
+
+    return code, False
+
+
+def _fix_common_syntax_typo(code: str, err_line: Optional[int]) -> tuple[str, bool]:
+    import re
+
+    code_norm = code.replace("\r\n", "\n")
+    lines = code_norm.split("\n")
+
+    target_indices = [err_line - 1] if (err_line is not None and 1 <= err_line <= len(lines)) else range(len(lines))
+
+    for idx in target_indices:
+        line = lines[idx]
+        # Fix common operator typos in assignments: =/, =m, =+, =*, =-, =@, =%
+        new_line = re.sub(r'=\s*[/m+*\-@%]\s*', '= ', line)
+        if new_line != line:
+            lines[idx] = new_line
+            return "\n".join(lines), True
+
+    return code, False
+
+
 def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 1000) -> dict:
-    messages = [
-        {"role": "system", "content": FIX_PYTHON_ERROR_PROMPT},
-        {
-            "role": "user",
-            "content": (
-                "Python file content:\n"
-                f"{code}\n\n"
-                "Traceback / error:\n"
-                f"{error}\n"
-            ),
-        },
-    ]
+    import ast
 
-    try:
-        result = _get_llm().create_chat_completion(
-            messages=messages,
-            temperature=temperature,
-            max_tokens=num_predict,
-        )
-        raw = result["choices"][0]["message"]["content"]
-    except Exception:
-        return {"content": "", "summary": "Fix failed. The local LLM service returned an error."}
+    current_code = code.replace("\r\n", "\n")
+    current_error = error
+    last_summary = ""
+    total_applied = False
+    all_summaries = []
 
-    data = _to_json(raw)
-    
-    summary = str(data.get("summary") or "").strip()
-    replacements = data.get("replacements")
-    
-    content = code
-    applied_changes = False
-    if isinstance(replacements, list):
-        for rep in replacements:
-            if isinstance(rep, dict):
-                search = rep.get("search", "")
-                replace = rep.get("replace", "")
-                if search and isinstance(search, str) and isinstance(replace, str):
-                    if search == replace:
-                        continue
-                    if search in content:
-                        content = content.replace(search, replace, 1)
-                        applied_changes = True
+    for _pass_idx in range(3):
+        # Extract line number from current_error if present
+        err_line = None
+        import re
+        m = re.search(r'line\s+(\d+)', current_error, re.IGNORECASE)
+        if m:
+            try:
+                err_line = int(m.group(1))
+            except Exception:
+                err_line = None
 
-    def _is_safe_python_source(source: str) -> bool:
-        import ast
+        messages = [
+            {"role": "system", "content": FIX_PYTHON_ERROR_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    "Python file content:\n"
+                    f"{current_code}\n\n"
+                    "Traceback / error:\n"
+                    f"{current_error}\n"
+                ),
+            },
+        ]
 
-        source = (source or "").strip()
-        if not source:
-            return False
-
+        raw = ""
         try:
-            tree = ast.parse(source)
-        except SyntaxError:
-            return False
+            result = _get_llm().create_chat_completion(
+                messages=messages,
+                temperature=temperature,
+                max_tokens=num_predict,
+            )
+            raw = result["choices"][0]["message"]["content"]
+        except Exception:
+            pass
 
-        if len(tree.body) == 1:
-            only_node = tree.body[0]
-            if isinstance(only_node, ast.Expr) and isinstance(getattr(only_node, "value", None), ast.Constant):
-                if isinstance(only_node.value.value, str):
-                    return False
+        applied_this_pass = False
+        if raw:
+            data = _to_json(raw)
+            summary = str(data.get("summary") or "").strip()
+            if summary:
+                last_summary = summary
+                if summary not in all_summaries:
+                    all_summaries.append(summary)
+            replacements = data.get("replacements")
 
-        return True
+            if isinstance(replacements, list):
+                for rep in replacements:
+                    if isinstance(rep, dict):
+                        search = rep.get("search", "")
+                        replace = rep.get("replace", "")
+                        if search and isinstance(search, str) and isinstance(replace, str):
+                            new_code, ok = _apply_code_replacement(current_code, search, replace, err_line=err_line)
+                            if ok:
+                                current_code = new_code
+                                applied_this_pass = True
+                                total_applied = True
 
-    # Validate that the patched code is valid python
-    if content.strip() != code.strip() and applied_changes:
-        if not _is_safe_python_source(content):
-            content = ""
-            summary = summary or "The generated fix produced invalid Python code and was rejected."
-    else:
-        content = ""
-        if not summary:
-            summary = "The proposed fix did not change the program logic, so it was rejected."
+        # Fallback: try deterministic syntax typo repair if LLM replacement didn't apply
+        if not applied_this_pass:
+            new_code, ok = _fix_common_syntax_typo(current_code, err_line)
+            if ok:
+                current_code = new_code
+                applied_this_pass = True
+                total_applied = True
+                if not last_summary:
+                    last_summary = f"Fixed syntax typo at line {err_line or 1}."
+                if last_summary not in all_summaries:
+                    all_summaries.append(last_summary)
 
-    if not content.strip():
-        return {"content": "", "summary": summary or _strip_code_fences(raw).strip() or "I could not generate a safe fix for the file."}
+        if not applied_this_pass:
+            break
 
-    if not summary:
-        summary = "Applied a fix to resolve the error."
+        # Check if current_code is now valid python
+        try:
+            ast.parse(current_code)
+            # All syntax errors resolved!
+            break
+        except SyntaxError as se:
+            err_line = se.lineno or 1
+            err_col = se.offset or 1
+            err_msg = se.msg or "syntax error"
+            current_error = f"SyntaxError: {err_msg} at line {err_line}, column {err_col}"
 
-    return {"content": content, "summary": summary}
+    if not total_applied or current_code.strip() == code.strip():
+        return {"content": "", "summary": last_summary or "I could not generate a fix for the file."}
+
+    final_summary = " ".join(all_summaries) if all_summaries else (last_summary or "Applied fixes to resolve code errors.")
+    return {"content": current_code, "summary": final_summary}
 
 def _strip_code_fences(s: str) -> str:
     s = (s or "").strip()

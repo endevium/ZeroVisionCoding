@@ -436,6 +436,14 @@ function activate(context) {
         debouncedSend();
     }));
 
+    // Send when moving cursor / selection in the active editor
+    context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection((e) => {
+        const active = vscode.window.activeTextEditor;
+        if (!active) return;
+        if (e.textEditor !== active) return;
+        debouncedSend();
+    }));
+
     // Send when switching editors
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => {
         debouncedSend();

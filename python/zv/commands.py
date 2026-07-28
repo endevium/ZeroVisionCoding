@@ -88,11 +88,15 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         return
 
     # Fixer
+    if any(phrase in t for phrase in ("fix it", "fix the error", "fix error", "fix code", "fix the code", "auto fix", "please fix", "fix this", "fix syntax")):
+        app.begin_fix_last_run_error()
+        return
+
     if getattr(app, "_pending_fix_request", None):
-        if t.strip() in ("yes", "yeah", "yep", "fix it", "go ahead", "please fix"):
+        if _is_yes(t.strip()) or t.strip() in ("yes", "yeah", "yep", "go ahead"):
             app.begin_fix_last_run_error()
             return
-        if t.strip() in ("no", "nope", "cancel", "stop"):
+        if _is_no(t.strip()) or t.strip() in ("no", "nope", "cancel", "stop"):
             app._pending_fix_request = None
             app.interrupt_and_speak("Okay. I will not change the code.")
             return
@@ -107,7 +111,7 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
             return
 
     # Navigation / readout
-    if ("where am i" in t) or ("current line" in t):
+    if any(phrase in t for phrase in ("where am i", "current line", "where is my cursor", "cursor position", "where is cursor")):
         app.speak_current_line()
         return
 
@@ -163,6 +167,11 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
     # Save (current file)
     if t.strip() == "save" or ("save file" in t) or ("save work" in t):
         _handle_save(app)
+        return
+
+    # Find errors
+    if any(phrase in t for phrase in ("find errors in the code", "find error in the code", "find errors in code", "find error in code", "find errors", "find error", "check for errors", "check errors", "scan for errors", "search for errors", "find bugs", "check for bugs")):
+        app.find_errors_in_code()
         return
 
     # Analyze
