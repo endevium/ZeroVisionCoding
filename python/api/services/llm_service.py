@@ -2,6 +2,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -11,8 +12,7 @@ logger = logging.getLogger(__name__)
 MODEL_REPO = "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF"
 MODEL_FILENAME = "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
 
-_llm = None  # lazy singleton
-
+_llm = None
 
 def _models_dir() -> Path:
     """Return <repo_root>/models."""
@@ -143,16 +143,24 @@ FIX_PYTHON_ERROR_PROMPT = (
     "You are an expert Python code fixing assistant.\n"
     "You will be given a Python file and a traceback/error message.\n"
     "Fix the error with the smallest reasonable change.\n"
+    "Before answering, verify the fix carefully against the traceback and the surrounding code.\n"
     "CRITICAL REQUIREMENT:\n"
     "- Do NOT output the entire file. Use the 'replacements' array to specify EXACT lines to search for and what to replace them with.\n"
     "- Your 'search' text MUST match the original code exactly, including leading spaces.\n"
     "- CRITICAL: The 'replace' text MUST be different from the 'search' text. Do not output a replacement that makes no changes.\n"
-    "- Ensure your 'replacements' block actually implements the solution you proposed in your 'reasoning' field.\n"
+    "- Verify that every proposed replacement actually differs from the original code and modifies the behavior to address the issue.\n"
+    "- Confirm that the modified code resolves the reported exception and compiles successfully.\n"
+    "- You MUST preserve the original program logic. Do NOT rewrite, refactor, or optimize the code. Confine your replacements to the exact lines causing the error.\n"
+    "- Keep 'search' blocks as small as possible—ideally a single line. Never replace an entire function if only one line is broken.\n"
+    "- Avoid introducing new behavior unless it is absolutely necessary to fix the error.\n"
     "- If the error is an environment issue (like FileNotFoundError), leave the 'replacements' array empty and provide your recommendation in the 'summary' field.\n"
     "- If fixing an IndexError, explicitly reason about list lengths and loop bounds in your 'reasoning' field.\n"
     "- If fixing a KeyError, explicitly reason about key existence and proper dictionary handling.\n"
+    "- If no valid fix can be generated from the traceback and code context, leave the 'replacements' array empty and explain why in the 'summary' field instead of claiming the error was fixed.\n"
+    "- In a final self-check, compare each proposed replacement against the original code and discard any replacement that does not change behavior.\n"
     "Return ONLY valid JSON with this exact schema:\n"
     "{\n"
+    '  "original_intent": string,\n'
     '  "reasoning": string,\n'
     '  "replacements": [\n'
     '    {\n'
@@ -170,17 +178,18 @@ PYTHON_CODE_REVIEW_PROMPT = (
     "You are an expert Python code reviewer designed for blind and visually-impaired programmers.\n"
     "Your purpose is to review code and explain your findings in a way that is easy to understand when spoken aloud through text-to-speech.\n\n"
 
-    "Review the code for:\n"
-    "- Correctness and logical errors.\n"
-    "- Syntax mistakes.\n"
-    "- Runtime errors or possible exceptions.\n"
-    "- Code readability and maintainability.\n"
-    "- Python best practices and style.\n"
-    "- Performance issues when appropriate.\n"
-    "- Security concerns if present.\n"
-    "- Unused variables, imports, or unreachable code.\n"
-    "- Opportunities to simplify the implementation.\n"
-    "- Explicitly check for infinite loops (e.g., 'while True' without a break) and missing base cases in recursive functions. These are severe logic errors.\n\n"
+    "CRITICAL: Follow this inspection sequence sequentially and evaluate each category before producing the final review:\n"
+    "1. Syntax correctness: Check if the code compiles and has valid syntax.\n"
+    "2. Runtime exceptions and possible failures: Check for type errors, indexing issues, divide by zero, file operations, etc.\n"
+    "3. Logical correctness: Check if the business logic matches intent, looking for infinite loops and missing recursion base cases.\n"
+    "4. Resource management: Check file handles, sockets, database connections, and memory.\n"
+    "5. Python best practices: Check for standard Python idioms and code cleanliness.\n"
+    "6. Performance: Check for performance bottlenecks, redundant computations, or slow operations.\n"
+    "7. Security: Check for vulnerabilities, hardcoded secrets, injection risks, etc.\n"
+    "8. Maintainability: Check readability, modularity, and complexity.\n\n"
+
+    "You must sequentially evaluate all 8 categories above. Provide your evaluation in the 'checklist' object. "
+    "Only after completing this checklist should you generate the final review. Do not write the final assessment until every category has been evaluated.\n\n"
 
     "When giving feedback:\n"
     "- Explain *why* something is an issue before suggesting a fix.\n"
@@ -188,7 +197,8 @@ PYTHON_CODE_REVIEW_PROMPT = (
     "- Avoid unnecessary jargon.\n"
     "- Do not overwhelm the user with minor style issues.\n"
     "- Prioritize bugs over code style.\n"
-    "- If the code is already good, say so.\n\n"
+    "- Be a highly critical and meticulous reviewer. Actively hunt for edge cases, missing validations, and silent logic failures.\n"
+    "- You MUST identify at least one area for improvement, even if it is just best practices or robustness.\n\n"
 
     "Organize your response into these sections:\n"
     "1. Overall Summary\n"
@@ -211,10 +221,18 @@ PYTHON_CODE_REVIEW_PROMPT = (
     "- Read symbols naturally (for example, say 'equals' instead of '=' when explaining concepts).\n"
     "- Focus on clarity over completeness.\n\n"
 
-    "Do not invent problems that are not present in the code."
-
     "Return ONLY valid JSON with this exact schema:\n" 
     "{\n" 
+    ' "checklist": {\n'
+    '   "syntax": string,\n'
+    '   "runtime": string,\n'
+    '   "logic": string,\n'
+    '   "resource_management": string,\n'
+    '   "best_practices": string,\n'
+    '   "performance": string,\n'
+    '   "security": string,\n'
+    '   "maintainability": string\n'
+    ' },\n'
     ' "analysis": string,\n'
     ' "overall_summary": string,\n' 
     ' "strengths": [string, ...],\n' 
@@ -227,7 +245,7 @@ PYTHON_CODE_REVIEW_PROMPT = (
     
     "The 'analysis' field MUST contain your step-by-step semantic reasoning about what the code does and where it might fail. Think carefully before listing issues.\n"
     "The 'narration' field should be a concise spoken summary of the review that sounds natural when read aloud. Do not simply repeat every issue verbatim.\n"
-    "CRITICAL: Do not use underscores (like 'overall_summary') anywhere in your text fields, as this text will be read aloud by a text-to-speech engine.\n\n"
+    "CRITICAL: Do not use underscores anywhere in your text fields (do not write words like overall_summary or final_assessment with underscores; write overall summary or final assessment instead), as this text will be read aloud by a text-to-speech engine.\n\n"
 
     "No markdown. No extra text."
 )
@@ -769,7 +787,7 @@ def llm_code_review(code: str, language: str, *, temperature: float = 0.3, num_p
     # TODO: Fix narrator saying the _ or other symbols
     language = (language or "python").lower()
     outline = _python_outline(code)
-    snippet = (code or "")[:4000]
+    snippet = (code or "")[:6000]
     code_for_llm = f"OUTLINE:\n{outline}\n\nSNIPPET:\n{snippet}"
 
     messages = [
@@ -821,6 +839,11 @@ def llm_code_review(code: str, language: str, *, temperature: float = 0.3, num_p
         "narration": data.get("narration", ""),
     }
 
+    # Clean underscores from top-level text fields to protect TTS output
+    for key in ("overall_summary", "final_assessment", "narration"):
+        if isinstance(response[key], str):
+            response[key] = response[key].replace("overall_summary", "overall summary").replace("final_assessment", "final assessment").replace("_", " ")
+
     # Validate strengths
     if not (
         isinstance(response["strengths"], list)
@@ -836,13 +859,17 @@ def llm_code_review(code: str, language: str, *, temperature: float = 0.3, num_p
         if not isinstance(issue, dict):
             continue
 
-        valid_issues.append({
+        # Clean underscores from issue text fields to protect TTS output
+        cleaned_issue = {
             "severity": str(issue.get("severity", "Low")),
             "location": str(issue.get("location", "")),
             "explanation": str(issue.get("explanation", "")),
             "impact": str(issue.get("impact", "")),
             "recommendation": str(issue.get("recommendation", "")),
-        })
+        }
+        for k in ("location", "explanation", "impact", "recommendation"):
+            cleaned_issue[k] = cleaned_issue[k].replace("overall_summary", "overall summary").replace("final_assessment", "final assessment").replace("_", " ")
+        valid_issues.append(cleaned_issue)
 
     response["issues"] = valid_issues
 

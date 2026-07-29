@@ -19,6 +19,7 @@ build/
 venv/
 env/
 ENV/
+.env
 
 # Environment variables
 .env
@@ -66,3 +67,6 @@ Desktop.ini
 
 # LLM model files (downloaded at runtime)
 models/*.gguf
+
+# Test cases
+tests/ai_test_cases/*/*.json
