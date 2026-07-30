@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import os
+import subprocess
+import json
+import tempfile
 import threading
 import time
 import tkinter as tk
@@ -29,6 +32,52 @@ def createLabel(parent: tk.Misc, text: str, fontSize: int, color: str) -> tk.Lab
     )
 
 class ZeroVisionAssistant(tk.Tk):
+    def _run_pyright(self, code: str) -> list:
+        """
+        Returns a list of diagnostics from Pyright.
+        """
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".py",
+            delete=False,
+            mode="w",
+            encoding="utf-8",
+        ) as f:
+            f.write(code)
+            temp_file = f.name
+
+        try:
+            import sys
+            result = subprocess.run(
+                [
+                    "pyright",
+                    "--outputjson",
+                    temp_file,
+                ],
+                capture_output=True,
+                text=True,
+                shell=sys.platform.startswith("win"),
+            )
+
+            data = json.loads(result.stdout)
+
+            return data.get("generalDiagnostics", [])
+
+        except FileNotFoundError:
+            print("[_run_pyright] pyright not found on PATH")
+            return []
+        except json.JSONDecodeError:
+            print(f"[_run_pyright] pyright output not valid JSON: {result.stdout[:200]!r} stderr: {result.stderr[:200]!r}")
+            return []
+        except Exception as e:
+            print(f"[_run_pyright] unexpected error: {e!r}")
+            return []
+
+        finally:
+            try:
+                os.remove(temp_file)
+            except:
+                pass
     def __init__(self) -> None:
         super().__init__()
 
@@ -90,6 +139,7 @@ class ZeroVisionAssistant(tk.Tk):
         self._pending_overwrite_name: Optional[str] = None
         self._pending_fix_request: Optional[dict] = None
         self._pending_fix_confirmation: Optional[dict] = None
+        self._awaiting_fix_offer: bool = False
         self._last_editor_fingerprint: str = ""
         self._typing_echo_enabled: bool = True
         self._typing_echo_mode: str = "letter"
@@ -182,6 +232,25 @@ class ZeroVisionAssistant(tk.Tk):
         def _run_on_ui() -> None:
             if self._closing:
                 return
+
+            if self._awaiting_fix_offer:
+                lowered = text.strip().lower().strip(".!? ")
+                affirmative = {"yes", "yeah", "yep", "sure", "ok", "okay", "please", "please do", "go ahead", "fix it", "do it"}
+                negative = {"no", "nope", "nah", "don't", "dont", "cancel", "never mind", "nevermind", "stop"}
+
+                if lowered in affirmative:
+                    self._awaiting_fix_offer = False
+                    self.begin_fix_last_run_error()
+                    return
+                elif lowered in negative:
+                    self._awaiting_fix_offer = False
+                    self._pending_fix_request = None
+                    self.interrupt_and_speak("Okay, I won't fix it.")
+                    return
+                # If it's neither yes nor no, fall through and let the normal
+                # command handler process it; leave the offer pending in case
+                # the user answers afterward.
+
             from .commands import handle_text
             handle_text(self, text)
 
@@ -700,6 +769,90 @@ class ZeroVisionAssistant(tk.Tk):
         except Exception:
             self.interrupt_and_speak("Could not read the editor content.")
 
+    def detect_code_error(self, text: str = None, lang: str = None, path: str = None) -> Optional[dict]:
+        """Pure detection (no speaking): returns a dict describing the first
+        syntax or type error found in the given code (or the active editor's
+        code if not provided), or None if nothing is found / not Python."""
+        if text is None or lang is None or path is None:
+            try:
+                ed = self.client.editor()
+                text = str(ed.get("text") or "")
+                lang = str(ed.get("language") or "python").lower()
+                path = str(ed.get("path") or "")
+            except Exception:
+                return None
+
+        if not text.strip():
+            return None
+
+        if not (str(lang or "").lower() in ("python", "py") or str(path or "").endswith(".py")):
+            return None
+
+        import ast
+        try:
+            ast.parse(text, filename=path or "<editor>")
+        except SyntaxError as e:
+            line_no = e.lineno or 1
+            col_no = e.offset or 1
+            msg = e.msg or "syntax error"
+            return {
+                "path": path,
+                "line": line_no,
+                "column": col_no,
+                "message": msg,
+                "kind": "syntax",
+            }
+
+        diagnostics = self._run_pyright(text)
+        if diagnostics:
+            first = diagnostics[0]
+            line = first["range"]["start"]["line"] + 1
+            column = first["range"]["start"]["character"] + 1
+            message = first["message"]
+            return {
+                "path": path,
+                "line": line,
+                "column": column,
+                "message": message,
+                "kind": "type",
+            }
+
+        return None
+
+    def offer_fix_for_found_error(self, err: dict, *, interrupt: bool = True) -> None:
+        """Store the found error as a pending fix request and ask the user
+        whether they'd like it fixed, speaking either immediately
+        (interrupt=True) or queued after whatever is currently playing
+        (interrupt=False)."""
+        line = err.get("line", 1)
+        column = err.get("column", 1)
+        message = err.get("message", "an error")
+        kind = err.get("kind", "type")
+
+        self._pending_fix_request = {
+            "path": err.get("path", ""),
+            "line": line,
+            "column": column,
+            "stderr": message,
+        }
+        self._awaiting_fix_offer = True
+
+        if kind == "syntax":
+            text_to_speak = (
+                f"Found a syntax error at line {line}, column {column}: {message}. "
+                f"Would you like me to fix it? Say yes or no."
+            )
+        else:
+            text_to_speak = (
+                f"Found an error on line {line}, column {column}. {message} "
+                f"Would you like me to fix it? Say yes or no."
+            )
+
+        if interrupt:
+            self.interrupt_and_speak(text_to_speak)
+        else:
+            self.speak(text_to_speak)
+
     def find_errors_in_code(self) -> None:
         """Find syntax or logical errors in the active editor code and speak findings."""
         try:
@@ -717,34 +870,16 @@ class ZeroVisionAssistant(tk.Tk):
 
         self.interrupt_and_speak("Checking code for errors, please wait.")
 
-        # 1. Fast Python AST syntax check if Python code
+        # 1. Fast Python AST syntax check if Python code, plus Pyright type check
         if lang in ("python", "py") or path.endswith(".py"):
-            import ast
-            try:
-                ast.parse(text, filename=path or "<editor>")
-            except SyntaxError as e:
-                line_no = e.lineno or 1
-                col_no = e.offset or 1
-                msg = e.msg or "syntax error"
-                lines = text.splitlines()
-                line_text = (lines[line_no - 1].strip() if 0 <= line_no - 1 < len(lines) else "")
-                
-                spoken_msg = f"Found a syntax error at line {line_no}, column {col_no}: {msg}."
-                if line_text:
-                    spoken_msg += f" Line content: {line_text}. Say 'fix it' if you want me to automatically fix it."
-                
-                self.interrupt_and_speak(spoken_msg)
-                
-                self._pending_fix_request = {
-                    "path": path,
-                    "line": line_no,
-                    "column": col_no,
-                    "stderr": f"SyntaxError: {msg} at line {line_no}, column {col_no}"
-                }
+            err = self.detect_code_error(text, lang, path)
+            if err:
+                self.offer_fix_for_found_error(err, interrupt=True)
                 return
 
         # 2. Advanced LLM / static error analysis in background thread
         MAX_CHARS = 12000
+        ...
         if len(text) > MAX_CHARS:
             head = text[: MAX_CHARS // 2]
             tail = text[-MAX_CHARS // 2 :]
@@ -967,6 +1102,28 @@ class ZeroVisionAssistant(tk.Tk):
                 self.begin_fix_last_run_error()
                 return
 
+            # ast.parse only catches syntax errors. Run Pyright to catch
+            # type/logic errors (e.g. `"a" + 2`) that are syntactically valid
+            # but will fail at runtime.
+            diagnostics = self._run_pyright(text)
+            errors = [d for d in diagnostics if d.get("severity") == "error"]
+            if errors:
+                d = errors[0]
+                rng = d.get("range", {}) or {}
+                start = rng.get("start", {}) or {}
+                line_no = int(start.get("line", 0)) + 1
+                col_no = int(start.get("character", 0)) + 1
+                msg = d.get("message", "type error")
+                self._pending_fix_request = {
+                    "path": path,
+                    "line": line_no,
+                    "column": col_no,
+                    "stderr": f"{msg} at line {line_no}, column {col_no}",
+                }
+                self.interrupt_and_speak(f"Found an error at line {line_no}: {msg}. Fixing it now.")
+                self.begin_fix_last_run_error()
+                return
+
         self.interrupt_and_speak("No syntax error found to fix.")
 
     def begin_fix_last_run_error(self) -> None:
@@ -992,56 +1149,63 @@ class ZeroVisionAssistant(tk.Tk):
         self.client.enqueue_command("open_file", {"path": path})
 
         def _do() -> None:
-            ed = self.client.editor()
-            original_code = str(ed.get("text") or "")
-            if not original_code.strip():
-                original_code = str(req.get("code") or "")
+            try:
+                ed = self.client.editor()
+                original_code = str(ed.get("text") or "")
+                if not original_code.strip():
+                    original_code = str(req.get("code") or "")
 
-            fix = self.client.fix_python_error(code=original_code, error=err)
-            new_content = str(fix.get("content") or "")
-            summary = str(fix.get("summary") or "").strip()
+                fix = self.client.fix_python_error(code=original_code, error=err)
+                new_content = str(fix.get("content") or "")
+                summary = str(fix.get("summary") or "").strip()
 
-            if not new_content.strip():
-                self.after(0, lambda: self.interrupt_and_speak(summary or "I could not generate a fix."))
-                self._pending_fix_request = None
-                return
-
-            enqueue = self.client.apply_file_content(path, new_content)
-            cmd_id = enqueue.get("id")
-
-            if not cmd_id:
-                self.after(0, lambda: self.interrupt_and_speak("I generated a fix, but could not enqueue applying it."))
-                return
-
-            start = time.time()
-            res = {}
-            while time.time() - start < 25.0:
-                res = self.client.command_result(str(cmd_id))
-                if "ok" in res:
-                    break
-                time.sleep(0.3)
-
-            ok = bool(res.get("ok"))
-
-            def _deliver() -> None:
-                if ok:
+                if not new_content.strip():
+                    self.after(0, lambda: self.interrupt_and_speak(summary or "I could not generate a fix."))
                     self._pending_fix_request = None
-                    self._pending_fix_confirmation = {
-                        "path": path,
-                        "original_code": original_code,
-                        "new_code": new_content,
-                        "summary": summary,
-                    }
-                    spoken_msg = f"I changed: {summary or 'applied a fix.'} Is this change correct? Say yes to confirm or no to revert."
-                    self.interrupt_and_speak(spoken_msg)
-                else:
-                    msg = str(res.get("message") or "").strip()
-                    self.interrupt_and_speak(
-                        "I generated a fix but couldn't apply it."
-                        + ((" " + msg) if msg else "")
-                    )
+                    return
 
-            self.after(0, _deliver)
+                enqueue = self.client.apply_file_content(path, new_content)
+                cmd_id = enqueue.get("id")
+
+                if not cmd_id:
+                    self.after(0, lambda: self.interrupt_and_speak("I generated a fix, but could not enqueue applying it."))
+                    return
+
+                start = time.time()
+                res = {}
+                while time.time() - start < 25.0:
+                    res = self.client.command_result(str(cmd_id))
+                    if "ok" in res:
+                        break
+                    time.sleep(0.3)
+
+                ok = bool(res.get("ok"))
+
+                def _deliver() -> None:
+                    if ok:
+                        self._pending_fix_request = None
+                        self._pending_fix_confirmation = {
+                            "path": path,
+                            "original_code": original_code,
+                            "new_code": new_content,
+                            "summary": summary,
+                        }
+                        spoken_msg = f"I changed: {summary or 'applied a fix.'} Is this change correct? Say yes to confirm or no to revert."
+                        self.interrupt_and_speak(spoken_msg)
+                    else:
+                        msg = str(res.get("message") or "").strip()
+                        self.interrupt_and_speak(
+                            "I generated a fix but couldn't apply it."
+                            + ((" " + msg) if msg else "")
+                        )
+
+                self.after(0, _deliver)
+
+            except Exception as e:
+                print(f"[begin_fix_last_run_error._do] fix generation failed: {e!r}")
+                self.after(0, lambda: self.interrupt_and_speak(
+                    "Something went wrong while generating the fix. Check the console for details."
+                ))
 
         threading.Thread(target=_do, daemon=True).start()
 
