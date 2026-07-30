@@ -390,9 +390,11 @@ def _handle_code_review(app: "ZeroVisionAssistant") -> None:
         ed = app.client.editor()
         editor_text = str(ed.get("text") or "")
         lang = str(ed.get("language") or "python")
+        editor_path = str(ed.get("path") or "")
     except Exception:
         editor_text = ""
         lang = "python"
+        editor_path = ""
 
     MAX_CHARS = 12000
     if len(editor_text) > MAX_CHARS:
@@ -410,16 +412,17 @@ def _handle_code_review(app: "ZeroVisionAssistant") -> None:
         final_assessment = str(data.get("final_assessment") or "").strip()
         issues = data.get("issues") or []
 
+        # Also run the same fast, reliable syntax/type check used by
+        # "find errors", so a review can catch and offer to fix a real
+        # bug even if the LLM's review missed it or was truncated.
+        found_error = app.detect_code_error(editor_text, lang, editor_path)
+
         def _deliver() -> None:
             if narration:
                 app.interrupt_and_speak(narration)
-                return
-
-            if overall_summary:
+            elif overall_summary:
                 app.interrupt_and_speak(overall_summary)
-                return
-
-            if issues:
+            elif issues:
                 issue = issues[0]
                 explanation = issue.get("explanation", "")
                 recommendation = issue.get("recommendation", "")
@@ -429,12 +432,15 @@ def _handle_code_review(app: "ZeroVisionAssistant") -> None:
                     message += f" Recommendation: {recommendation}"
 
                 app.interrupt_and_speak(message)
-                return
-
-            if final_assessment:
+            elif final_assessment:
                 app.interrupt_and_speak(final_assessment)
             else:
                 app.interrupt_and_speak("I could not review the code.")
+
+            if found_error:
+                # Queue after whatever was just spoken, rather than
+                # interrupting it.
+                app.offer_fix_for_found_error(found_error, interrupt=False)
 
         app.after(0, _deliver)
 

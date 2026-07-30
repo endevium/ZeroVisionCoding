@@ -402,7 +402,7 @@ def llm_chat(user_message: str, *, temperature: float = 0.3, num_predict: int = 
 
     return {"reply": _strip_code_fences(raw).strip() or "No response.", "question_id": None}
 
-def llm_analyze(code: str, language: str, *, temperature: float = 0.2, num_predict: int = 1000) -> dict:
+def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predict: int = 1500) -> dict:
     language = (language or "python").lower()
     if language in ("python", "py"):
         outline = _python_outline(code)
