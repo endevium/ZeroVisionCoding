@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Model configuration
 # ---------------------------------------------------------------------------
-MODEL_REPO = "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF"
-MODEL_FILENAME = "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
+MODEL_REPO = "Qwen/Qwen2.5-Coder-3B-Instruct-GGUF"
+MODEL_FILENAME = "qwen2.5-coder-3b-instruct-q4_k_m.gguf"
 
 _llm = None
 
@@ -530,7 +530,7 @@ def _fix_common_syntax_typo(code: str, err_line: Optional[int]) -> tuple[str, bo
     return code, False
 
 
-def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 1000) -> dict:
+def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 4000) -> dict:
     import ast
 
     current_code = code.replace("\r\n", "\n")
@@ -783,7 +783,7 @@ def _python_outline(code: str) -> str:
 
     return "\n".join(lines).strip()
 
-def llm_code_review(code: str, language: str, *, temperature: float = 0.3, num_predict: int = 120) -> dict:
+def llm_code_review(code: str, language: str, *, temperature: float = 0.3, num_predict: int = 1800) -> dict:
     # TODO: Fix narrator saying the _ or other symbols
     language = (language or "python").lower()
     outline = _python_outline(code)

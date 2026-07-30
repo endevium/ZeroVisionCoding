@@ -298,7 +298,7 @@ def main():
     report += format_results("Analyze Code", analyze_results)
     report += format_results("Explain Code", explain_results)
     
-    report_path = PROJECT_ROOT / "accuracy_report.md"
+    report_path = PROJECT_ROOT / "reviewer_accuracy_report.md"
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report)
         
