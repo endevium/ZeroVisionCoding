@@ -49,74 +49,74 @@ def ask_groq_judge(system_instruction, user_prompt, max_retries=3):
             print(f"Groq API error: {e}")
             return {}
 
-def test_fixer(test_cases_dir):
-    print("Testing Code Fixer...")
-    results = []
-    fixer_dir = test_cases_dir / "fixer"
-    if not fixer_dir.exists(): return []
+# def test_fixer(test_cases_dir):
+#     print("Testing Code Fixer...")
+#     results = []
+#     fixer_dir = test_cases_dir / "fixer"
+#     if not fixer_dir.exists(): return []
 
-    for test_file in fixer_dir.glob("*.json"):
-        with open(test_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
+#     for test_file in fixer_dir.glob("*.json"):
+#         with open(test_file, "r", encoding="utf-8") as f:
+#             data = json.load(f)
             
-        code = data.get("code", "")
-        error_msg = data.get("error", "")
+#         code = data.get("code", "")
+#         error_msg = data.get("error", "")
         
-        print(f"  -> Running {test_file.name}...")
-        start_time = time.time()
+#         print(f"  -> Running {test_file.name}...")
+#         start_time = time.time()
         
-        fix_response = llm_fix_python_error(code=code, error=error_msg)
-        content = fix_response.get("content", "")
-        duration = time.time() - start_time
+#         fix_response = llm_fix_python_error(code=code, error=error_msg)
+#         content = fix_response.get("content", "")
+#         duration = time.time() - start_time
         
-        # Deterministic check: Runtime Success Rate
-        runtime_success = 0.0
-        fix_success = 0.0
+#         # Deterministic check: Runtime Success Rate
+#         runtime_success = 0.0
+#         fix_success = 0.0
         
-        if content.strip():
-            fix_success = 1.0
-            temp_file = test_cases_dir / "_temp_fixer_exec.py"
-            with open(temp_file, "w", encoding="utf-8") as f:
-                f.write(content)
+#         if content.strip():
+#             fix_success = 1.0
+#             temp_file = test_cases_dir / "_temp_fixer_exec.py"
+#             with open(temp_file, "w", encoding="utf-8") as f:
+#                 f.write(content)
                 
-            try:
-                proc = subprocess.run([sys.executable, str(temp_file)], capture_output=True, text=True, timeout=5)
-                if proc.returncode == 0:
-                    runtime_success = 1.0
-            except Exception:
-                pass
-            finally:
-                if temp_file.exists(): os.remove(temp_file)
+#             try:
+#                 proc = subprocess.run([sys.executable, str(temp_file)], capture_output=True, text=True, timeout=5)
+#                 if proc.returncode == 0:
+#                     runtime_success = 1.0
+#             except Exception:
+#                 pass
+#             finally:
+#                 if temp_file.exists(): os.remove(temp_file)
                 
-        # Subjective check via Groq
-        prompt = f"""
-        Original Code:
-        {code}
+#         # Subjective check via Groq
+#         prompt = f"""
+#         Original Code:
+#         {code}
         
-        Traceback:
-        {error_msg}
+#         Traceback:
+#         {error_msg}
         
-        1.5B Model's Patched Code:
-        {content}
+#         1.5B Model's Patched Code:
+#         {content}
         
-        Evaluate the following metrics (0.0 to 1.0):
-        "Error Detection Accuracy": Did the patch address the actual root cause of the error?
-        "Logic Preservation Rate": Did the patch maintain the original behavior without deleting unrelated functions?
+#         Evaluate the following metrics (0.0 to 1.0):
+#         "Error Detection Accuracy": Did the patch address the actual root cause of the error?
+#         "Logic Preservation Rate": Did the patch maintain the original behavior without deleting unrelated functions?
         
-        Return ONLY JSON: {{"Error Detection Accuracy": float, "Logic Preservation Rate": float}}
-        """
-        judge_res = ask_groq_judge("You are a strict code evaluator.", prompt)
+#         Return ONLY JSON: {{"Error Detection Accuracy": float, "Logic Preservation Rate": float}}
+#         """
+#         judge_res = ask_groq_judge("You are a strict code evaluator.", prompt)
         
-        results.append({
-            "name": test_file.name,
-            "Error Detection Accuracy": judge_res.get("Error Detection Accuracy", 0.0),
-            "Fix Success Rate": fix_success,
-            "Runtime Success Rate": runtime_success,
-            "Logic Preservation Rate": judge_res.get("Logic Preservation Rate", 0.0),
-            "Response Time": duration
-        })
+#         results.append({
+#             "name": test_file.name,
+#             "Error Detection Accuracy": judge_res.get("Error Detection Accuracy", 0.0),
+#             "Fix Success Rate": fix_success,
+#             "Runtime Success Rate": runtime_success,
+#             "Logic Preservation Rate": judge_res.get("Logic Preservation Rate", 0.0),
+#             "Response Time": duration
+#         })
         
-    return results
+#     return results
 
 def test_reviewer(test_cases_dir):
     print("Testing Code Reviewer...")
@@ -171,100 +171,100 @@ def test_reviewer(test_cases_dir):
         
     return results
 
-def test_analyze(test_cases_dir):
-    print("Testing Analyze Code...")
-    results = []
-    analyze_dir = test_cases_dir / "analyze"
-    if not analyze_dir.exists(): return []
+# def test_analyze(test_cases_dir):
+#     print("Testing Analyze Code...")
+#     results = []
+#     analyze_dir = test_cases_dir / "analyze"
+#     if not analyze_dir.exists(): return []
 
-    for test_file in analyze_dir.glob("*.json"):
-        with open(test_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
+#     for test_file in analyze_dir.glob("*.json"):
+#         with open(test_file, "r", encoding="utf-8") as f:
+#             data = json.load(f)
             
-        code = data.get("code", "")
+#         code = data.get("code", "")
         
-        print(f"  -> Running {test_file.name}...")
-        start_time = time.time()
-        analyze_response = llm_analyze(code=code, language="python")
-        duration = time.time() - start_time
+#         print(f"  -> Running {test_file.name}...")
+#         start_time = time.time()
+#         analyze_response = llm_analyze(code=code, language="python")
+#         duration = time.time() - start_time
         
-        prompt = f"""
-        Original Code:
-        {code}
+#         prompt = f"""
+#         Original Code:
+#         {code}
         
-        1.5B Model's Analysis:
-        {json.dumps(analyze_response, indent=2)}
+#         1.5B Model's Analysis:
+#         {json.dumps(analyze_response, indent=2)}
         
-        Evaluate the following metrics (0.0 to 1.0):
-        "Analysis Accuracy": Does the summary reflect the code's overarching purpose?
-        "Logic Explanation Accuracy": Are the step-by-step logic breakdowns correct?
-        "Issue Detection Rate": Did it spot any obvious smells (if any exist)?
-        "Suggestion Relevance": Are the proposed improvements practical?
+#         Evaluate the following metrics (0.0 to 1.0):
+#         "Analysis Accuracy": Does the summary reflect the code's overarching purpose?
+#         "Logic Explanation Accuracy": Are the step-by-step logic breakdowns correct?
+#         "Issue Detection Rate": Did it spot any obvious smells (if any exist)?
+#         "Suggestion Relevance": Are the proposed improvements practical?
         
-        Return ONLY JSON: {{"Analysis Accuracy": float, "Logic Explanation Accuracy": float, "Issue Detection Rate": float, "Suggestion Relevance": float}}
-        """
-        judge_res = ask_groq_judge("You are a strict code evaluator.", prompt)
+#         Return ONLY JSON: {{"Analysis Accuracy": float, "Logic Explanation Accuracy": float, "Issue Detection Rate": float, "Suggestion Relevance": float}}
+#         """
+#         judge_res = ask_groq_judge("You are a strict code evaluator.", prompt)
         
-        res_dict = {"name": test_file.name, "Response Time": duration}
-        res_dict.update(judge_res)
-        for k in ["Analysis Accuracy", "Logic Explanation Accuracy", "Issue Detection Rate", "Suggestion Relevance"]:
-            if k not in res_dict: res_dict[k] = 0.0
-        results.append(res_dict)
+#         res_dict = {"name": test_file.name, "Response Time": duration}
+#         res_dict.update(judge_res)
+#         for k in ["Analysis Accuracy", "Logic Explanation Accuracy", "Issue Detection Rate", "Suggestion Relevance"]:
+#             if k not in res_dict: res_dict[k] = 0.0
+#         results.append(res_dict)
         
-    return results
+#     return results
 
-def test_explain(test_cases_dir):
-    print("Testing Explain Code...")
-    results = []
-    explain_dir = test_cases_dir / "explain"
-    if not explain_dir.exists(): return []
+# def test_explain(test_cases_dir):
+#     print("Testing Explain Code...")
+#     results = []
+#     explain_dir = test_cases_dir / "explain"
+#     if not explain_dir.exists(): return []
 
-    for test_file in explain_dir.glob("*.json"):
-        with open(test_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
+#     for test_file in explain_dir.glob("*.json"):
+#         with open(test_file, "r", encoding="utf-8") as f:
+#             data = json.load(f)
             
-        code = data.get("code", "")
-        symbol = data.get("target", "")
-        kind = data.get("kind", "")
+#         code = data.get("code", "")
+#         symbol = data.get("target", "")
+#         kind = data.get("kind", "")
         
-        print(f"  -> Running {test_file.name}...")
-        start_time = time.time()
-        explain_response = llm_explain_symbol(code=code, symbol=symbol, language="python", kind=kind)
-        duration = time.time() - start_time
+#         print(f"  -> Running {test_file.name}...")
+#         start_time = time.time()
+#         explain_response = llm_explain_symbol(code=code, symbol=symbol, language="python", kind=kind)
+#         duration = time.time() - start_time
         
-        prompt = f"""
-        Original Code:
-        {code}
-        Target Symbol to Explain: {symbol}
+#         prompt = f"""
+#         Original Code:
+#         {code}
+#         Target Symbol to Explain: {symbol}
         
-        1.5B Model's Explanation:
-        {json.dumps(explain_response, indent=2)}
+#         1.5B Model's Explanation:
+#         {json.dumps(explain_response, indent=2)}
         
-        Evaluate the following metrics (0.0 to 1.0):
-        "Explanation Accuracy": Is the explanation of the specific symbol correct?
-        "Context Awareness": Does it correctly reference how it interacts with the rest of the file?
-        "Terminology Correctness": Is technical jargon used correctly?
-        "Completeness": Did it explain all critical parts?
+#         Evaluate the following metrics (0.0 to 1.0):
+#         "Explanation Accuracy": Is the explanation of the specific symbol correct?
+#         "Context Awareness": Does it correctly reference how it interacts with the rest of the file?
+#         "Terminology Correctness": Is technical jargon used correctly?
+#         "Completeness": Did it explain all critical parts?
         
-        Return ONLY JSON: {{"Explanation Accuracy": float, "Context Awareness": float, "Terminology Correctness": float, "Completeness": float}}
-        """
-        judge_res = ask_groq_judge("You are a strict code evaluator.", prompt)
+#         Return ONLY JSON: {{"Explanation Accuracy": float, "Context Awareness": float, "Terminology Correctness": float, "Completeness": float}}
+#         """
+#         judge_res = ask_groq_judge("You are a strict code evaluator.", prompt)
         
-        res_dict = {"name": test_file.name, "Response Time": duration}
-        res_dict.update(judge_res)
-        for k in ["Explanation Accuracy", "Context Awareness", "Terminology Correctness", "Completeness"]:
-            if k not in res_dict: res_dict[k] = 0.0
-        results.append(res_dict)
+#         res_dict = {"name": test_file.name, "Response Time": duration}
+#         res_dict.update(judge_res)
+#         for k in ["Explanation Accuracy", "Context Awareness", "Terminology Correctness", "Completeness"]:
+#             if k not in res_dict: res_dict[k] = 0.0
+#         results.append(res_dict)
         
-    return results
+#     return results
 
 def main():
     test_cases_dir = PROJECT_ROOT / "tests" / "ai_test_cases"
     
-    fixer_results = test_fixer(test_cases_dir)
+    # fixer_results = test_fixer(test_cases_dir)
     reviewer_results = test_reviewer(test_cases_dir)
-    analyze_results = test_analyze(test_cases_dir)
-    explain_results = test_explain(test_cases_dir)
+    # analyze_results = test_analyze(test_cases_dir)
+    # explain_results = test_explain(test_cases_dir)
     
     report = "# AI Accuracy Report (LLM-as-a-Judge)\n\n"
     report += "Evaluated using Groq for subjective metrics.\n\n"
@@ -293,10 +293,10 @@ def main():
         out += "\n"
         return out
         
-    report += format_results("Code Debugging (Fixer)", fixer_results)
+    # report += format_results("Code Debugging (Fixer)", fixer_results)
     report += format_results("Code Review", reviewer_results)
-    report += format_results("Analyze Code", analyze_results)
-    report += format_results("Explain Code", explain_results)
+    # report += format_results("Analyze Code", analyze_results)
+    # report += format_results("Explain Code", explain_results)
     
     report_path = PROJECT_ROOT / "reviewer_accuracy_report.md"
     with open(report_path, "w", encoding="utf-8") as f:

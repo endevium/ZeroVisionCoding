@@ -178,18 +178,14 @@ PYTHON_CODE_REVIEW_PROMPT = (
     "You are an expert Python code reviewer designed for blind and visually-impaired programmers.\n"
     "Your purpose is to review code and explain your findings in a way that is easy to understand when spoken aloud through text-to-speech.\n\n"
 
-    "CRITICAL: Follow this inspection sequence sequentially and evaluate each category before producing the final review:\n"
+    "Before writing the review, evaluate the code for:\n"
     "1. Syntax correctness: Check if the code compiles and has valid syntax.\n"
     "2. Runtime exceptions and possible failures: Check for type errors, indexing issues, divide by zero, file operations, etc.\n"
     "3. Logical correctness: Check if the business logic matches intent, looking for infinite loops and missing recursion base cases.\n"
-    "4. Resource management: Check file handles, sockets, database connections, and memory.\n"
-    "5. Python best practices: Check for standard Python idioms and code cleanliness.\n"
-    "6. Performance: Check for performance bottlenecks, redundant computations, or slow operations.\n"
-    "7. Security: Check for vulnerabilities, hardcoded secrets, injection risks, etc.\n"
-    "8. Maintainability: Check readability, modularity, and complexity.\n\n"
-
-    "You must sequentially evaluate all 8 categories above. Provide your evaluation in the 'checklist' object. "
-    "Only after completing this checklist should you generate the final review. Do not write the final assessment until every category has been evaluated.\n\n"
+    "4. Python best practices: Check for standard Python idioms and code cleanliness.\n"
+    "5. Performance: Check for performance bottlenecks, redundant computations, or slow operations.\n"
+    "6. Maintainability: Check readability, modularity, and complexity.\n\n"
+    "Base your review on these findings, but do not include the evaluation process in the output.\n\n"
 
     "When giving feedback:\n"
     "- Explain *why* something is an issue before suggesting a fix.\n"
@@ -198,14 +194,13 @@ PYTHON_CODE_REVIEW_PROMPT = (
     "- Do not overwhelm the user with minor style issues.\n"
     "- Prioritize bugs over code style.\n"
     "- Be a highly critical and meticulous reviewer. Actively hunt for edge cases, missing validations, and silent logic failures.\n"
-    "- You MUST identify at least one area for improvement, even if it is just best practices or robustness.\n\n"
 
     "Organize your response into these sections:\n"
     "1. Overall Summary\n"
     "2. Strengths\n"
     "3. Issues Found (ordered by importance)\n"
-    "4. Suggestions for Improvement\n"
-    "5. Final Assessment\n\n"
+    "4. Final Assessment\n"
+    "5. Narration\n\n"
 
     "For each issue, include:\n"
     "- The location (function name or approximate line if obvious).\n"
@@ -223,16 +218,6 @@ PYTHON_CODE_REVIEW_PROMPT = (
 
     "Return ONLY valid JSON with this exact schema:\n" 
     "{\n" 
-    ' "checklist": {\n'
-    '   "syntax": string,\n'
-    '   "runtime": string,\n'
-    '   "logic": string,\n'
-    '   "resource_management": string,\n'
-    '   "best_practices": string,\n'
-    '   "performance": string,\n'
-    '   "security": string,\n'
-    '   "maintainability": string\n'
-    ' },\n'
     ' "analysis": string,\n'
     ' "overall_summary": string,\n' 
     ' "strengths": [string, ...],\n' 
@@ -243,7 +228,7 @@ PYTHON_CODE_REVIEW_PROMPT = (
     " }\n" " ],\n" ' "final_assessment": string,\n' 
     ' "narration": string\n' "}\n\n" 
     
-    "The 'analysis' field MUST contain your step-by-step semantic reasoning about what the code does and where it might fail. Think carefully before listing issues.\n"
+    "The 'analysis' field should contain a concise technical explanation of the code's behavior and the reasons behind the findings. Do not include internal reasoning or hidden thought processes.\n"
     "The 'narration' field should be a concise spoken summary of the review that sounds natural when read aloud. Do not simply repeat every issue verbatim.\n"
     "CRITICAL: Do not use underscores anywhere in your text fields (do not write words like overall_summary or final_assessment with underscores; write overall summary or final assessment instead), as this text will be read aloud by a text-to-speech engine.\n\n"
 
@@ -461,7 +446,7 @@ def llm_explain_symbol(code: str, language: str, symbol: str, kind: str = "") ->
         result = _get_llm().create_chat_completion(
             messages=messages,
             temperature=0.2,
-            max_tokens=160,
+            max_tokens=320,
         )
         raw = result["choices"][0]["message"]["content"]
     except Exception:
@@ -530,7 +515,7 @@ def _fix_common_syntax_typo(code: str, err_line: Optional[int]) -> tuple[str, bo
     return code, False
 
 
-def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 4000) -> dict:
+def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 2000) -> dict:
     import ast
 
     current_code = code.replace("\r\n", "\n")
@@ -783,7 +768,7 @@ def _python_outline(code: str) -> str:
 
     return "\n".join(lines).strip()
 
-def llm_code_review(code: str, language: str, *, temperature: float = 0.3, num_predict: int = 1800) -> dict:
+def llm_code_review(code: str, language: str, *, temperature: float = 0.1, num_predict: int = 1500) -> dict:
     # TODO: Fix narrator saying the _ or other symbols
     language = (language or "python").lower()
     outline = _python_outline(code)
