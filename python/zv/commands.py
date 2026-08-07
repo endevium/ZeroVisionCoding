@@ -184,6 +184,22 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         _handle_code_review(app)
         return
     
+    # Tutorial Mode
+    if ("enter tutorial mode" in t) or ("tutorial mode" in t) or (("tutorial") and (("mode") in t)):
+        app.interrupt_and_speak("You have entered tutorial mode. This mode will help you learn how to use Zero Vision Coding and the fundamentals of Zero Vision Coding. Say 'list lessons' to hear the available lessons, or say a lesson name to begin. To exit tutorial mode, say 'exit tutorial mode'.")
+        return
+    
+    # List of lessons
+    if ("list lessons" in t) or ("what are the lessons" in t) or ("list all lessons" in t) or ("what are all the lessons" in t):
+        app.interrupt_and_speak("The available lessons are 'Lesson 1: Get Started', 'Lesson 2: Braille Keyboard', 'Lesson 3: Voice Commands', 'Lesson 4: Python Basics', 'Lesson 5: Variables', 'Lesson 6: Conditionals', 'Lesson 7: Loops'")
+        return
+    
+    # Exit Tutorial Mode
+    if ("exit tutorial mode" in t) or ("exit tutorial" in t) or ("stop tutorial" in t) or ("end tutorial" in t):
+        app.interrupt_and_speak("You have exited tutorial mode.")
+        return
+        
+
     def _do_llm() -> None:
         try:
             # import and run llm code here (lazy import)

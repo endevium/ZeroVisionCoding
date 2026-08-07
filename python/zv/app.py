@@ -206,13 +206,52 @@ class ZeroVisionAssistant(tk.Tk):
         except Exception:
             pass
 
+        self.interrupt_and_speak("Welcome to Zero Vision Coding. Please wait while we check if you have all the required resources.")
+        self.subLabel.config(text="Checking resources...", fg="yellow")
+        self.vscodeLabel.config(text="", fg="white")
+
+        threading.Thread(target=self.speech.start_background, daemon=True).start()
+        threading.Thread(target=self._check_resources_bg, daemon=True).start()
+
+    def _check_resources_bg(self) -> None:
+        try:
+            import sys
+            import os
+            python_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            if python_root not in sys.path:
+                sys.path.insert(0, python_root)
+
+            from api.services.llm_service import _model_path, _ensure_model_downloaded
+
+            if not _model_path().exists():
+                self.after(0, lambda: self.subLabel.config(text="Downloading LLM... (This may take a while)", fg="yellow"))
+                self.after(0, lambda: self.interrupt_and_speak("Downloading required model files. This may take a few minutes."))
+                _ensure_model_downloaded()
+
+            self.after(0, lambda: self.subLabel.config(text="Checking libraries...", fg="yellow"))
+            import llama_cpp
+            import sentence_transformers
+
+        except Exception as e:
+            self.after(0, lambda e=e: self.subLabel.config(text=f"Resource check failed: {e}", fg="red"))
+            self.after(0, lambda: self.interrupt_and_speak("Resource check failed."))
+            return
+
+        self.after(0, self._finish_startup)
+
+    def _finish_startup(self) -> None:
+        if self._closing:
+            return
+
+        self.interrupt_and_speak("Welcome to Zero Vision Coding. All required resources are downloaded and ready.")
+        self.subLabel.config(text="Starting Server...", fg="white")
+        self.vscodeLabel.config(text="Loading...", fg="white")
+
         self.after(250, self.server.start)
         self.after(200, self.poll_server_until_ready)
         self.after(500, self.poll_extension_until_ready)
         self.after(300, self.poll_terminal_output)
         self.after(300, self.poll_editor_text)
-
-        threading.Thread(target=self.speech.start_background, daemon=True).start()
 
     # SPEECH HANDLER
     def _on_speech_text(self, text: str) -> None:
