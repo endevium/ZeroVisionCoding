@@ -19,7 +19,7 @@ from .vscode_client import VSCodeClient
 from .error_parser import parse_python_traceback
 
 # ── Voice to use across the whole app ──────────────────────────────────────
-DEFAULT_VOICE = "Zira"   # Change to "Ava" or "Jenny" if you prefer
+DEFAULT_VOICE = "Guy"   # Change to "Ava" or "Jenny" if you prefer
 
 def createLabel(parent: tk.Misc, text: str, fontSize: int, color: str) -> tk.Label:
     """Create a label"""
@@ -383,6 +383,29 @@ class ZeroVisionAssistant(tk.Tk):
                             self.tts.enqueue_pop()
                         except Exception:
                             pass
+
+                    deleted_text = ""
+                    if last_text.startswith(text):
+                        deleted_text = last_text[len(text):]
+                    else:
+                        start = 0
+                        while start < len(last_text) and start < len(text) and last_text[start] == text[start]:
+                            start += 1
+                        end_old = len(last_text) - 1
+                        end_new = len(text) - 1
+                        while end_old >= start and end_new >= start and last_text[end_old] == text[end_new]:
+                            end_old -= 1
+                            end_new -= 1
+                        if end_old >= start:
+                            deleted_text = last_text[start:end_old + 1]
+
+                    if deleted_text:
+                        if len(deleted_text) == 1:
+                            self.speak_typing_echo("deleted " + self._typing_symbol_to_words(deleted_text))
+                        elif len(deleted_text) > 100:
+                            self.speak_typing_echo("deleted large block")
+                        else:
+                            self.speak_typing_echo("deleted " + deleted_text)
                 elif text != last_text:
                     self._typing_echo_after(last_text, self._typing_echo_mode)
 

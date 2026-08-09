@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+# Test cases
+tests/ai_test_cases/*/*.json
+zero-vision-coding\tests\ai_test_cases

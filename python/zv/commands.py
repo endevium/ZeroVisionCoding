@@ -400,8 +400,6 @@ def _handle_chat(app: "ZeroVisionAssistant", user_text: str) -> None:
         app.speak("Chat failed.")
     
 def _handle_code_review(app: "ZeroVisionAssistant") -> None:
-    app.interrupt_and_speak("Generating code review, please wait.")
-
     try:
         ed = app.client.editor()
         editor_text = str(ed.get("text") or "")
@@ -411,6 +409,12 @@ def _handle_code_review(app: "ZeroVisionAssistant") -> None:
         editor_text = ""
         lang = "python"
         editor_path = ""
+
+    if not editor_text.strip():
+        app.interrupt_and_speak("There is no code in the terminal.")
+        return
+
+    app.interrupt_and_speak("Generating code review, please wait.")
 
     MAX_CHARS = 12000
     if len(editor_text) > MAX_CHARS:
