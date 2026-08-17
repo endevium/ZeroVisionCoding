@@ -70,3 +70,4 @@ models/*.gguf
 
 # Test cases
 tests/ai_test_cases/*/*.json
+zero-vision-coding\tests\ai_test_cases

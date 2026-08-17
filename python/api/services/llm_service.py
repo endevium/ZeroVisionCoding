@@ -30,6 +30,7 @@ def _ensure_model_downloaded() -> Path:
         return path
     logger.info("Model not found at %s — downloading from Hugging Face...", path)
     print(f"[llm_service] Downloading {MODEL_FILENAME} from {MODEL_REPO} (~1 GB)...")
+    # pyrefly: ignore [missing-import]
     from huggingface_hub import hf_hub_download
     downloaded = hf_hub_download(
         repo_id=MODEL_REPO,
@@ -46,6 +47,7 @@ def _get_llm():
     if _llm is not None:
         return _llm
     model_file = _ensure_model_downloaded()
+    # pyrefly: ignore [missing-import]
     from llama_cpp import Llama
     _llm = Llama(
         model_path=str(model_file),
@@ -768,7 +770,7 @@ def _python_outline(code: str) -> str:
 
     return "\n".join(lines).strip()
 
-def llm_code_review(code: str, language: str, *, temperature: float = 0.1, num_predict: int = 1500) -> dict:
+def llm_code_review(code: str, language: str, *, temperature: float = 0.0, num_predict: int = 1500) -> dict:
     # TODO: Fix narrator saying the _ or other symbols
     language = (language or "python").lower()
     outline = _python_outline(code)
