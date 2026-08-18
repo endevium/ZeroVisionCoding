@@ -281,12 +281,14 @@ class ZeroVisionAssistant(tk.Tk):
                 lowered = text.strip().lower().strip(".!? ")
                 affirmative = {"yes", "yeah", "yep", "sure", "ok", "okay", "please", "please do", "go ahead", "fix it", "do it"}
                 negative = {"no", "nope", "nah", "don't", "dont", "cancel", "never mind", "nevermind", "stop"}
+                affirmative_prefixes = ("yes", "yeah", "yep", "ok", "okay", "sure", "please", "go ahead")
+                negative_prefixes = ("no", "nope", "nah", "don't", "dont", "cancel", "never mind", "nevermind", "stop")
 
-                if lowered in affirmative:
+                if lowered in affirmative or any(lowered.startswith(prefix + " ") for prefix in affirmative_prefixes):
                     self._awaiting_fix_offer = False
                     self.begin_fix_last_run_error()
                     return
-                elif lowered in negative:
+                elif lowered in negative or any(lowered.startswith(prefix + " ") for prefix in negative_prefixes):
                     self._awaiting_fix_offer = False
                     self._pending_fix_request = None
                     self.interrupt_and_speak("Okay, I won't fix it.")
@@ -1139,6 +1141,7 @@ class ZeroVisionAssistant(tk.Tk):
                                     "column": parsed.column,
                                     "stderr": combined_err,
                                 }
+                                self._awaiting_fix_offer = True
                                 loc = f"line {parsed.line}" + (f", column {parsed.column}" if parsed.column else "")
                                 self.after(
                                     0,
@@ -1148,6 +1151,7 @@ class ZeroVisionAssistant(tk.Tk):
                                 )
                             else:
                                 self._pending_fix_request = {"path": "", "line": 0, "column": None, "stderr": combined_err}
+                                self._awaiting_fix_offer = True
                                 self.after(
                                     0,
                                     lambda: self.interrupt_and_speak(
@@ -1238,6 +1242,7 @@ class ZeroVisionAssistant(tk.Tk):
         self.interrupt_and_speak("No syntax error found to fix.")
 
     def begin_fix_last_run_error(self) -> None:
+        self._awaiting_fix_offer = False
         req = self._pending_fix_request
         if not req:
             self.find_errors_and_fix()
