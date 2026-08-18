@@ -47,7 +47,7 @@ class TTSQueue:
         return self.config.fast_rate if fast else self.config.normal_rate
 
     def _voice(self) -> Optional[str]:
-        ai_enabled = os.getenv("ZERO_VISION_AI_TTS", "1").strip().lower() in ("1", "true", "yes", "on")
+        ai_enabled = os.getenv("ZERO_VISION_AI_TTS", "0").strip().lower() in ("1", "true", "yes", "on")
         if ai_enabled:
             return None
         return self._voice_getter() if self._voice_getter else None

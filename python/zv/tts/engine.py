@@ -22,13 +22,13 @@ _TTS_SPEAKER = None
 _SAPI_ASYNC_FLAG = 1
 _SAPI_PURGE_FLAG = 2
 
-_DEBUG_TTS = os.getenv("ZV_DEBUG_TTS", "0").strip().lower() in ("1", "true", "yes", "on")
+_DEBUG_TTS = os.getenv("ZV_DEBUG_TTS", "1").strip().lower() in ("1", "true", "yes", "on")
 
 # ── Edge-TTS (online neural voice) ─────────────────────────────────────────
 # FIX: default changed to "1" so Guy neural voice works out of the box.
 # Set env var ZERO_VISION_AI_TTS=0 to force offline SAPI only.
 _EDGE_VOICE_RE = re.compile(r"^Microsoft Server Speech Text to Speech Voice \(.+,.+\)$")
-_AI_TTS_ENABLED = os.getenv("ZERO_VISION_AI_TTS", "1").strip().lower() in ("1", "true", "yes", "on")
+_AI_TTS_ENABLED = os.getenv("ZERO_VISION_AI_TTS", "0").strip().lower() in ("1", "true", "yes", "on")
 _AI_TTS_VOICE = os.getenv(
     "ZERO_VISION_TTS_VOICE",
     "Microsoft Server Speech Text to Speech Voice (en-US, GuyNeural)",
@@ -41,7 +41,7 @@ _SAPI_FALLBACK_VOICE = os.getenv("ZERO_VISION_SAPI_VOICE", "Guy")
 _AI_TTS_PROC: Optional[subprocess.Popen] = None
 _AI_TTS_CHECKED = False
 _AI_TTS_READY = False
-_PIPER_ENABLED = os.getenv("ZERO_VISION_PIPER_TTS", "0").strip().lower() in ("1", "true", "yes", "on")
+_PIPER_ENABLED = os.getenv("ZERO_VISION_PIPER_TTS", "1").strip().lower() in ("1", "true", "yes", "on")
 
 
 # ── MCI audio playback ──────────────────────────────────────────────────────

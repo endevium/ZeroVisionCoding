@@ -13,13 +13,16 @@ if TYPE_CHECKING:
 def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
     t_raw = (text or "").strip()
     t = t_raw.lower().strip()
+    t_reply = t.strip(" .,!?:;")
     if not t:
         return
 
     def _is_yes(value: str) -> bool:
+        value = value.strip(" .,!?:;")
         return value in ("yes", "yeah", "yep", "confirm", "correct", "looks good", "keep it", "save it", "save")
 
     def _is_no(value: str) -> bool:
+        value = value.strip(" .,!?:;")
         return value in ("no", "nope", "revert", "undo", "wrong", "cancel", "take it back", "discard")
 
     explain_triggers: list[tuple[str, str]] = [
@@ -93,20 +96,20 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         return
 
     if getattr(app, "_pending_fix_request", None):
-        if _is_yes(t.strip()) or t.strip() in ("yes", "yeah", "yep", "go ahead"):
+        if _is_yes(t_reply) or t_reply in ("yes", "yeah", "yep", "go ahead"):
             app.begin_fix_last_run_error()
             return
-        if _is_no(t.strip()) or t.strip() in ("no", "nope", "cancel", "stop"):
+        if _is_no(t_reply) or t_reply in ("no", "nope", "cancel", "stop"):
             app._pending_fix_request = None
             app.interrupt_and_speak("Okay. I will not change the code.")
             return
 
     # Fix confirmation
     if getattr(app, "_pending_fix_confirmation", None):
-        if _is_yes(t.strip()):
+        if _is_yes(t_reply):
             app.confirm_fix()
             return
-        if _is_no(t.strip()):
+        if _is_no(t_reply):
             app.revert_fix()
             return
 
