@@ -1,28 +1,81 @@
-<div class="flex flex-row h-[100vh] pt-20 pr-20 pl-20">
-    <div class="flex flex-row w-1/2 gap-4">
-        <div>
+<div class="flex flex-row h-[100vh] pt-70 pr-20 pl-20 justify-center items-center">
+    <div class="flex flex-row flex-1 gap-10">
+        <div class="flex justify-end">
             <svg
-                class="h-125 w-100"
-                viewBox="0 0 125 300"
+                class="w-[400px] h-[600px] shrink-0 drop-shadow-2xl"
+                viewBox="0 0 400 600"
                 fill="none"
             >
                 <defs>
-                    <linearGradient id="border-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <linearGradient
+                        id="border-gradient"
+                        x1="0"
+                        y1="0"
+                        x2="400"
+                        y2="0"
+                        gradientUnits="userSpaceOnUse"
+                    >
                         <stop offset="0%" stop-color="#C824EC" />
                         <stop offset="100%" stop-color="#DF308D" />
                     </linearGradient>
                 </defs>
 
-                <polygon
-                    points="1,1 150,1 174,25 174,299 25,299 1,275"
+                <path
+                    d="M 1 1
+                    H 300
+                    L 399 100
+                    V 599
+                    H 100
+                    L 1 500
+                    Z"
                     stroke="url(#border-gradient)"
-                    stroke-width="1"
+                    stroke-width="2"
+                />
+            </svg>
+        </div>
+
+        <div class="flex justify-start pt-32">
+            <svg
+                class="w-[400px] h-[600px] shrink-0 drop-shadow-2xl"
+                viewBox="0 0 400 600"
+                fill="none"
+            >
+                <defs>
+                    <linearGradient
+                        id="border-gradient"
+                        x1="0"
+                        y1="0"
+                        x2="400"
+                        y2="0"
+                        gradientUnits="userSpaceOnUse"
+                    >
+                        <stop offset="0%" stop-color="#C824EC" />
+                        <stop offset="100%" stop-color="#DF308D" />
+                    </linearGradient>
+                </defs>
+
+                <path
+                    d="M 1 1
+                    H 300
+                    L 399 100
+                    V 599
+                    H 100
+                    L 1 500
+                    Z"
+                    stroke="url(#border-gradient)"
+                    stroke-width="2"
                 />
             </svg>
         </div>
     </div>
 
-    <div>
+    <div class="flex flex-col gap-4 items-center justify-center pl-10 items-center">
+        <h2 class="text-white font-orbitron text-[35px] font-bold">Code through touch</h2>
+        <p class="text-white font-inter font-thin text-[19px] text-center">
+            Experience programming through a tactile<br />
+            Braille keyboard built for accessibility.
+        </p>
 
+        <button class="flex bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white font-inter font-bold text-[16px] h-14 w-45 my-5 items-center justify-center rounded-lg">Buy Now</button>
     </div>
 </div>

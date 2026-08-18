@@ -12,9 +12,9 @@ def launch_extension_development_host() -> None:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        print(f"Opened Extension Development Host for {workspace_root}")
+        print(f"Opened VS Code for {workspace_root}")
     except Exception as exc:
-        print(f"Could not open Extension Development Host: {exc}")
+        print(f"Could not open VS Code: {exc}")
 
 def main() -> None:
     launch_extension_development_host()

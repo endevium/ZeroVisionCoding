@@ -106,8 +106,8 @@ class ZeroVisionAssistant(tk.Tk):
         self.vscodeLabel = createLabel(self, "Loading...", 16, "white")
         self.vscodeLabel.pack(anchor="w", pady=(0, 0))
 
-        self.currentTextLabel = createLabel(self, "Current Text:(empty)", 16, "white")
-        self.currentTextLabel.pack(anchor="w", pady=(0, 0))
+        self.arduinoLabel = createLabel(self, "", 16, "white")
+        self.arduinoLabel.pack(anchor="w", pady=(0, 0))
 
         self.outputTextLabel = tk.Label(
             self,
@@ -124,6 +124,8 @@ class ZeroVisionAssistant(tk.Tk):
 
         # STATE
         self._closing = False
+        self._arduino_connected = False
+        self._arduino_port = ""
         self._speech_fast_mode = False
         self._last_heard_text = ""
         self._last_heard_time = 0.0
@@ -208,9 +210,11 @@ class ZeroVisionAssistant(tk.Tk):
         self.interrupt_and_speak("Welcome to Zero Vision Coding. Please wait while we check if you have all the required resources.")
         self.subLabel.config(text="Checking resources...", fg="yellow")
         self.vscodeLabel.config(text="", fg="white")
+        self.arduinoLabel.config(text="", fg="white")
 
         threading.Thread(target=self.speech.start_background, daemon=True).start()
         threading.Thread(target=self._check_resources_bg, daemon=True).start()
+        threading.Thread(target=self._scan_for_arduino_bg, daemon=True).start()
 
     def _check_resources_bg(self) -> None:
         try:
@@ -244,11 +248,13 @@ class ZeroVisionAssistant(tk.Tk):
 
         self.interrupt_and_speak("Welcome to Zero Vision Coding. All required resources are downloaded and ready.")
         self.subLabel.config(text="Starting Server...", fg="white")
-        self.vscodeLabel.config(text="Loading...", fg="white")
+        self.vscodeLabel.config(text="Connecting to VS Code...", fg="white")
+        self.arduinoLabel.config(text="Scanning for Braille Keyboard...", fg="white")
 
         self.after(250, self.server.start)
         self.after(200, self.poll_server_until_ready)
         self.after(500, self.poll_extension_until_ready)
+        self.after(500, self.poll_arduino_connection)
         self.after(300, self.poll_terminal_output)
         self.after(300, self.poll_editor_text)
 
@@ -324,6 +330,55 @@ class ZeroVisionAssistant(tk.Tk):
             self.vscodeLabel.config(text="VS Code not connected", fg="red")
 
         self.after(500, self.poll_extension_until_ready)
+
+    def _scan_for_arduino_bg(self) -> None:
+        try:
+            import serial
+            import serial.tools.list_ports
+        except ImportError:
+            self._arduino_connected = False
+            return
+
+        while True:
+            if self._closing:
+                break
+
+            ports = serial.tools.list_ports.comports()
+            target_port = None
+            for p in ports:
+                if "Arduino" in p.description or "Micro" in p.description or "USB Serial Device" in p.description:
+                    target_port = p.device
+                    break
+
+            if target_port:
+                self._arduino_connected = True
+                self._arduino_port = target_port
+                try:
+                    with serial.Serial(target_port, 9600, timeout=1) as ser:
+                        while not self._closing:
+                            line = ser.readline()
+                            if not line:
+                                time.sleep(0.1)
+                except Exception:
+                    pass
+                self._arduino_connected = False
+                self._arduino_port = ""
+                time.sleep(2)
+            else:
+                self._arduino_connected = False
+                self._arduino_port = ""
+                time.sleep(2)
+
+    def poll_arduino_connection(self) -> None:
+        if self._closing:
+            return
+
+        if self._arduino_connected:
+            self.arduinoLabel.config(text=f"Braille keyboard connected ({self._arduino_port})", fg="white")
+        else:
+            self.arduinoLabel.config(text="Braille keyboard not connected", fg="red")
+
+        self.after(1000, self.poll_arduino_connection)
 
     def poll_terminal_output(self) -> None:
         if self._closing:
@@ -417,11 +472,6 @@ class ZeroVisionAssistant(tk.Tk):
             latest_snapshot = self.client.editor()
 
         text = str(latest_snapshot.get("text") or "")
-
-        if not text.strip():
-            self.currentTextLabel.config(text="Current Text:(empty)")
-        else:
-            self.currentTextLabel.config(text=f"Current Text: {text}")
 
         self.after(300, self.poll_editor_text)
 

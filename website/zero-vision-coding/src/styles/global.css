@@ -5,4 +5,10 @@
 @theme {
     --font-inter: "Inter", sans-serif;
     --font-orbitron: "Orbitron", sans-serif;
+
 }
+
+@theme {
+    --color-darkgray: #2d2d2d;
+}
+
