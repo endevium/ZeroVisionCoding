@@ -108,7 +108,6 @@ class ZeroVisionAssistant(tk.Tk):
 
         self.currentTextLabel = createLabel(self, "Current Text:(empty)", 16, "white")
         self.currentTextLabel.pack(anchor="w", pady=(0, 0))
-        self.currentTextLabel.forget()
 
         self.outputTextLabel = tk.Label(
             self,
@@ -424,7 +423,7 @@ class ZeroVisionAssistant(tk.Tk):
         if not text.strip():
             self.currentTextLabel.config(text="Current Text:(empty)")
         else:
-            self.currentTextLabel.config(text="Current Text: (loaded)")
+            self.currentTextLabel.config(text=f"Current Text: {text}")
 
         self.after(300, self.poll_editor_text)
 
