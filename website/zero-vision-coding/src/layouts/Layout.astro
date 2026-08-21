@@ -1,5 +1,8 @@
 ---
 import '../styles/global.css'
+import { StarfieldBackground } from '@/components/ui/starfield';
+import { MeshGradientBackground } from '@/components/ui/mesh-gradient';
+
 ---
 
 <!doctype html>
@@ -14,11 +17,9 @@ import '../styles/global.css'
 	</head>
 	<body>
 		<section class="hero-gradient">
+			<StarfieldBackground client:load />
 			<div class="hero-gradient__bg" aria-hidden="true">
 				<slot />
-			</div>
-			<div class="hero-gradient__content">
-					
 			</div>
 		</section>
 		

@@ -2,15 +2,15 @@
 import { Image } from 'astro:assets';
 ---
 
-<div class="flex flex-row w-screen pt-2.5 pb-2.5 pl-18 pr-20">
+<div class="fixed top-5 left-1/2 z-50 flex w-350 -translate-x-1/2 items-center pt-2.5 pb-2.5 pl-15 pr-20 rounded-2xl border border-darkgray bg-[#0a0a0f]">
     <div>
         <Image src="/zv_logo.png" alt="Zero Vision Coding Logo" width="157" height="64"/>
     </div>
 
     <div class="flex flex-1 flex-row gap-11 items-center justify-end">
-        <button class="flex items-center justify-center bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent font-inter text-[16px] font-bold h-15">Home</button>
-        <button class="flex items-center justify-center text-white font-inter text-[15px] h-15">About Us</button>
-        <button class="flex items-center justify-center text-white font-inter text-[15px] h-15">Contact</button>
-        <button class="flex bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white font-inter font-bold text-[14px] h-12 w-38 items-center justify-center rounded-lg">Get Started</button>
+        <a href="#home" class="flex items-center justify-center transition-all duration-300 ease-in-out hover:scale-115 bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent font-inter text-[16px] font-bold h-15 cursor-pointer">Home</a>
+        <a href="#about" class="flex items-center justify-center text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115">About Us</a>
+        <a href="#contact" class="flex items-center justify-center text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115">Contact</a>
+        <button class="flex transition-all duration-300 ease-in-out hover:scale-115 bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white font-inter font-bold text-[14px] h-12 w-38 items-center justify-center rounded-lg cursor-pointer">Download</button>
     </div>
 </div>

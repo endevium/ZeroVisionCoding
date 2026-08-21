@@ -1,4 +1,10 @@
-<div class="flex flex-row pl-20 pr-20 h-[80vh]">
+---
+import { Image } from "astro:assets";
+import MagicRings from "./MagicRings.jsx";
+---
+
+
+<div class="flex flex-row flex-1 pl-20 pr-20 h-[110vh]" id="home">
     <div class="flex flex-1 flex-col justify-center gap-7">
         <h2 class="font-orbitron text-white font-black text-[52px]">
             Code Without <br/>
@@ -12,12 +18,45 @@
         </p>
 
         <div class="flex flex-row gap-5 mt-4">
-            <button class="flex bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white font-inter font-bold text-[16px] h-14 w-45 items-center justify-center rounded-lg">Download</button>
-            <div class="rounded-lg bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px]">
-                <button class="flex h-14 w-45 items-center justify-center rounded-lg bg-black text-[16px] font-inter font-bold text-white">
+            <button class="flex bg-gradient-to-r from-[#C824EC] to-[#DF308D] transition-all duration-300 ease-in-out hover:scale-115 text-white font-inter font-bold text-[16px] h-14 w-45 items-center justify-center rounded-lg cursor-pointer">Download</button>
+            <div class="rounded-lg bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px] transition-all duration-300 ease-in-out hover:scale-115">
+                <button class="flex h-14 w-45 items-center justify-center rounded-lg bg-black text-[16px] font-inter font-bold text-white cursor-pointer transition-all duration-300 ease-in-out hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D]">
                     Learn More
                 </button>
             </div>
         </div>
+    </div>
+
+    <div class="relative flex flex-1 flex-col justify-center items-center gap-4">
+        <div class="absolute w-full h-full z-[-1]">
+            <MagicRings client:load
+                color="#C824EC"
+                colorTwo="#DF308D"
+                ringCount={2}
+                speed={1}
+                attenuation={15}
+                lineThickness={4}
+                baseRadius={0.35}
+                radiusStep={0.1}
+                scaleRate={0.1}
+                opacity={1}
+                blur={0}
+                noiseAmount={0}
+                rotation={0}
+                ringGap={1.1}
+                fadeIn={0.7}
+                fadeOut={0.5}
+                followMouse={false}
+                mouseInfluence={0.2}
+                hoverScale={1.2}
+                parallax={0.05}
+                clickBurst={false}
+            />
+        </div>
+        
+        <div class="z-100">
+            <Image src="/braille.png" alt="Braille Keyboard" width={602} height={227} />
+        </div>
+        
     </div>
 </div>

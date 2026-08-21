@@ -23,7 +23,7 @@ if not api_key:
     sys.exit(1)
 
 client = Groq(api_key=api_key)
-JUDGE_MODEL = "llama-3.3-70b-versatile"
+JUDGE_MODEL = "openai/gpt-oss-120b"
 
 def ask_groq_judge(system_instruction, user_prompt, max_retries=3):
     for attempt in range(max_retries + 1):
@@ -138,21 +138,24 @@ def test_reviewer(test_cases_dir):
         duration = time.time() - start_time
         
         issues = review_response.get("issues", [])
+        overall_summary = review_response.get("overall_summary", "")
+        narration = review_response.get("narration", "")
         
         prompt = f"""
         Original Code:
         {code}
         
-        Expected Real Bugs: {expected_bugs}
-        
-        1.5B Model's Reported Issues:
+        Model's Reported Issues:
         {json.dumps(issues, indent=2)}
         
+        Model's Overall Summary: {overall_summary}
+        Model's Narration: {narration}
+        
         Evaluate the following metrics (0.0 to 1.0):
-        "Issue Detection Accuracy": Did it find the expected bugs? (Recall-like)
-        "False Positive Rate": Did it hallucinate bugs that don't exist? (0.0 is perfect, 1.0 means everything was fake)
-        "Suggestion Quality": Are the proposed fixes in the issues logical?
-        "Severity Classification Accuracy": Are the 'critical' vs 'low' labels correct?
+        "Issue Detection Accuracy": Did it find the expected bugs listed above? Score 1.0 if all expected bugs were found, 0.0 if none were. If the expected bugs list is empty and no issues were reported, score 1.0.
+        "False Positive Rate": Did it report bugs that do not actually exist in the code? 0.0 means all reported issues are real. 1.0 means all reported issues are fake or hallucinated. If no issues were reported, score 0.0.
+        "Suggestion Quality": For each reported issue, is the recommendation concrete, actionable, and correct? Does it include a short example of how to fix it? Score 1.0 if all suggestions are good, 0.0 if none are.
+        "Severity Classification Accuracy": Are the severity labels correct based on these rules: Critical means the code WILL crash or produce wrong results every time. High means it will crash or misbehave under common conditions. Medium means it works but has a clear quality or safety problem. Low means it works fine but could be cleaner. Score 1.0 if all labels are correct, 0.0 if all are wrong.
         
         Return ONLY JSON: {{"Issue Detection Accuracy": float, "False Positive Rate": float, "Suggestion Quality": float, "Severity Classification Accuracy": float}}
         """
@@ -170,6 +173,7 @@ def test_reviewer(test_cases_dir):
         results.append(res_dict)
         
     return results
+
 
 # def test_analyze(test_cases_dir):
 #     print("Testing Analyze Code...")

@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 
 def setup_test_cases():
-    base_dir = Path(r"c:\Users\PC\Desktop\Projects\ZeroVisionCoding\zero-vision-coding\tests\ai_test_cases")
+    PROJECT_ROOT = Path(__file__).resolve().parent
+    base_dir = PROJECT_ROOT / "tests" / "ai_test_cases"
     
     fixer_dir = base_dir / "fixer"
     reviewer_dir = base_dir / "reviewer"

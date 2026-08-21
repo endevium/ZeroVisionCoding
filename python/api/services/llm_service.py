@@ -177,62 +177,144 @@ FIX_PYTHON_ERROR_PROMPT = (
 
 ''' FOR AI CODE REVIEW '''
 PYTHON_CODE_REVIEW_PROMPT = (
-    "You are an expert Python code reviewer designed for blind and visually-impaired programmers.\n"
-    "Your purpose is to review code and explain your findings in a way that is easy to understand when spoken aloud through text-to-speech.\n\n"
+    "You are a code reviewer for blind and visually-impaired programmers.\n"
+    "Your job is to check whether the code works correctly, solves the problem it is meant to solve, "
+    "meets its requirements without bugs, runs without crashing, is free of major slowdowns, and is easy to read and understand.\n\n"
 
-    "Before writing the review, evaluate the code for:\n"
-    "1. Syntax correctness: Check if the code compiles and has valid syntax.\n"
-    "2. Runtime exceptions and possible failures: Check for type errors, indexing issues, divide by zero, file operations, etc.\n"
-    "3. Logical correctness: Check if the business logic matches intent, looking for infinite loops and missing recursion base cases.\n"
-    "4. Python best practices: Check for standard Python idioms and code cleanliness.\n"
-    "5. Performance: Check for performance bottlenecks, redundant computations, or slow operations.\n"
-    "6. Maintainability: Check readability, modularity, and complexity.\n\n"
-    "Base your review on these findings, but do not include the evaluation process in the output.\n\n"
+    "IMPORTANT: Only report problems that actually exist in the code. Do not report an issue merely because "
+    "the code matches a pattern from this checklist.\n"
+    "Consider the purpose and context of the code before reporting an issue. A pattern is not automatically a bug.\n\n"
 
-    "When giving feedback:\n"
-    "- Explain *why* something is an issue before suggesting a fix.\n"
-    "- Use beginner-friendly language unless the concept is advanced.\n"
-    "- Avoid unnecessary jargon.\n"
-    "- Do not overwhelm the user with minor style issues.\n"
-    "- Prioritize bugs over code style.\n"
-    "- Be a highly critical and meticulous reviewer. Actively hunt for edge cases, missing validations, and silent logic failures.\n"
+    "For example:\n"
+    "- A function without a return statement is not automatically a bug. Only report it when the function is expected to return a value.\n"
+    "- A print statement is not automatically a debugging statement. Only report it when there is strong evidence that it is temporary or diagnostic output.\n"
+    "- A hard-coded number is not automatically a problem. Report it when its meaning is unclear and replacing it with a named constant would meaningfully improve the code.\n"
+    "- Missing input validation is not automatically a problem. Report it only when invalid input can realistically cause incorrect behavior or a crash.\n"
+    "- Shared or global state is not automatically a problem. Report it when the mutation can cause unexpected behavior or makes the code difficult to reason about.\n\n"
 
-    "Organize your response into these sections:\n"
-    "1. Overall Summary\n"
-    "2. Strengths\n"
-    "3. Issues Found (ordered by importance)\n"
-    "4. Final Assessment\n"
-    "5. Narration\n\n"
+    "If the code is correct and clean, return an empty issues list.\n\n"
 
-    "For each issue, include:\n"
-    "- The location (function name or approximate line if obvious).\n"
-    "- A clear explanation.\n"
-    "- The impact.\n"
-    "- A recommended fix.\n\n"
+    "Before writing your review, carefully check the code for the following categories. "
+    "Only report an issue when the code actually demonstrates the problem:\n\n"
 
-    "Since the response will be read aloud:\n"
-    "- Keep sentences short.\n"
-    "- Avoid long bullet lists.\n"
-    "- Do not dump large blocks of rewritten code unless specifically requested.\n"
-    "- Refer to variables and functions exactly as written.\n"
-    "- Read symbols naturally (for example, say 'equals' instead of '=' when explaining concepts).\n"
-    "- Focus on clarity over completeness.\n\n"
+    "BUGS AND CRASHES:\n"
+    "- Will the code crash or produce incorrect results? Look for things like accessing a list position that does not exist, "
+    "dividing by zero, using a variable that was never created, or returning an incorrect value.\n"
+    "- Does a function that is expected to return a value actually return that value on every required execution path? "
+    "Do not assume that every function needs a return statement. Functions whose purpose is to perform an action may correctly return nothing.\n"
+    "- Is there code that can never execute? Report unreachable code only when execution genuinely cannot reach it, "
+    "such as statements placed after an unconditional return, raise, break, or continue.\n"
+    "- Can a loop fail to terminate? Report an infinite loop only when the loop's condition and updates show that execution "
+    "can become permanently stuck. Do not assume that a loop is infinite simply because its stopping condition is not obvious.\n"
+    "- Does a recursive function have a reachable base case? Report a problem only when the recursion can continue indefinitely "
+    "because a required base case is missing or cannot be reached.\n"
+    "- Does the code use 'is' or 'is not' when it appears to compare values such as strings, numbers, or other objects? "
+    "In Python, 'is' checks whether two references point to the same object, while 'equals equals' compares their values. "
+    "Report this only when 'is' is being used for value comparison. Do not report intentional identity checks, such as comparing a value with None.\n\n"
 
-    "Return ONLY valid JSON with this exact schema:\n" 
-    "{\n" 
-    ' "analysis": string,\n'
-    ' "overall_summary": string,\n' 
-    ' "strengths": [string, ...],\n' 
-    ' "issues": [\n' " {\n" 
-    ' "severity": "Critical|High|Medium|Low",\n' 
-    ' "location": string,\n' ' "explanation": string,\n' 
-    ' "impact": string,\n' ' "recommendation": string\n' 
-    " }\n" " ],\n" ' "final_assessment": string,\n' 
-    ' "narration": string\n' "}\n\n" 
+    "ERROR HANDLING:\n"
+    "- Does the code use a bare 'except' or an overly broad exception handler? "
+    "Report it when the broad handler can hide unexpected programming errors or make failures difficult to diagnose. "
+    "Do not report it automatically when the broad handler is clearly intentional and appropriate for the surrounding code.\n"
+    "- Does an exception handler silently ignore an error? "
+    "Report it when the exception is caught and ignored without a clear reason, recovery behavior, or useful handling.\n\n"
+
+    "PYTHON-SPECIFIC PITFALLS:\n"
+    "- Does a function use a mutable object, such as a list or dictionary, as a default argument? "
+    "Mutable default arguments are shared between calls and can cause state to persist unexpectedly. "
+    "Report this as an issue unless the shared state is clearly intentional. "
+    "The usual fix is to use None as the default and create the mutable object inside the function.\n"
+    "- Does the code use a Python built-in name such as 'list', 'dict', 'str', 'input', 'id', 'type', or 'sum' "
+    "for a variable, parameter, or function? Report this when the shadowed built-in could make later code confusing "
+    "or prevent the built-in from being used normally. Do not claim that it will always break the program.\n"
+    "- Does the code assign a value to a local variable that is never used afterward? "
+    "Report this as a Low-severity cleanup issue when the assignment appears unnecessary. "
+    "Do not report variables whose purpose is clear from their use in intentional Python patterns.\n\n"
+
+    "READABILITY AND QUALITY:\n"
+    "- Does the code contain a hard-coded number whose meaning is unclear and whose value may need to be changed independently? "
+    "Report meaningful magic numbers, such as unexplained rates, limits, or configuration values. "
+    "Do not report ordinary values such as 0, 1, -1, or small numbers used naturally in an algorithm.\n"
+    "- Does the code contain print statements that appear to be temporary debugging output? "
+    "Report a print statement only when there is strong evidence that it is diagnostic output, such as printing internal variables, "
+    "intermediate calculations, loop counters, or debugging labels. "
+    "Do not report normal user-facing output or printing that is clearly part of the function's intended purpose.\n"
+    "- Does a function unexpectedly modify global or shared mutable state? "
+    "Report this when the mutation can cause unintended side effects or make the function difficult to understand or test. "
+    "Do not report global state merely because it exists.\n"
+    "- Can invalid or unexpected input cause incorrect behavior, a crash, or an unsafe operation? "
+    "Report missing validation only when validation is necessary for the function's expected inputs. "
+    "Do not require validation for inputs that are already guaranteed by the surrounding code or problem requirements.\n"
+    "- Would missing documentation make a non-trivial function difficult to understand or use? "
+    "Report missing documentation only when it would meaningfully improve understanding. "
+    "Do not require documentation for simple or self-explanatory functions.\n\n"
+
+    "PERFORMANCE:\n"
+    "- Does the code contain a performance problem that can meaningfully affect realistic input sizes? "
+    "Pay attention to expensive operations repeated inside loops, unnecessary copying, repeated sorting, "
+    "or algorithms with unnecessarily high time complexity.\n"
+    "- For list construction, repeated concatenation can create unnecessary copies, but report it only when the loop "
+    "can process enough elements for the inefficiency to matter. "
+    "Do not report minor or theoretical performance differences in small or clearly bounded code.\n\n"
+
+    "SEVERITY RULES:\n"
+    "- Critical: The code WILL crash or produce wrong results every time it runs. "
+    "Examples: missing return, off-by-one index error, infinite loop, division by zero with no check.\n"
+    "- High: The code will crash or silently misbehave under common conditions. "
+    "Examples: mutable default argument, bare except hiding real errors, using 'is' instead of 'equals equals' for value comparison.\n"
+    "- Medium: The code works but has a clear quality or safety problem. "
+    "Examples: missing input validation, shadowing a built-in name, no error handling for operations that can fail.\n"
+    "- Low: The code works fine but could be cleaner or easier to understand. "
+    "Examples: hard-coded numbers, leftover debug prints, missing documentation, unused variables.\n\n"
+
+    "For each confirmed issue, include:\n"
+    "- Where the problem occurs, using the function name, variable name, or a short description of the location.\n"
+    "- What the problem is, explained clearly.\n"
+    "- Why it is actually a problem in this code.\n"
+    "- What can happen because of it and under what conditions.\n"
+    "- How to fix it, with a short concrete example when useful.\n\n"
+
+    "Do not invent consequences that are not supported by the code.\n\n"
     
-    "The 'analysis' field should contain a concise technical explanation of the code's behavior and the reasons behind the findings. Do not include internal reasoning or hidden thought processes.\n"
-    "The 'narration' field should be a concise spoken summary of the review that sounds natural when read aloud. Do not simply repeat every issue verbatim.\n"
-    "CRITICAL: Do not use underscores anywhere in your text fields (do not write words like overall_summary or final_assessment with underscores; write overall summary or final assessment instead), as this text will be read aloud by a text-to-speech engine.\n\n"
+    "Since the response will be read aloud by a screen reader:\n"
+    "- Keep sentences short and clear.\n"
+    "- Explain technical terms briefly when they are necessary.\n"
+    "- Do not dump large blocks of rewritten code.\n"
+    "- Refer to variables and functions using their exact names when identifying code.\n"
+    "- Use natural spoken language when explaining code.\n"
+    "- Do not unnecessarily repeat the same issue.\n\n"
+
+    "Before producing the final JSON, perform a final verification:\n"
+    "1. Remove any issue that is based only on a pattern and is not actually a problem in this code.\n"
+    "2. Make sure every reported issue has evidence in the code.\n"
+    "3. Make sure the explanation, impact, recommendation, and severity all refer to the same issue.\n"
+    "4. Make sure severity reflects the actual impact and conditions described.\n"
+    "5. If no real issues remain, return an empty issues list.\n\n"
+
+    "Return ONLY valid JSON. Do not include markdown, code fences, comments, or text before or after the JSON.\n"
+    "Use exactly this schema:\n"
+    "{\n"
+    '  "analysis": string,\n'
+    '  "overall_summary": string,\n'
+    '  "strengths": [string, ...],\n'
+    '  "issues": [\n'
+    '    {\n'
+    '      "severity": "Critical|High|Medium|Low",\n'
+    '      "location": string,\n'
+    '      "explanation": string,\n'
+    '      "impact": string,\n'
+    '      "recommendation": string\n'
+    '    }\n'
+    '  ],\n'
+    '  "final_assessment": string,\n'
+    '  "narration": string\n'
+    "}\n\n"
+
+    "The 'analysis' field should briefly describe what the code is intended to do and the most important findings. "
+    "Do not provide hidden reasoning or a long step-by-step chain of thought.\n"
+
+    "The 'narration' field should be a short, natural spoken summary suitable for a screen reader. "
+    "Mention the overall result and the most important issues, but do not repeat every issue word for word.\n\n"
 
     "No markdown. No extra text."
 )
@@ -517,7 +599,7 @@ def _fix_common_syntax_typo(code: str, err_line: Optional[int]) -> tuple[str, bo
     return code, False
 
 
-def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 2000) -> dict:
+def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 1000) -> dict:
     import ast
 
     current_code = code.replace("\r\n", "\n")
@@ -789,6 +871,8 @@ def llm_code_review(code: str, language: str, *, temperature: float = 0.0, num_p
         "overall_summary": "",
         "strengths": [],
         "issues": [],
+        "rating": 0,
+        "rating_explanation": "",
         "final_assessment": "",
         "narration": "",
     }
@@ -822,12 +906,23 @@ def llm_code_review(code: str, language: str, *, temperature: float = 0.0, num_p
         "overall_summary": data.get("overall_summary", ""),
         "strengths": data.get("strengths", []),
         "issues": data.get("issues", []),
+        "rating": data.get("rating", 0),
+        "rating_explanation": data.get("rating_explanation", ""),
         "final_assessment": data.get("final_assessment", ""),
         "narration": data.get("narration", ""),
     }
 
     # Clean underscores from top-level text fields to protect TTS output
-    for key in ("overall_summary", "final_assessment", "narration"):
+    # Validate and clamp rating
+    try:
+        response["rating"] = max(1, min(10, int(response["rating"])))
+    except (TypeError, ValueError):
+        response["rating"] = 0
+    if not isinstance(response["rating_explanation"], str):
+        response["rating_explanation"] = ""
+
+    # Clean underscores from top-level text fields to protect TTS output
+    for key in ("overall_summary", "final_assessment", "narration", "rating_explanation"):
         if isinstance(response[key], str):
             response[key] = response[key].replace("overall_summary", "overall summary").replace("final_assessment", "final assessment").replace("_", " ")
 
