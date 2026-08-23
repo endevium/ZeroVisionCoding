@@ -1,42 +1,62 @@
-<div class="flex flex-col w-full pt-20 pl-20 pr-20 h-[150vh] justify-center items-center gap-7">
-    <div class="flex flex-col gap-4">
-        <h2 class="text-white font-orbitron text-[35px] font-bold">See beyond the screen</h2>
-        <p class="text-white font-inter font-thin text-[19px] text-center">
-            A coding experience built for blind and <br />
-            visually impaired programmers.
-        </p>
-    </div>
+---
+import DriftWall from "./DriftWall.jsx";
 
-    <div class="flex flex-row justify-center items-center gap-5">
-        <div>
-            <button class="flex justify-center items-center w-20 h-20 text-white text-[70px] cursor-pointer">
-                ←
-            </button>
-        </div>
-        
-        <svg
-            class="h-175 w-275"
-            viewBox="0 0 300 175"
-            fill="none"
-        >
-            <defs>
-                <linearGradient id="border-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#C824EC" />
-                    <stop offset="100%" stop-color="#DF308D" />
-                </linearGradient>
-            </defs>
+const items = [
+  {
+    image: "https://picsum.photos/id/1015/600/400",
+    title: "Peaks",
+    href: "https://example.com/one",
+  },
+  {
+    image: "https://picsum.photos/id/1025/600/400",
+    title: "Pup",
+    href: "https://example.com/two",
+  },
+  {
+    image: "https://picsum.photos/id/1039/600/400",
+    title: "Falls",
+    href: "https://example.com/three",
+  },
+];
+---
 
-            <polygon
-                points="1,1 255,1 299,22 299,174 45,174 1,153"
-                stroke="url(#border-gradient)"
-                stroke-width="0.5"
-            />
-        </svg>
+<div
+  class="flex flex-col w-full pt-20 pl-20 pr-20 h-[100vh] justify-center items-center gap-7"
+>
+  <div class="flex flex-col gap-4">
+    <h2 class="text-white font-orbitron text-[35px] font-bold">
+      <span class="bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent">Their stories. </span> Our inspiration.
+    </h2>
+    <p class="text-white font-inter font-thin text-[19px] text-center">
+      Every feature of Zero Vision Coding begins with <br />
+      understanding the people we hope to empower.
+    </p>
+  </div>
 
-        <div>
-            <button class="flex justify-center items-center w-20 h-20 text-white text-[70px] cursor-pointer">
-                →
-            </button>
-        </div>
-    </div>
+  <div class="flex flex-row justify-center items-center w-full h-full">
+    <DriftWall
+      client:load
+      items={items}
+      columns={5}
+      tileWidth={300}
+      tileHeight={332}
+      gap={18}
+      tilt={0}
+      turn={0}
+      perspective={2350}
+      depth={120}
+      speed={45}
+      direction="up"
+      variance={0.45}
+      parallax={0.6}
+      lift={64}
+      fade={0.1}
+      dim={0.95}
+      overlayColor="#060010"
+      radius={14}
+      roll={0}
+      pauseOnHover={false}
+      grayscale={false}
+    />
+  </div>
 </div>

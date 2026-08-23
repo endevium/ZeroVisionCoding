@@ -2,9 +2,9 @@
 import { Image } from "astro:assets";
 ---
 
-<div class="flex flex-col h-[120vh] -mt-60 justify-center items-center gap-10" id="about">
+<div class="flex flex-col h-[120vh] justify-center items-center gap-10" id="about">
     <div class="flex flex-col gap-4 justify-center items-center ">
-        <h2 class="text-white font-orbitron text-[35px] font-bold">About our team</h2>
+        <h2 class="text-white font-orbitron text-[35px] font-bold">About <span class="bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent"> Our Team</span></h2>
         <p class="text-white font-inter font-thin text-[19px] text-center">
             Meet the dedicated team behind Zero Vision Coding, working together to develop an accessible <br />
             AI-enhanced Braille programming platform for blind and visually impaired learners.
@@ -156,7 +156,7 @@ import { Image } from "astro:assets";
         const handleBtnClick = (offset: number) => {
             isScrolling = true;
             container.scrollBy({ left: offset, behavior: 'smooth' });
-            setTimeout(() => { isScrolling = false; }, 500);
+            setTimeout(() => { isScrolling = false; }, 600);
         };
 
         prevBtn.addEventListener('click', () => handleBtnClick(-374));

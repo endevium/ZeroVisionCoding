@@ -1,54 +1,165 @@
-<div class="flex flex-col h-[240vh] pr-20 pl-20 justify-center items-center gap-15">
+---
+import { FirstFeature } from "./ui/video-player.tsx";
+---
+
+
+<div class="flex flex-col h-[400vh] justify-center items-center pr-20 pl-20 gap-20">
     <div class="flex flex-col gap-4 justify-center items-center ">
-        <h2 class="text-white font-orbitron text-[35px] font-bold">Check out other features</h2>
+        <h2 class="text-white font-orbitron text-[36px] font-bold">
+            Built for  
+            <span class="bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent"> Accessible Programming</span>
+        </h2>
         <p class="text-white font-inter font-thin text-[19px] text-center">
-            Zero Vision Coding is packed with many features to <br />
-            provide programming accessibility for blind users.
+            Explore the tools that make programming more accessible, <br />
+            from tactile Braille input and voice commands to <br />
+            AI-assisted code feedback.
         </p>
     </div>
 
-    <div class="grid grid-cols-2 gap-4 w-max">
-        <div class="relative group w-150 h-100 bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px]">
-            <div class="w-full h-full bg-[#05030a] relative overflow-hidden">
-                <div class="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 class="text-white font-orbitron text-[20px] font-bold">Screen Reader Optimization</h3>
-                    <p class="text-white font-inter font-thin text-[15px] mt-2">
-                        Seamlessly integrates with popular screen readers to provide real-time auditory feedback while coding.
-                    </p>
+    <div class="flex flex-col gap-45">
+        <!-- First Feature -->
+        <div class="flex flex-row gap-15">
+            <div class="flex flex-col gap-4 justify-center w-1/2">
+                <h2 class="text-white font-orbitron text-[30px] font-medium">Voice Commands</h2>
+                <p class="text-white font-inter font-thin text-[19px]">
+                    Navigate and interact with the coding environment through speech.
+                </p>
+
+                <div class="h-[15vh] flex items-center">
+                    <ul class="flex flex-col gap-2 text-white">
+                        <li class="flex items-center gap-3 text-white font-inter text-[19px]">
+                            <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
+                                ✓
+                            </span>
+                            Voice-based navigation
+                        </li>
+
+                        <li class="flex items-center gap-3 text-white font-inter text-[19px]">
+                            <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
+                                ✓
+                            </span>
+                            Less reliance on visual interfaces
+                        </li>
+
+                        <li class="flex items-center gap-3 text-white font-inter text-[19px]">
+                            <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
+                                ✓
+                            </span>
+                            Accessible and comprehensible commands system
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="w-[85vh] h-[60vh] bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[3px] rounded-lg">
+                <div class="w-full h-full bg-black rounded-2xl">
+                    <video controls class="w-full h-full object-cover rounded-lg">
+                        <source src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4" type="video/mp4">
+                    </video>
                 </div>
             </div>
         </div>
 
-        <div class="relative group w-150 h-100 bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px]">
-            <div class="w-full h-full bg-[#05030a] relative overflow-hidden">
-                <div class="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 class="text-white font-orbitron text-[20px] font-bold">Voice Commands</h3>
-                    <p class="text-white font-inter font-thin text-[15px] mt-2">
-                        Execute complex IDE commands and navigate codebases effortlessly using intuitive voice controls.
-                    </p>
+        <!-- Second Feature -->
+         <div class="flex flex-row gap-15">
+            <div class="w-[85vh] h-[60vh] bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[3px] rounded-lg">
+                <div class="w-full h-full bg-black rounded-2xl">
+                    <video controls class="w-full h-full object-cover rounded-lg">
+                        <source src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4 justify-center w-1/2">
+                <h2 class="text-white font-orbitron text-[30px] font-medium">Audio Feedback</h2>
+                <p class="text-white font-inter font-thin text-[19px]">
+                    Receive spoken feedback from the coding environment to understand code, actions, and system responses without relying on visual output.
+                </p>
+
+                <div class="h-[15vh] flex items-center">
+                    <ul class="flex flex-col gap-2 text-white">
+                        <li class="flex items-center gap-3 text-white font-inter text-[19px]">
+                            <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
+                                ✓
+                            </span>
+                            Text-to-speech feedback
+                        </li>
+
+                        <li class="flex items-center gap-3 text-white font-inter text-[19px]">
+                            <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
+                                ✓
+                            </span>
+                            Audio-based interaction
+                        </li>
+
+                        <li class="flex items-center gap-3 text-white font-inter text-[19px]">
+                            <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
+                                ✓
+                            </span>
+                            Quick system responses
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
 
-        <div class="relative group w-150 h-100 bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px]">
-            <div class="w-full h-full bg-[#05030a] relative overflow-hidden">
-                <div class="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 class="text-white font-orbitron text-[20px] font-bold">Haptic Feedback</h3>
-                    <p class="text-white font-inter font-thin text-[15px] mt-2">
-                        Receive structural and syntactical context through subtle haptic cues on supported devices.
-                    </p>
+        <!-- Third Feature -->
+        <div class="flex flex-row gap-15">
+            <div class="flex flex-col gap-4 justify-center w-1/2">
+                <h2 class="text-white font-orbitron text-[30px] font-medium">Understand and Improve Code</h2>
+                <p class="text-white font-inter font-thin text-[19px]">
+                    AI-powered code analysis provides feedback that can help learners understand errors, improve their code, and develop programming skills.
+                </p>
+
+                <div class="h-[15vh] flex items-center">
+                    <ul class="flex flex-col gap-2 text-white">
+                        <li class="flex items-center gap-3 text-white font-inter text-[19px]">
+                            <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
+                                ✓
+                            </span>
+                            Smart code analysis
+                        </li>
+
+                        <li class="flex items-center gap-3 text-white font-inter text-[19px]">
+                            <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
+                                ✓
+                            </span>
+                            Error and improvement feedback
+                        </li>
+
+                        <li class="flex items-center gap-3 text-white font-inter text-[19px]">
+                            <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
+                                ✓
+                            </span>
+                            Supports independent learning
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="w-[85vh] h-[60vh] bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[3px] rounded-lg">
+                <div class="w-full h-full bg-black rounded-2xl">
+                    <video controls class="w-full h-full object-cover rounded-lg">
+                        <source src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4" type="video/mp4">
+                    </video>
                 </div>
             </div>
         </div>
 
-        <div class="relative group w-150 h-100 bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px]">
-            <div class="w-full h-full bg-[#05030a] relative overflow-hidden">
-                <div class="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 class="text-white font-orbitron text-[20px] font-bold">Smart Auto-completion</h3>
-                    <p class="text-white font-inter font-thin text-[15px] mt-2">
-                        AI-powered suggestions tailored for accessibility, reducing keystrokes and context switching.
-                    </p>
+        <!-- Fourth Feature -->
+         <div class="flex flex-row gap-15">
+            <div class="w-[85vh] h-[60vh] bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[3px] rounded-lg">
+                <div class="w-full h-full bg-black rounded-2xl">
+                    <video controls class="w-full h-full object-cover rounded-lg">
+                        <source src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4" type="video/mp4">
+                    </video>
                 </div>
+            </div>
+
+            <div class="flex flex-col gap-4 justify-center w-1/2">
+                <h2 class="text-white font-orbitron text-[30px] font-medium">VS Code Integration</h2>
+                <p class="text-white font-inter font-thin text-[19px]">
+                    Bring accessible programming directly into Visual Studio Code through the Zero Vision Coding extension.
+                </p>
             </div>
         </div>
     </div>

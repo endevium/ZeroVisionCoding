@@ -25,9 +25,9 @@ interface Star {
 export function StarfieldBackground({
   className,
   children,
-  count = 150,
-  speed = 8,
-  starColor = "#C824EC",
+  count = 450,
+  speed = 1,
+  starColor = "#ffffff",
   twinkle = true,
 }: StarfieldBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)

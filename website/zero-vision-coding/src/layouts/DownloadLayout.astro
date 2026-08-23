@@ -13,10 +13,11 @@ import { MeshGradientBackground } from '@/components/ui/mesh-gradient';
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Zero Vision Coding</title>
+		<title>Download Zero Vision Coding</title>
 	</head>
 	<body>
 		<section class="hero-gradient">
+			<StarfieldBackground client:load />
 			<div class="hero-gradient__bg" aria-hidden="true">
 				<slot />
 			</div>
@@ -35,7 +36,7 @@ import { MeshGradientBackground } from '@/components/ui/mesh-gradient';
 
 	.hero-gradient {
 		position: relative;
-		min-height: 1000vh;
+		min-height: 120vh;
 		display: flex;
 		align-items: center;
 		justify-content: center;

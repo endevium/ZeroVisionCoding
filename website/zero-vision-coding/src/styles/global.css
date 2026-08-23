@@ -15,6 +15,13 @@
 
 @theme {
     --color-darkgray: #2d2d2d;
+    --color-lightblue: #00cbff;
+    --color-eerie-black: #17191d;
+    --color-midnight-obsidian: #181a1f;
+    --color-black-idk: #121417;
+    --color-blacker: #0e1012;
+    --color-random-blue: #285178;
+    --color-lightergray: #4a4a4a;
 }
 
 @theme inline {
