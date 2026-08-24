@@ -1023,7 +1023,7 @@ class ZeroVisionAssistant(tk.Tk):
             "Commands: where am I, what file is this, read the whole thing, "
             "save, save as, open file, run code, find errors in the code, analyze the code, "
             "explain function, explain class, explain for loop, "
-            "fix it, change voice, speak faster, speak slower."
+            "fix it, change voice, speak faster, speak slower, close the app."
         )
 
     def on_close(self) -> None:
@@ -1031,6 +1031,10 @@ class ZeroVisionAssistant(tk.Tk):
             return
         self._closing = True
         try:
+            try:
+                self.client.enqueue_command("close_extension", {})
+            except Exception:
+                pass
             try:
                 if hasattr(self.speech, "stop_background"):
                     self.speech.stop_background()

@@ -182,6 +182,30 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         _handle_analyze(app)
         return
 
+    # Close app
+    if any(
+        phrase in t
+        for phrase in (
+            "close the app",
+            "close app",
+            "close the system",
+            "close system",
+            "exit the app",
+            "exit app",
+            "quit the app",
+            "quit app",
+            "exit application",
+            "close application",
+        )
+    ):
+        app.interrupt_and_speak("Closing the application.")
+        try:
+            app.client.enqueue_command("close_extension", {})
+        except Exception:
+            pass
+        app.after(200, app.on_close)
+        return
+
     # Code reviewer
     if ("review my code" in t) or (("review" in t) and ("code" in t)):
         _handle_code_review(app)
