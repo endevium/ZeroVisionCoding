@@ -1,22 +1,30 @@
 ---
 import { Image } from "astro:assets";
+import { StarfieldBackground } from "./ui/starfield.tsx";
+import Latest from "./releases/latest.astro";
+import AppLatest from "./releases/application/AppLatest.astro";
+import ExtensionLatest from "./releases/extension/ExtensionLatest.astro";
+import OneZeroZero from "./releases/versions/OneZeroZero.astro";
 ---
 
 
-<div class="flex flex-col h-[110vh] items-center pt-35 pr-20 pl-20 gap-5">
-    <div class="flex flex-col gap-2 justify-center items-center ">
-        <h2 class="text-white text-[35px] font-orbitron font-black">
+<div class="relative flex flex-col flex-1 h-[125vh] justify-center items-center pt-15 pr-20 pl-20 gap-5">
+    <div class="absolute inset-0 w-full h-full overflow-hidden">
+        <StarfieldBackground client:load />
+    </div>
+
+    <div class="flex flex-col gap-2 justify-center items-center z-1">
+        <h2 id="title" class="text-white text-[35px] font-orbitron font-black">
             Releases
         </h2>
 
-        <p class="text-white font-inter font-thin text-[17px] text-center">
+        <p id="description" class="text-white font-inter font-thin text-[17px] text-center">
             Everything you need to download, set up, and introduce <br />
             Zero Vision Coding to your learners.
         </p>
     </div>
 
-    
-    <div class="flex flex-row bg-[#0a0a0f] border-1 rounded-3xl border-darkgray w-full h-150">
+    <div id="releases" class="flex flex-row bg-[#0a0a0f] border-1 rounded-3xl border-darkgray w-full h-170 z-1">
         <!-- Tabs aaaa -->
         <div class="flex flex-col min-w-50 border-r border-r-darkgray h-full">
             <div class="flex flex-col h-45 w-full border-b border-b-darkgray text-white">
@@ -25,9 +33,9 @@ import { Image } from "astro:assets";
                 </div>
 
                 <div class="flex flex-col">
-                    <button class="text-left hover:bg-lightblue transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">All</button>
-                    <button class="text-left hover:bg-lightblue transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">Zero Vision Coding</button>
-                    <button class="text-left hover:bg-lightblue transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">VS Code Extension</button>
+                    <button id="general-latest-btn" class="bg-[#571248] text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">All</button>
+                    <button id="app-latest-btn" class="text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">Zero Vision Coding</button>
+                    <button id="extension-latest-btn" class="text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">VS Code Extension</button>
                 </div>
             </div>
             <div class="flex flex-col h-105 w-full text-white">
@@ -36,73 +44,141 @@ import { Image } from "astro:assets";
                 </div>
 
                 <div class="flex flex-col">
-                    <button class="text-left hover:bg-lightblue transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">1.0.0</button>
+                    <button id="one-zero-zero-btn" class="text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">1.0.0</button>
                 </div>
             </div>
         </div>
 
         <!--Versions aaaaaaa -->
         <div class="flex flex-col w-full h-full">
-            <div class="flex flex-col h-15 w-full border-b border-b-darkgray text-white">
-                <div class="flex flex-col min-h-12 p-4">
-                    <p class="font-inter pl-2 text-[17px] tracking-wider">August 2026</p>
-                </div>
+            <div id="general-latest">
+                <Latest />
+            </div>
+            
+            <div id="app-latest" hidden>
+                <AppLatest />
             </div>
 
-            <div class="flex flex-row p-5 w-full h-full gap-4">
-                <div class="flex flex-col bg-black-idk w-75 h-55 rounded-lg">
-                    <div class="flex flex-col h-33 border-b border-b-darkgray p-4">
-                        <div class="flex flex-col">
-                            <p class="font-inter  text-[15px] tracking-wider text-white">Zero Vision Coding: 1.0.0</p>
-                        </div>
+            <div id="extension-latest" hidden>
+                <ExtensionLatest /> 
+            </div>
 
-                        <div class="flex flex-col">
-                            <p class="font-inter text-[14px] tracking-wider text-white font-thin">August 21, 2026</p>
-                        </div>
-                    </div>
-
-                    <!-- Actual downloads lol -->
-                    <div class="flex flex-row gap-4 h-full m-5 justify-center items-center">
-                        <div class="flex flex-col w-50 h-25 border-2 border-darkgray rounded">
-                            <div class="flex justify-center items-center bg-blacker w-full h-1/2 border-b border-b-darkgray">
-                                <h2 class="flex text-white font-inter tracking-wider text-[15px]">Windows 11</h2>
-                            </div>
-
-                            <button class="flex flex-row gap-4 justify-center items-center hover:bg-lightergray transition-colors cursor-pointer w-full h-1/2 border-b border-b-darkgray">
-                                <Image src="/download.png" alt="download icon" width="16" height="16" />
-                                <h2 class="flex text-white font-inter tracking-wider text-[14px]">Download</h2>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex flex-col bg-black-idk w-75 h-55 rounded-lg">
-                    <div class="flex flex-col h-33 border-b border-b-darkgray p-4">
-                        <div class="flex flex-col">
-                            <p class="font-inter  text-[15px] tracking-wider text-white">IDE Extension: 1.0.0</p>
-                        </div>
-
-                        <div class="flex flex-col">
-                            <p class="font-inter text-[14px] tracking-wider text-white font-thin">August 21, 2026</p>
-                        </div>
-                    </div>
-
-                    <!-- Actual downloads lol -->
-                    <div class="flex flex-row gap-4 h-full m-5 justify-center items-center">
-                        <div class="flex flex-col w-50 h-25 border-2 border-darkgray rounded">
-                            <div class="flex justify-center items-center bg-blacker w-full h-1/2 border-b border-b-darkgray">
-                                <h2 class="flex text-white font-inter tracking-wider text-[15px]">VS Code</h2>
-                            </div>
-
-                            <button class="flex flex-row gap-4 justify-center items-center hover:bg-lightergray transition-colors cursor-pointer w-full h-1/2 border-b border-b-darkgray">
-                                <Image src="/download.png" alt="download icon" width="16" height="16" />
-                                <h2 class="flex text-white font-inter tracking-wider text-[14px]">Download</h2>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div id="one-zero-zero" hidden>
+                <OneZeroZero />
             </div>
         </div>
     </div>
-
 </div>
+
+<script>
+    import gsap from "gsap";
+    import { SplitText } from "gsap/SplitText";
+    gsap.registerPlugin(SplitText);
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const titleSplit = new SplitText("#title", {
+            type: "words,chars",
+            charsClass: "char"
+        })
+
+        const descriptionSplit = new SplitText("#description", {
+            type: "words"
+        })
+
+        const t0 = gsap.timeline();
+
+        t0.from(titleSplit.chars, {
+            y: 150,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power4.out",
+            stagger: 0.04
+        })
+        .from(descriptionSplit.words, {
+            y: 50,
+            opacity: 0,
+            duration: 1.5,
+            ease: "power3.out",
+            stagger: 0.04
+        }, "-=0.4")
+        .from("#releases", {
+            x: -50,
+            opacity: 0,
+            duration: 0.6,
+            ease: "power3.out"
+        }, "-=0.8")
+    })
+
+    // Functionality
+    type State = "general-latest" | "app-latest" | "extension-latest" |
+                "one-zero-zero";
+    let state: State;
+
+    const generalLatest = document.getElementById("general-latest");
+    const applicationLatest = document.getElementById("app-latest");
+    const extensionLatest = document.getElementById("extension-latest");
+    const oneZeroZero = document.getElementById("one-zero-zero");
+
+    const generalLatestBtn = document.getElementById("general-latest-btn");
+    const applicationLatestBtn = document.getElementById("app-latest-btn");
+    const extensionLatestBtn = document.getElementById("extension-latest-btn");
+    const oneZeroZeroBtn = document.getElementById("one-zero-zero-btn");
+
+    function setState(newState: State) {
+        state = newState;
+
+        generalLatest?.setAttribute("hidden", "");
+        applicationLatest?.setAttribute("hidden", "");
+        extensionLatest?.setAttribute("hidden", "");
+        oneZeroZero?.setAttribute("hidden", "");
+
+        generalLatestBtn?.classList.remove("bg-[#571248]");
+        applicationLatestBtn?.classList.remove("bg-[#571248]");
+        extensionLatestBtn?.classList.remove("bg-[#571248]");
+        oneZeroZeroBtn?.classList.remove("bg-[#571248]");
+
+        if (state === "general-latest") {
+            generalLatest?.removeAttribute("hidden");
+            generalLatestBtn?.classList.add("bg-[#571248]");
+        }
+
+        if (state === "app-latest") {
+            applicationLatest?.removeAttribute("hidden");
+            applicationLatestBtn?.classList.add("bg-[#571248]");
+        }
+
+        if (state === "extension-latest") {
+            extensionLatest?.removeAttribute("hidden");
+            extensionLatestBtn?.classList.add("bg-[#571248]");
+        }
+
+        if (state === "one-zero-zero") {
+            oneZeroZero?.removeAttribute("hidden");
+            oneZeroZeroBtn?.classList.add("bg-[#571248]");
+        }
+    }
+
+    generalLatestBtn?.addEventListener("click", () => {
+        if (state != "general-latest") {
+            setState("general-latest");
+        }
+    });
+
+    applicationLatestBtn?.addEventListener("click", () => {
+        if (state != "app-latest") {
+            setState("app-latest");
+        }
+    });
+
+    extensionLatestBtn?.addEventListener("click", () => {
+        if (state != "extension-latest") {
+            setState("extension-latest");
+        }
+    });
+
+    oneZeroZeroBtn?.addEventListener("click", () => {
+        if (state != "one-zero-zero") {
+            setState("one-zero-zero");
+        }
+    });
+</script>

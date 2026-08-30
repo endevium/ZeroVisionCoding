@@ -17,12 +17,10 @@ import { MeshGradientBackground } from '@/components/ui/mesh-gradient';
 	</head>
 	<body>
 		<section class="hero-gradient">
-			<StarfieldBackground client:load />
 			<div class="hero-gradient__bg" aria-hidden="true">
 				<slot />
 			</div>
 		</section>
-		
 	</body>
 </html>
 
@@ -36,13 +34,13 @@ import { MeshGradientBackground } from '@/components/ui/mesh-gradient';
 
 	.hero-gradient {
 		position: relative;
-		min-height: 120vh;
+		min-height: 140vh;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		overflow-x: hidden;
 		padding: var(--sp-12) var(--sp-6);
-	}
+	} 
 	.hero-gradient__bg {
 		position: absolute;
 		inset: 0;

@@ -225,7 +225,7 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
     if ("exit tutorial mode" in t) or ("exit tutorial" in t) or ("stop tutorial" in t) or ("end tutorial" in t):
         app.interrupt_and_speak("You have exited tutorial mode.")
         return
-        
+
 
     def _do_llm() -> None:
         try:

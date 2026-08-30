@@ -214,7 +214,6 @@ export default function OrbitImages({
               <path d={path} fill="none" stroke={pathColor} strokeWidth={pathWidth / (scale ?? 1)} />
             </svg>
           )}
-
         </div>
       </div>
 
