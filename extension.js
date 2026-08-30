@@ -8,6 +8,8 @@ const { spawn } = require('child_process');
 let _registeredOnce = false;
 let output;
 let runningChild = null;
+let extensionStopped = false;
+let extensionContext = null;
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 
@@ -175,6 +177,34 @@ async function handleCommand(cmd) {
 
     try {
         output.appendLine(`[cmd] received id=${id} type=${type} payload=${JSON.stringify(payload)}`);
+
+        if (type === 'close_extension' || type === 'close_app') {
+            extensionStopped = true;
+            if (output) {
+                output.appendLine('[cmd] Zero Vision Coding extension is shutting down.');
+            }
+            try {
+                await vscode.commands.executeCommand('workbench.action.closeWindow');
+            } catch (e) {
+                if (output) output.appendLine(`[cmd] closeWindow failed: ${e?.message ?? String(e)}`);
+            }
+            for (const sub of [...(extensionContext?.subscriptions || [])]) {
+                try {
+                    sub && typeof sub.dispose === 'function' && sub.dispose();
+                } catch (e) {
+                    if (output) output.appendLine(`[cmd] shutdown dispose warning: ${e?.message ?? String(e)}`);
+                }
+            }
+            try {
+                if (output && typeof output.dispose === 'function') {
+                    output.dispose();
+                }
+            } catch (e) {
+                if (output) output.appendLine(`[cmd] shutdown output warning: ${e?.message ?? String(e)}`);
+            }
+            await postCommandResult(id, true, 'Extension closed');
+            return;
+        }
 
         if (type === 'run_program') {
             const editor = vscode.window.activeTextEditor;
@@ -393,8 +423,11 @@ function activate(context) {
     output.appendLine('Activated: zero-vision-coding');
     output.show(true);
 
+    extensionStopped = false;
+    extensionContext = context;
+
     let stopped = false;
-    context.subscriptions.push({ dispose: () => { stopped = true; } });
+    context.subscriptions.push({ dispose: () => { stopped = true; extensionStopped = true; } });
 
     // Keep trying to register with the server (backoff)
     (async () => {
@@ -481,7 +514,7 @@ function activate(context) {
     // Poll server for commands and execute them
     (async () => {
         output.appendLine('Command polling started');
-        while (!stopped) {
+        while (!stopped && !extensionStopped) {
             const cmd = await fetchNextCommand();
             if (cmd) await handleCommand(cmd);
             await sleep(300);
@@ -489,14 +522,7 @@ function activate(context) {
     })();
 }
 
-
-
-
-
-
-
-async function terminalReset(command) {
-    try { await postJson(`${SERVER}/terminal/reset`, { command }); } catch {}
+async function terminalReset(command) {    try { await postJson(`${SERVER}/terminal/reset`, { command }); } catch {}
 }
 async function terminalAppend(stdout, stderr) {
     try { await postJson(`${SERVER}/terminal/append`, { stdout, stderr }); } catch {}
@@ -552,7 +578,13 @@ function runPythonCaptured(filePath) {
 }
 
 // This method is called when your extension is deactivated
-function deactivate() {}
+function deactivate() {
+    extensionStopped = true;
+    if (output) {
+        output.appendLine('Zero Vision Coding extension deactivated.');
+        output.dispose();
+    }
+}
 
 module.exports = {
 	activate,
