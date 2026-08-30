@@ -4,14 +4,14 @@ import { Image } from "astro:assets";
 
 <div class="flex flex-col h-[120vh] justify-center items-center gap-10" id="about">
     <div class="flex flex-col gap-4 justify-center items-center ">
-        <h2 class="text-white font-orbitron text-[35px] font-bold">About <span class="bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent"> Our Team</span></h2>
-        <p class="text-white font-inter font-thin text-[19px] text-center">
+        <h2 id="about-title" class="text-white font-orbitron text-[35px] font-bold">About <span class="bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent"> Our Team</span></h2>
+        <p id="about-description" class="text-white font-inter font-thin text-[19px] text-center">
             Meet the dedicated team behind Zero Vision Coding, working together to develop an accessible <br />
             AI-enhanced Braille programming platform for blind and visually impaired learners.
         </p>
     </div>
 
-    <div class="flex items-center gap-5">
+    <div id="team" class="flex items-center gap-5">
         <button id="prevBtn" class="flex justify-center items-center w-12 h-12 text-white text-[40px] cursor-pointer hover:text-[#C824EC] transition-colors">
             ←
         </button>
@@ -156,10 +156,80 @@ import { Image } from "astro:assets";
         const handleBtnClick = (offset: number) => {
             isScrolling = true;
             container.scrollBy({ left: offset, behavior: 'smooth' });
-            setTimeout(() => { isScrolling = false; }, 600);
+            setTimeout(() => { isScrolling = false; }, 100);
         };
 
         prevBtn.addEventListener('click', () => handleBtnClick(-374));
         nextBtn.addEventListener('click', () => handleBtnClick(374));
     }
+
+    // GSAP
+    import gsap from "gsap";
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+    import { SplitText } from "gsap/SplitText";
+
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.registerPlugin(SplitText);
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const titleSplit = new SplitText("#about-title", {
+            type: "words,chars",
+            charsClass: "char"
+        });
+
+        const descriptionSplit = new SplitText("#about-description", {
+            type: "words"
+        });
+
+        const span = document.querySelector("#about-title span")
+        if (span) {
+            const chars = span.querySelectorAll(".char");
+            chars.forEach(char => {
+                char.classList.add(
+                    "bg-gradient-to-r",
+                    "from-[#C824EC]",
+                    "to-[#DF308D]",
+                    "bg-clip-text",
+                    "text-transparent"
+                );
+            });
+            span.classList.remove(
+                "bg-gradient-to-r",
+                "from-[#C824EC]",
+                "to-[#DF308D]",
+                "bg-clip-text",
+                "text-transparent"
+            );
+        };
+
+        const t1 = gsap.timeline({
+            scrollTrigger: {
+                trigger: "#about-title",
+                start: "top 90%",
+                end: "end 20%",
+                toggleActions: "play none none reverse"
+            }
+        })
+
+        t1.from(titleSplit.chars, {
+            y: 150,
+            opacity: 0,
+            duration: 0.5,
+            ease: "power4.out",
+            stagger: 0.04
+        })
+        .from(descriptionSplit.words, {
+            y: 20,
+            opacity: 0,
+            duration: 0.5,
+            ease: "power3.out",
+            stagger: 0.03
+        }, "-=0.4")
+        .from("#team", {
+            y: 50,
+            opacity: 0,
+            duration: 0.5,
+            ease: "sine.out"
+        })
+    });
 </script>

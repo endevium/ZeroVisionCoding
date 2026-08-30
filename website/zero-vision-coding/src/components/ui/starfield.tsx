@@ -26,9 +26,9 @@ export function StarfieldBackground({
   className,
   children,
   count = 450,
-  speed = 1,
+  speed = 2,
   starColor = "#ffffff",
-  twinkle = true,
+  twinkle = false,
 }: StarfieldBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -156,7 +156,7 @@ export function StarfieldBackground({
   }, [count, speed, starColor, twinkle])
 
   return (
-    <div ref={containerRef} className={cn("fixed inset-0 overflow-hidden bg-[#0a0a0f]", className)}>
+    <div ref={containerRef} className={cn("absolute inset-0 overflow-hidden bg-[#0a0a0f]", className)}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {/* Subtle blue nebula glow */}

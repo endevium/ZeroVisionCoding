@@ -1,41 +1,39 @@
 ---
-import '../styles/global.css'
-import { StarfieldBackground } from '@/components/ui/starfield';
-import { MeshGradientBackground } from '@/components/ui/mesh-gradient';
-
+import "../styles/global.css";
+import { StarfieldBackground } from "@/components/ui/starfield";
+import { MeshGradientBackground } from "@/components/ui/mesh-gradient";
 ---
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Zero Vision Coding</title>
-	</head>
-	<body>
-		<section class="hero-gradient">
-			<div class="hero-gradient__bg" aria-hidden="true">
-				<slot />
-			</div>
-		</section>
-		
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Zero Vision Coding</title>
+  </head>
+  <body>
+    <div class="hero-gradient__bg" aria-hidden="true"></div>
+    <main class="page-content">
+      <slot />
+    </main>
+  </body>
 </html>
 
 <style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		background-color: #05030a;
-	}
+  html,
+  body {
+    margin: 0;
+    width: 100%;
+    background-color: #05030a;
+    overflow-x: hidden;
+  }
 
 	.hero-gradient {
 		position: relative;
-		min-height: 1000vh;
+		min-height: 1200vh;
 		display: flex;
 		align-items: center;
 		justify-content: center;

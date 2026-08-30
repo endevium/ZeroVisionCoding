@@ -28,7 +28,125 @@ def createLabel(parent: tk.Misc, text: str, fontSize: int, color: str) -> tk.Lab
         text=text,
         font=("Courier New", fontSize, "bold"),
         fg=color,
-        bg="black",
+        bg="#111111",
+    )
+
+def create_rounded_rectangle(canvas, x1, y1, x2, y2, radius, fill, outline, width=1):
+    # Main body
+    canvas.create_rectangle(
+        x1 + radius,
+        y1,
+        x2 - radius,
+        y2,
+        fill=fill,
+        outline=""
+    )
+
+    # Left side
+    canvas.create_rectangle(
+        x1,
+        y1 + radius,
+        x1 + radius,
+        y2 - radius,
+        fill=fill,
+        outline=""
+    )
+
+    # Right side
+    canvas.create_rectangle(
+        x2 - radius,
+        y1 + radius,
+        x2,
+        y2 - radius,
+        fill=fill,
+        outline=""
+    )
+
+    # Four rounded corners
+    canvas.create_arc(
+        x1,
+        y1,
+        x1 + radius * 2,
+        y1 + radius * 2,
+        start=90,
+        extent=90,
+        fill=fill,
+        outline=outline,
+        width=width
+    )
+
+    canvas.create_arc(
+        x2 - radius * 2,
+        y1,
+        x2,
+        y1 + radius * 2,
+        start=0,
+        extent=90,
+        fill=fill,
+        outline=outline,
+        width=width
+    )
+
+    canvas.create_arc(
+        x1,
+        y2 - radius * 2,
+        x1 + radius * 2,
+        y2,
+        start=180,
+        extent=90,
+        fill=fill,
+        outline=outline,
+        width=width
+    )
+
+    canvas.create_arc(
+        x2 - radius * 2,
+        y2 - radius * 2,
+        x2,
+        y2,
+        start=270,
+        extent=90,
+        fill=fill,
+        outline=outline,
+        width=width
+    )
+
+    # Top and bottom borders
+    canvas.create_line(
+        x1 + radius,
+        y1,
+        x2 - radius,
+        y1,
+        fill=outline,
+        width=width
+    )
+
+    canvas.create_line(
+        x1 + radius,
+        y2,
+        x2 - radius,
+        y2,
+        fill=outline,
+        width=width
+    )
+
+    # Left and right borders
+    canvas.create_line(
+        x1,
+        y1 + radius,
+        x1,
+        y2 - radius,
+        fill=outline,
+        width=width
+    )
+
+    canvas.create_line(
+        x2,
+        y1 + radius,
+        x2,
+        y2 - radius,
+        fill=outline,
+        width=width
     )
 
 class ZeroVisionAssistant(tk.Tk):
@@ -82,45 +200,130 @@ class ZeroVisionAssistant(tk.Tk):
         super().__init__()
 
         self.title("Zero Vision Coding")
-        self.geometry("720x550")
+        self.geometry("980x550")
         self.resizable(False, False)
-        self.configure(bg="black")
+        self.configure(bg="#111111")
 
-        # LOGO
+        # =========================
+        # HEADER
+        # =========================
+
+        header = tk.Frame(self, bg="#111111")
+        header.pack(fill="x", padx=10, pady=(10, 10))
+
+        # Logo
         try:
             logo_path = os.path.join(os.path.dirname(__file__), "..", "zvlogo.png")
             logo_path = os.path.abspath(logo_path)
+
             img = Image.open(logo_path)
-            img = img.resize((400, 120))
+            img = img.resize((180, 60))
             self.logo_image = ImageTk.PhotoImage(img)
+
+            self.logoLabel = tk.Label(
+                header,
+                image=self.logo_image,
+                bg="#111111"
+            )
+            self.logoLabel.pack(side="left")
+
         except Exception:
             self.logo_image = None
 
-        if self.logo_image:
-            self.logoLabel = tk.Label(self, image=self.logo_image, bg="black")
-            self.logoLabel.pack(pady=(30, 10))
 
-        self.subLabel = createLabel(self, "Starting Server...", 16, "white")
-        self.subLabel.pack(anchor="w", pady=(1, 0))
+        # =========================
+        # Connection status
+        # =========================
 
-        self.vscodeLabel = createLabel(self, "Loading...", 16, "white")
-        self.vscodeLabel.pack(anchor="w", pady=(0, 0))
-
-        self.arduinoLabel = createLabel(self, "", 16, "white")
-        self.arduinoLabel.pack(anchor="w", pady=(0, 0))
-
-        self.outputTextLabel = tk.Label(
-            self,
-            text="Output: (empty)",
-            font=("Courier New", 12, "bold"),
-            fg="white",
-            bg="black",
-            anchor="w",
-            justify="left",
-            wraplength=680,
+        status_frame = tk.Frame(
+            header,
+            bg="#111111",
+            highlightbackground="#666666",
+            highlightthickness=1,
+            padx=8,
+            pady=5
         )
-        self.outputTextLabel.pack(side="bottom", fill="x", pady=(4, 12))
-        self.outputTextLabel.forget()
+
+        status_frame.pack(side="right")
+
+
+        self.subLabel = createLabel(
+            status_frame,
+            "● Server ready",
+            14,
+            "#55dd55",
+        )
+        self.subLabel.pack(side="left", padx=6)
+
+
+        self.vscodeLabel = createLabel(
+            status_frame,
+            "● VS Code connected",
+            14,
+            "#55dd55",
+        )
+        self.vscodeLabel.pack(side="left", padx=6)
+
+
+        self.arduinoLabel = createLabel(
+            status_frame,
+            "● Keyboard connected",
+            14,
+            "#ff3333",
+        )
+        self.arduinoLabel.pack(side="left", padx=6)
+
+        # =========================
+        # MAIN CONTENT
+        # =========================
+
+        content = tk.Frame(self, bg="#111111")
+        content.pack(fill="both", expand=True, padx=70, pady=20)
+
+        # Main heading
+        heading = createLabel(
+            content,
+            "How can I help you today?",
+            30,
+            "white"
+        )
+        heading.pack(anchor="w", pady=(10, 5))
+
+        description = createLabel(
+            content,
+            "Use your voice to navigate, code, and get AI assistance.",
+            13,
+            "white"
+        )
+        description.pack(anchor="w", pady=(0, 20))
+
+        # =========================
+        # LISTENING STATUS
+        # =========================
+
+        listening_frame = tk.Frame(
+            content,
+            bg="#111111",
+            highlightbackground="#22aa44",
+            highlightthickness=2
+        )
+        listening_frame.pack(fill="x", pady=10)
+
+        self.listeningLabel = createLabel(
+            listening_frame,
+            "LISTENING...",
+            18,
+            "#44dd55"
+        )
+        self.listeningLabel.pack(anchor="w", padx=20, pady=(15, 5))
+
+        self.feedbackLabel = createLabel(
+            listening_frame,
+            "Try saying a command",
+            14,
+            "white"
+        )
+        self.feedbackLabel.pack(anchor="w", padx=20, pady=(0, 15))
 
         # STATE
         self._closing = False
@@ -247,9 +450,9 @@ class ZeroVisionAssistant(tk.Tk):
             return
 
         self.interrupt_and_speak("Welcome to Zero Vision Coding. All required resources are downloaded and ready.")
-        self.subLabel.config(text="Starting Server...", fg="white")
-        self.vscodeLabel.config(text="Connecting to VS Code...", fg="white")
-        self.arduinoLabel.config(text="Scanning for Braille Keyboard...", fg="white")
+        self.subLabel.config(text="● Server", fg="white")
+        self.vscodeLabel.config(text="● VS Code", fg="white")
+        self.arduinoLabel.config(text="● Keyboard", fg="white")
 
         self.after(250, self.server.start)
         self.after(200, self.poll_server_until_ready)
@@ -308,13 +511,13 @@ class ZeroVisionAssistant(tk.Tk):
             return
 
         if self.server.is_dead():
-            self.subLabel.config(text="Server crashed.", fg="red")
+            self.subLabel.config(text="● Server", fg="red")
             return
 
         if self.client.ping():
-            self.subLabel.config(text="Server ready.", fg="white")
+            self.subLabel.config(text="● Server", fg="lightgreen")
         else:
-            self.subLabel.config(text="Starting Server...", fg="white")
+            self.subLabel.config(text="● Connecting...", fg="white")
             self.after(300, self.poll_server_until_ready)
 
     def poll_extension_until_ready(self) -> None:
@@ -323,13 +526,13 @@ class ZeroVisionAssistant(tk.Tk):
 
         status = self.client.vscode_status()
         if status.get("connected"):
-            self.vscodeLabel.config(text="VS Code connected", fg="white")
+            self.vscodeLabel.config(text="● VS Code", fg="lightgreen")
             if not self._startup_connection_announced:
                 self._startup_connection_announced = True
                 sfx.play_ding()
                 self.after(140, lambda: self.interrupt_and_speak("Welcome to Zero Vision Coding! You're now connected."))
         else:
-            self.vscodeLabel.config(text="VS Code not connected", fg="red")
+            self.vscodeLabel.config(text="● VS Code", fg="red")
 
         self.after(500, self.poll_extension_until_ready)
 
@@ -376,25 +579,15 @@ class ZeroVisionAssistant(tk.Tk):
             return
 
         if self._arduino_connected:
-            self.arduinoLabel.config(text=f"Braille keyboard connected ({self._arduino_port})", fg="white")
+            self.arduinoLabel.config(text=f"● Keyboard", fg="lightgreen")
         else:
-            self.arduinoLabel.config(text="Braille keyboard not connected", fg="red")
+            self.arduinoLabel.config(text="● Keyboard", fg="red")
 
         self.after(1000, self.poll_arduino_connection)
 
     def poll_terminal_output(self) -> None:
         if self._closing:
             return
-
-        snap = self.client.terminal_snapshot()
-        stdout = str(snap.get("stdout") or "")
-        stderr = str(snap.get("stderr") or "")
-        out = (stdout + ("\n" if (stdout and stderr) else "") + stderr).strip()
-        if not out:
-            self.outputTextLabel.config(text="Output: (empty)")
-        else:
-            short = out[-1200:]
-            self.outputTextLabel.config(text="Output:\n" + short)
 
         self.after(300, self.poll_terminal_output)
 
