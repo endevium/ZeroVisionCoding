@@ -230,49 +230,6 @@ class ZeroVisionAssistant(tk.Tk):
         except Exception:
             self.logo_image = None
 
-
-        # =========================
-        # Connection status
-        # =========================
-
-        status_frame = tk.Frame(
-            header,
-            bg="#111111",
-            highlightbackground="#666666",
-            highlightthickness=1,
-            padx=8,
-            pady=5
-        )
-
-        status_frame.pack(side="right")
-
-
-        self.subLabel = createLabel(
-            status_frame,
-            "● Server ready",
-            14,
-            "#55dd55",
-        )
-        self.subLabel.pack(side="left", padx=6)
-
-
-        self.vscodeLabel = createLabel(
-            status_frame,
-            "● VS Code connected",
-            14,
-            "#55dd55",
-        )
-        self.vscodeLabel.pack(side="left", padx=6)
-
-
-        self.arduinoLabel = createLabel(
-            status_frame,
-            "● Keyboard connected",
-            14,
-            "#ff3333",
-        )
-        self.arduinoLabel.pack(side="left", padx=6)
-
         # =========================
         # MAIN CONTENT
         # =========================
@@ -283,7 +240,7 @@ class ZeroVisionAssistant(tk.Tk):
         # Main heading
         heading = createLabel(
             content,
-            "How can I help you today?",
+            "Welcome to Zero Vision Coding.",
             30,
             "white"
         )
@@ -292,7 +249,7 @@ class ZeroVisionAssistant(tk.Tk):
         description = createLabel(
             content,
             "Use your voice to navigate, code, and get AI assistance.",
-            13,
+            14,
             "white"
         )
         description.pack(anchor="w", pady=(0, 20))
@@ -304,26 +261,36 @@ class ZeroVisionAssistant(tk.Tk):
         listening_frame = tk.Frame(
             content,
             bg="#111111",
-            highlightbackground="#22aa44",
-            highlightthickness=2
+            highlightbackground="#ffffff",
+            highlightthickness=1
         )
         listening_frame.pack(fill="x", pady=10)
 
-        self.listeningLabel = createLabel(
+        self.subLabel = createLabel(
             listening_frame,
-            "LISTENING...",
-            18,
-            "#44dd55"
+            "● Server",
+            16,
+            "#55dd55",
         )
-        self.listeningLabel.pack(anchor="w", padx=20, pady=(15, 5))
+        self.subLabel.pack(anchor="w", padx=8, pady=4)
 
-        self.feedbackLabel = createLabel(
+
+        self.vscodeLabel = createLabel(
             listening_frame,
-            "Try saying a command",
-            14,
-            "white"
+            "● VS Code",
+            16,
+            "#55dd55",
         )
-        self.feedbackLabel.pack(anchor="w", padx=20, pady=(0, 15))
+        self.vscodeLabel.pack(anchor="w", padx=8, pady=4)
+
+
+        self.arduinoLabel = createLabel(
+            listening_frame,
+            "● Braille Keyboard",
+            16,
+            "#ff3333",
+        )
+        self.arduinoLabel.pack(anchor="w", padx=8, pady=4)
 
         # STATE
         self._closing = False
@@ -517,7 +484,7 @@ class ZeroVisionAssistant(tk.Tk):
         if self.client.ping():
             self.subLabel.config(text="● Server", fg="lightgreen")
         else:
-            self.subLabel.config(text="● Connecting...", fg="white")
+            self.subLabel.config(text="● Server", fg="white")
             self.after(300, self.poll_server_until_ready)
 
     def poll_extension_until_ready(self) -> None:
@@ -530,7 +497,7 @@ class ZeroVisionAssistant(tk.Tk):
             if not self._startup_connection_announced:
                 self._startup_connection_announced = True
                 sfx.play_ding()
-                self.after(140, lambda: self.interrupt_and_speak("Welcome to Zero Vision Coding! You're now connected."))
+                self.after(140, lambda: self.interrupt_and_speak("VS Code connected"))
         else:
             self.vscodeLabel.config(text="● VS Code", fg="red")
 
@@ -579,9 +546,11 @@ class ZeroVisionAssistant(tk.Tk):
             return
 
         if self._arduino_connected:
-            self.arduinoLabel.config(text=f"● Keyboard", fg="lightgreen")
+            self.arduinoLabel.config(text=f"● Braille Keyboard", fg="lightgreen")
+            sfx.play_ding()
+            self.after(140, lambda: self.interrupt_and_speak("Braille keyboard connected"))
         else:
-            self.arduinoLabel.config(text="● Keyboard", fg="red")
+            self.arduinoLabel.config(text="● Braille Keyboard", fg="red")
 
         self.after(1000, self.poll_arduino_connection)
 

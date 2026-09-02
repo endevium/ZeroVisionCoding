@@ -17,7 +17,7 @@ def launch_extension_development_host() -> None:
         print(f"Could not open VS Code: {exc}")
 
 def main() -> None:
-    launch_extension_development_host()
+    #launch_extension_development_host()
     from zv.app import ZeroVisionAssistant
     app = ZeroVisionAssistant()
 

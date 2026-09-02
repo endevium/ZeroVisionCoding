@@ -1,16 +1,263 @@
 ---
-import { Image } from 'astro:assets';
+import { Image } from "astro:assets";
 ---
 
-<div class="fixed top-5 left-1/2 z-50 flex w-350 -translate-x-1/2 items-center pt-2.5 pb-2.5 pl-15 pr-20 rounded-2xl border border-darkgray bg-[#0a0a0f]">
-    <div>
-        <Image src="/zv_logo.png" alt="Zero Vision Coding Logo" width="157" height="64"/>
-    </div>
+<div
+  class="fixed top-5 left-1/2 z-50 flex w-350 -translate-x-1/2 items-center pt-2.5 pb-2.5 pl-10 pr-20 rounded border [body[data-theme='night']_&]:border-darkgray bg-[#ffffff] [body[data-theme='night']_&]:bg-[#0a0a0f]"
+>
+  <div>
+    <Image
+    src="/zv_logo.png"
+    alt="Zero Vision Coding Logo"
+    width="157"
+    height="64"
+    class="hidden [html[data-theme='night']_&]:block"
+    />
 
-    <div class="flex flex-1 flex-row gap-11 items-center justify-end">
-        <a href="/#home" class="flex items-center justify-center transition-all duration-300 ease-in-out text-white hover:scale-115 hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:bg-clip-text hover:text-transparent font-inter text-[16px] hover:font-bold h-15 cursor-pointer">Home</a>
-        <a href="/#about" class="flex items-center justify-center text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:bg-clip-text hover:text-transparent hover:font-bold">About Us</a>
-        <a href="/#contact" class="flex items-center justify-center text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:bg-clip-text hover:text-transparent hover:font-bold">Contact</a>
-        <a href="/downloads" class="flex transition-all duration-300 ease-in-out hover:scale-115 bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white font-inter font-bold text-[14px] h-12 w-38 items-center justify-center rounded-lg cursor-pointer">Download</a>
+    <Image
+      src="/zv-logo-black.png"
+      alt="Zero Vision Coding Logo"
+      width="157"
+      height="64"
+      class="block [html[data-theme='night']_&]:hidden"
+    />
+  </div>
+
+  <div class="flex flex-1 flex-row gap-10 items-center justify-center">
+    <a
+      href="/#home"
+      class="flex items-center justify-center transition-all duration-300 ease-in-out text-purple [body[data-theme='night']_&]:text-white hover:scale-115 hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:bg-clip-text hover:text-transparent font-inter text-[16px] hover:font-bold h-15 cursor-pointer"
+      >Home</a
+    >
+    <a
+      href="/#about"
+      class="flex items-center justify-center text-purple [body[data-theme='night']_&]:text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:bg-clip-text hover:text-transparent hover:font-bold"
+      >About Us</a
+    >
+    <a
+      href="/#contact"
+      class="flex items-center justify-center text-purple [body[data-theme='night']_&]:text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:bg-clip-text hover:text-transparent hover:font-bold"
+      >Contact</a
+    >
+    <a
+      href="/downloads"
+      class="flex transition-all duration-300 ease-in-out hover:scale-115 bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white font-inter font-bold text-[14px] h-12 w-38 items-center justify-center rounded-lg cursor-pointer"
+      >Download</a
+    >
+  </div>
+
+  <div>
+    <div
+      id="theme-toggle"
+      class="relative flex items-center p-1 h-12 w-25 overflow-hidden bg-linear-to-r from-[#EBA9FF] to-[#C7C7C7] rounded-full cursor-pointer"
+    >
+      <div
+        id="notch"
+        class="h-9 w-9 rounded-full bg-linear-to-r from-[#FFF500] to-[#FFC700]"
+      >
+      </div>
+
+      <div id="elements" class="absolute inset-0 pointer-events-none">
+        <div id="clouds">
+          <svg class="absolute w-6 h-8 left-13 top-0" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+            <circle cx="90" cy="45" r="40" fill="white"></circle>
+            <circle cx="130" cy="55" r="30" fill="white"></circle>
+            <rect x="45" y="55" width="100" height="30" fill="white"></rect>
+          </svg>
+
+          <!-- Cloud 2 -->
+          <svg class="absolute w-6 h-8 left-11 top-5" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+            <circle cx="90" cy="45" r="40" fill="white"></circle>
+            <circle cx="130" cy="55" r="30" fill="white"></circle>
+            <rect x="45" y="55" width="100" height="30" fill="white"></rect>
+          </svg>
+
+          <!-- Cloud 3 -->
+          <svg class="absolute w-6 h-8 left-18 top-3" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+            <circle cx="90" cy="45" r="40" fill="white"></circle>
+            <circle cx="130" cy="55" r="30" fill="white"></circle>
+            <rect x="45" y="55" width="100" height="30" fill="white"></rect>
+          </svg>
+        </div>
+
+        <div id="stars" hidden>
+          <svg class="absolute w-3 h-4 left-14 -top-1" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+          </svg>
+
+          <svg class="absolute w-3 h-4 left-17 top-1" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+          </svg>
+
+          <svg class="absolute w-3 h-4 left-20 top-3" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+          </svg>
+
+          <svg class="absolute w-3 h-4 left-20 -top-1" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+          </svg>
+
+          <svg class="absolute w-3 h-4 left-20 top-7" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+          </svg>
+
+          <svg class="absolute w-3 h-4 left-17 top-8" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+          </svg>
+
+          <svg class="absolute w-3 h-4 left-12 top-3" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+          </svg>
+
+          <svg class="absolute w-3 h-4 left-15 top-5" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+          </svg>
+
+          <svg class="absolute w-3 h-4 left-12 top-7" viewBox="0 0 200 100">
+            <circle cx="50" cy="60" r="30" fill="white"></circle>
+          </svg>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
+
+<script>
+    import gsap from "gsap";
+    type Theme = "day" | "night";
+
+    const themeToggle = document.getElementById("theme-toggle");
+    const notch = document.getElementById("notch");
+    const elements = document.getElementById("elements");
+    const clouds = document.getElementById("clouds");
+    const stars = document.getElementById("stars");
+
+    function switchTheme(newTheme: Theme) {
+        document.documentElement.dataset.theme = newTheme
+        document.body.dataset.theme = newTheme
+
+        const t0 = gsap.timeline();
+
+        if (newTheme === "night") {
+            t0.to(notch, {
+                x: 55,
+                opacity: 1,
+                duration: 0.25,
+                ease: "power2.in",
+            })
+            .to(elements, {
+                x: -38,
+                opacity: 1,
+                duration: 0.2,
+                ease: "power2.in",  
+            }, "-=0.2");
+
+            gsap.to(themeToggle, {
+                "--toggle-start": "#BC3CD8",
+                "--toggle-end": "#BC3CD8",
+                duration: 0.4,
+                ease: "power2.out"
+            });
+
+            gsap.to(notch, {
+                "--body-start": "#E5E0CF",
+                "--body-end": "#E5E0CF",
+                "--patch": "rgba(170, 165, 145, 0.20)",
+                duration: 0.45,
+                ease: "power2.inOut"
+            });
+            
+            clouds?.setAttribute("hidden", "");
+            stars?.removeAttribute("hidden");
+
+            themeToggle?.classList.remove("from-[#EBA9FF]", "to-[#C7C7C7]");
+            themeToggle?.classList.add("from-[#BC3CD8]", "to-[#BC3CD8]");
+            notch?.classList.remove("from-[#FFF500]", "to-[#FFC700]");
+            notch?.classList.add("bg-[radial-gradient(circle_at_30%_28%,rgba(180,175,155,0.35)_0%,rgba(180,175,155,0.35)_13%,transparent_14%),radial-gradient(circle_at_70%_65%,rgba(180,175,155,0.3)_0%,rgba(180,175,155,0.3)_18%,transparent_19%),radial-gradient(circle_at_25%_72%,rgba(180,175,155,0.25)_0%,rgba(180,175,155,0.25)_9%,transparent_10%),radial-gradient(circle_at_65%_25%,rgba(180,175,155,0.22)_0%,rgba(180,175,155,0.22)_7%,transparent_8%),linear-gradient(to_right,#E5E0CF,#E5E0CF)]");
+        } else if (newTheme === "day") {
+            t0.to(notch, {
+                x: 0,
+                opacity: 1,
+                duration: 0.25,
+                ease: "power2.in",
+            })
+            .to(elements, {
+                x: 0,
+                opacity: 1,
+                duration: 0.2,
+                ease: "power2.in",
+            }, "-=0.2");
+
+            gsap.to(themeToggle, {
+                "--toggle-start": "#EBA9FF",
+                "--toggle-end": "#C7C7C7",
+                duration: 0.4,
+                ease: "power2.out"
+            });
+
+            gsap.to(notch, {
+                "--body-start": "#FFF500",
+                "--body-end": "#FFC700",
+                "--patch": "rgba(180, 160, 70, 0)",
+                duration: 0.45,
+                ease: "power2.inOut"
+            });
+
+            stars?.setAttribute("hidden","");
+            clouds?.removeAttribute("hidden");
+
+            themeToggle?.classList.remove("from-[#BC3CD8]", "to-[#BC3CD8]");
+            themeToggle?.classList.add("from-[#EBA9FF]", "to-[#C7C7C7]");
+            notch?.classList.remove("bg-[radial-gradient(circle_at_30%_28%,rgba(180,175,155,0.35)_0%,rgba(180,175,155,0.35)_13%,transparent_14%),radial-gradient(circle_at_70%_65%,rgba(180,175,155,0.3)_0%,rgba(180,175,155,0.3)_18%,transparent_19%),radial-gradient(circle_at_25%_72%,rgba(180,175,155,0.25)_0%,rgba(180,175,155,0.25)_9%,transparent_10%),radial-gradient(circle_at_65%_25%,rgba(180,175,155,0.22)_0%,rgba(180,175,155,0.22)_7%,transparent_8%),linear-gradient(to_right,#E5E0CF,#E5E0CF)]");
+            notch?.classList.add("from-[#FFF500]", "to-[#FFC700]");
+        }
+    }
+
+    themeToggle?.addEventListener("click", () => {
+      const theme = document.documentElement.dataset.theme;
+      document.body.dataset.theme = theme;
+
+      switchTheme(theme === "night" ? "day" : "night");
+    });
+</script>
+
+<style>
+    #theme-toggle {
+        --toggle-start: #EBA9FF;
+        --toggle-end: #C7C7C7;
+
+        background: linear-gradient(
+            to left,
+            var(--toggle-start),
+            var(--toggle-end)
+        );
+    }
+
+    #notch {
+        --body-start: #FFF500;
+        --body-end: #FFC700;
+        --patch: rgba(180, 160, 70, 0);
+        
+        background:
+            radial-gradient(
+                circle at 30% 28%,
+                var(--patch) 0%,
+                var(--patch) 13%,
+                transparent 14%
+            ),
+            radial-gradient(
+                circle at 70% 65%,
+                var(--patch) 0%,
+                var(--patch) 18%,
+                transparent 19%
+            ),
+            linear-gradient(
+                to right,
+                var(--body-start),
+                var(--body-end)
+            );
+    }
+</style>

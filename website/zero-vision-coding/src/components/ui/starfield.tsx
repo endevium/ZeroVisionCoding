@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 
 export interface StarfieldBackgroundProps {
@@ -27,11 +27,30 @@ export function StarfieldBackground({
   children,
   count = 450,
   speed = 2,
-  starColor = "#ffffff",
+  starColor = "#AA14F0",
   twinkle = false,
 }: StarfieldBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [theme, setTheme] = useState<string>("day")
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return
+
+    setTheme(document.body.dataset.theme || "day")
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "attributes" && mutation.attributeName === "data-theme") {
+          setTheme(document.body.dataset.theme || "day")
+        }
+      })
+    })
+
+    observer.observe(document.body, { attributes: true, attributeFilter: ["data-theme"] })
+
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -77,12 +96,16 @@ export function StarfieldBackground({
     const ro = new ResizeObserver(handleResize)
     ro.observe(container)
 
+    const isLight = theme === "day"
+    const fadeColor = isLight ? "rgba(255, 255, 255, 0.2)" : "rgba(10, 10, 15, 0.2)"
+    const clearColor = isLight ? "#C7C7C7" : "#0a0a0f"
+
     // Animation
     const animate = () => {
       tick++
 
       // Fade effect for trails
-      ctx.fillStyle = "rgba(10, 10, 15, 0.2)"
+      ctx.fillStyle = fadeColor
       ctx.fillRect(0, 0, width, height)
 
       const cx = width / 2
@@ -144,7 +167,7 @@ export function StarfieldBackground({
     }
 
     // Initial clear
-    ctx.fillStyle = "#0a0a0f"
+    ctx.fillStyle = clearColor
     ctx.fillRect(0, 0, width, height)
 
     animationId = requestAnimationFrame(animate)
@@ -153,10 +176,12 @@ export function StarfieldBackground({
       cancelAnimationFrame(animationId)
       ro.disconnect()
     }
-  }, [count, speed, starColor, twinkle])
+  }, [count, speed, starColor, twinkle, theme])
+
+  const isLight = theme === "day"
 
   return (
-    <div ref={containerRef} className={cn("absolute inset-0 overflow-hidden bg-[#0a0a0f]", className)}>
+    <div ref={containerRef} className={cn("absolute inset-0 overflow-hidden", className)}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {/* Subtle blue nebula glow */}
@@ -172,8 +197,9 @@ export function StarfieldBackground({
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background:
-            "radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(5,5,10,0.9) 100%)",
+          background: isLight
+            ? "radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(255,255,255,0.9) 100%)"
+            : "radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(5,5,10,0.9) 100%)",
         }}
       />
 

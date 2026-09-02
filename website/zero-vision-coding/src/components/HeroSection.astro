@@ -10,12 +10,12 @@ import { StarfieldBackground } from "./ui/starfield";
     </div>
     
     <div id="title" class="flex flex-1 flex-col justify-center items-center gap-7 mt-30 z-10 -mb-20 pb-0">
-        <h2 id="hero-title" class="font-orbitron text-white font-black text-[75px] tracking-widest text-center leading-tight">
+        <h2 id="hero-title" class="font-orbitron text-purple [body[data-theme='night']_&]:text-white font-black text-[75px] tracking-widest text-center leading-tight">
             Code Without <br />
-            <span class="bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent">Boundaries</span>
+            <span class="text-purple [body[data-theme='night']_&]:bg-gradient-to-r [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] [body[data-theme='night']_&]:bg-clip-text [body[data-theme='night']_&]:text-transparent">Boundaries</span>
         </h2>
 
-        <p id="hero-description" class="text-white font-inter font-thin text-[21px] text-center">
+        <p id="hero-description" class="text-purple [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin  text-[21px] text-center">
             Zero Vision Coding is an AI-powered programming platform <br/> 
             designed to make coding accessible through voice, Braille, <br/>
             and intelligent assistance.
@@ -23,8 +23,8 @@ import { StarfieldBackground } from "./ui/starfield";
 
         <div class="flex flex-row gap-7 mt-4">
             <button id="download-btn" class="flex bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:scale-115 text-white font-inter font-bold text-[16px] h-14 w-45 items-center justify-center rounded-md cursor-pointer">Download</button>
-            <div id="learn-more" class="rounded-lg bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px] hover:scale-115">
-                <button class="flex h-14 w-45 items-center justify-center rounded-md bg-black text-[16px] font-inter font-bold text-white cursor-pointer transition-all duration-300 ease-in-out hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] transition-colors">
+            <div id="learn-more" class="rounded-lg p-[1px] hover:scale-115">
+                <button class="flex h-14 w-45 items-center justify-center rounded-md bg-transparent text-[16px] font-inter font-bold text-purple [body[data-theme='night']_&]:text-white cursor-pointer transition-all duration-300 ease-in-out [body[data-theme='night']_&]:hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] transition-colors">
                     Learn More
                 </button>
             </div>
@@ -61,19 +61,21 @@ import { StarfieldBackground } from "./ui/starfield";
             const chars = span.querySelectorAll(".char");
             chars.forEach(char => {
                 char.classList.add(
-                    "bg-gradient-to-r",
-                    "from-[#C824EC]",
-                    "to-[#DF308D]",
-                    "bg-clip-text",
-                    "text-transparent"
+                    "text-purple",
+                    "[body[data-theme='night']_&]:bg-gradient-to-r",
+                    "[body[data-theme='night']_&]:from-[#C824EC]",
+                    "[body[data-theme='night']_&]:to-[#DF308D]",
+                    "[body[data-theme='night']_&]:bg-clip-text",
+                    "[body[data-theme='night']_&]:text-transparent"
                 );
             });
             span.classList.remove(
-                "bg-gradient-to-r",
-                "from-[#C824EC]",
-                "to-[#DF308D]",
-                "bg-clip-text",
-                "text-transparent"
+                "text-purple",
+                "[body[data-theme='night']_&]:bg-gradient-to-r",
+                "[body[data-theme='night']_&]:from-[#C824EC]",
+                "[body[data-theme='night']_&]:to-[#DF308D]",
+                "[body[data-theme='night']_&]:bg-clip-text",
+                "[body[data-theme='night']_&]:text-transparent"
             );
         }
 
