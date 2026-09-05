@@ -2,13 +2,22 @@ from __future__ import annotations
 
 import os
 import threading
+import time
+import audioop
 from typing import Callable, Optional
 
 
 class SpeechEngine:
-    def __init__(self, on_text: Callable[[str], None]) -> None:
+    def __init__(
+        self,
+        on_text: Callable[[str], None],
+        on_error: Optional[Callable[[str], None]] = None,
+    ) -> None:
         self._on_text = on_text
+        self._on_error = on_error
         self._stopper = None
+        self._stop_event: Optional[threading.Event] = None
+        self._pause_event = threading.Event()
         self._lock = threading.Lock()
         self._sr = None
         self._debug = os.getenv("ZV_DEBUG_SPEECH", "0").strip().lower() in ("1", "true", "yes", "on")
@@ -20,6 +29,7 @@ class SpeechEngine:
     def start_background(self) -> bool:
         if self.is_running:
             return True
+        self._pause_event.clear()
 
         if self._sr is None:
             try:
@@ -66,42 +76,107 @@ class SpeechEngine:
         except Exception as e:
             if self._debug:
                 print(f"[speech] adjust_for_ambient_noise failed: {e!r}", flush=True)
+            return False
 
-        def _callback(_recognizer, audio):
-            if self._lock.locked():
-                return
+        stop_event = threading.Event()
+        self._stop_event = stop_event
 
-            def _worker():
-                with self._lock:
-                    try:
-                        if self._debug:
-                            print("[speech] recognizing...", flush=True)
-                        text = recognizer.recognize_google(audio)
-                        if self._debug:
-                            print(f"[speech] recognized: {text!r}", flush=True)
-                    except Exception as e:
-                        if self._debug:
-                            print(f"[speech] recognize_google failed: {e!r}", flush=True)
-                        return
-                self._on_text(text)
+        def _listen_loop() -> None:
+            last_no_voice = 0.0
+            try:
+                with mic as source:
+                    while not stop_event.is_set():
+                        if self._pause_event.is_set():
+                            time.sleep(0.1)
+                            continue
+                        try:
+                            audio = recognizer.listen(source, timeout=6, phrase_time_limit=6)
+                        except sr.WaitTimeoutError:
+                            now = time.monotonic()
+                            if now - last_no_voice >= 15:
+                                self._report_error("no_voice")
+                                last_no_voice = now
+                            continue
 
-            threading.Thread(target=_worker, daemon=True).start()
+                        if self._lock.locked():
+                            continue
+                        with self._lock:
+                            try:
+                                raw_audio = audio.get_raw_data()
+                                rms = audioop.rms(raw_audio, audio.sample_width) if raw_audio else 0
+                                duration = len(raw_audio) / max(1, audio.sample_rate * audio.sample_width)
+                                if rms == 0:
+                                    self._report_error("no_voice")
+                                    continue
+                                if rms <= max(120, recognizer.energy_threshold * 1.2):
+                                    self._report_error("too_quiet")
+                                    continue
+                                if self._debug:
+                                    print("[speech] recognizing...", flush=True)
+                                started_at = time.monotonic()
+                                text = recognizer.recognize_google(audio)
+                                if time.monotonic() - started_at > 10:
+                                    self._report_error("timeout")
+                                    continue
+                                if self._debug:
+                                    print(f"[speech] recognized: {text!r}", flush=True)
+                                if duration >= 5.8:
+                                    self._report_error("partial")
+                                    continue
+                            except sr.UnknownValueError:
+                                if rms > recognizer.energy_threshold * 8:
+                                    self._report_error("background_noise")
+                                else:
+                                    self._report_error("unclear")
+                                continue
+                            except sr.RequestError:
+                                self._report_error("processing")
+                                continue
+                            except Exception as e:
+                                if self._debug:
+                                    print(f"[speech] recognize_google failed: {e!r}", flush=True)
+                                self._report_error("processing")
+                                continue
+                        self._on_text(text)
+            except Exception as e:
+                if stop_event.is_set():
+                    return
+                if self._debug:
+                    print(f"[speech] microphone became unavailable: {e!r}", flush=True)
+                self._report_error("microphone")
+            finally:
+                if self._stop_event is stop_event:
+                    self._stopper = None
+                    self._stop_event = None
 
         try:
-            self._stopper = recognizer.listen_in_background(mic, _callback, phrase_time_limit=6)
+            self._stopper = stop_event.set
+            threading.Thread(target=_listen_loop, daemon=True).start()
             if self._debug:
-                print("[speech] listen_in_background started", flush=True)
+                print("[speech] listening loop started", flush=True)
             return True
         except Exception as e:
             self._stopper = None
+            self._stop_event = None
             if self._debug:
                 print(f"[speech] listen_in_background failed: {e!r}", flush=True)
             return False
 
+    def _report_error(self, error_type: str) -> None:
+        if self._on_error is not None:
+            self._on_error(error_type)
+
+    def set_paused(self, paused: bool) -> None:
+        self._pause_event.set() if paused else self._pause_event.clear()
+
     def stop_background(self) -> None:
-        if self._stopper:
+        self._pause_event.clear()
+        if self._stop_event is not None:
+            self._stop_event.set()
+        elif self._stopper:
             try:
-                self._stopper(wait_for_stop=False)
+                self._stopper()
             except Exception:
                 pass
         self._stopper = None
+        self._stop_event = None

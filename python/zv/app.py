@@ -328,6 +328,7 @@ class ZeroVisionAssistant(tk.Tk):
         self._speech_fast_mode = False
         self._last_heard_text = ""
         self._last_heard_time = 0.0
+        self._last_speech_feedback_time = 0.0
         self._available_voices: list[str] = []
         self._current_voice_index: int = 0
         self._terminal_reader_running = False
@@ -364,7 +365,10 @@ class ZeroVisionAssistant(tk.Tk):
             voice_getter=self._current_voice,
             fast_mode_getter=lambda: self._speech_fast_mode,
         )
-        self.speech = SpeechEngine(on_text=self._on_speech_text)
+        self.speech = SpeechEngine(
+            on_text=self._on_speech_text,
+            on_error=self._on_speech_error,
+        )
         self._register_voice_hotkey()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -466,7 +470,7 @@ class ZeroVisionAssistant(tk.Tk):
                 state=tk.NORMAL,
             )
             self.subLabel.config(text="● Microphone unavailable", fg="#ff3333")
-            self.interrupt_and_speak("Voice recognition could not be enabled.")
+            self._on_speech_error("microphone")
 
     def _register_voice_hotkey(self) -> None:
         """Register the global chord and suppress it in the focused app."""
@@ -527,6 +531,41 @@ class ZeroVisionAssistant(tk.Tk):
         self.after(300, self.poll_editor_text)
 
     # SPEECH HANDLER
+    def _on_speech_error(self, error_type: str) -> None:
+        messages = {
+            "no_voice": "I didn't hear anything. Please try again.",
+            "too_quiet": "Your voice is too quiet. Please speak louder.",
+            "unclear": "I couldn't understand that. Please speak clearly and try again.",
+            "background_noise": "There is too much background noise. Please try again.",
+            "partial": "I only heard part of that. Please repeat your command.",
+            "unrecognized": "I heard you, but I don't recognize that command.",
+            "invalid_format": "I don't understand that command format. Please try again.",
+            "microphone": "I can't access the microphone. Please check your microphone.",
+            "processing": "I couldn't process your speech. Please try again.",
+            "timeout": "I'm still processing your request. Please wait a moment.",
+        }
+        message = messages.get(error_type)
+        if not message or self._closing:
+            return
+
+        now = time.monotonic()
+        if now - self._last_speech_feedback_time < 8.0:
+            return
+        self._last_speech_feedback_time = now
+
+        def _deliver_feedback() -> None:
+            if error_type == "microphone" and self._speech_enabled:
+                self._speech_enabled = False
+                self.voice_button.config(
+                    text="Enable Voice Recognition (Space + Enter)",
+                    bg="#2266aa",
+                    state=tk.NORMAL,
+                )
+                self.subLabel.config(text="● Microphone unavailable", fg="#ff3333")
+            self.interrupt_and_speak(message)
+
+        self.after(0, _deliver_feedback)
+
     def _on_speech_text(self, text: str) -> None:
         if self._closing:
             return
@@ -535,6 +574,7 @@ class ZeroVisionAssistant(tk.Tk):
         if not text:
             return
 
+        self._last_speech_feedback_time = 0.0
         now = time.time()
         if text == self._last_heard_text and (now - self._last_heard_time) < 1.2:
             return

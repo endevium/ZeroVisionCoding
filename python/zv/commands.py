@@ -7,6 +7,7 @@ import threading
 from typing import TYPE_CHECKING
 
 from .utils import extract_after_phrase, normalize_spoken_filename, extract_python_symbol_block, extract_snippet_around
+from . import sfx
 
 if TYPE_CHECKING:
     from .app import ZeroVisionAssistant
@@ -463,7 +464,9 @@ def _handle_save(app: "ZeroVisionAssistant") -> None:
 
 
 def _handle_analyze(app: "ZeroVisionAssistant") -> None:
-    app.interrupt_and_speak("Analyzing code, please wait.")
+    app.speech.set_paused(True)
+    sfx.play_pop()
+    app.interrupt_and_speak("Analyzing your code.")
 
     try:
         ed = app.client.editor()
@@ -482,18 +485,31 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
     else:
         code = editor_text
 
+    reminder_after_id = app.after(
+        15000,
+        lambda: app.interrupt_and_speak("Code analysis is still in progress."),
+    )
+
     def _do() -> None:
-        data = app.client.analyze_code(code, language=lang)
-        narration = str(data.get("narration") or "").strip()
-        steps = data.get("steps") or []
+        try:
+            data = app.client.analyze_code(code, language=lang)
+            narration = str(data.get("narration") or "").strip()
+            steps = data.get("steps") or []
+            result_text = (
+                narration
+                if narration
+                else str(steps[0])
+                if isinstance(steps, list) and steps
+                else "I could not analyze the code."
+            )
+        except Exception:
+            result_text = "I couldn't complete the code analysis. Please try again."
 
         def _deliver() -> None:
-            if narration:
-                app.interrupt_and_speak(narration)
-            elif isinstance(steps, list) and steps:
-                app.interrupt_and_speak(str(steps[0]))
-            else:
-                app.interrupt_and_speak("I could not analyze the code.")
+            app.after_cancel(reminder_after_id)
+            app.speech.set_paused(False)
+            sfx.play_ding()
+            app.interrupt_and_speak(result_text)
 
         app.after(0, _deliver)
 
@@ -527,6 +543,7 @@ def _handle_code_review(app: "ZeroVisionAssistant") -> None:
         app.interrupt_and_speak("There is no code in the terminal.")
         return
 
+    app.speech.set_paused(True)
     app.interrupt_and_speak("Generating code review, please wait.")
 
     MAX_CHARS = 12000
@@ -538,12 +555,17 @@ def _handle_code_review(app: "ZeroVisionAssistant") -> None:
         code = editor_text
 
     def _do() -> None:
-        data = app.client.review_code(code, language=lang)
-
-        narration = str(data.get("narration") or "").strip()
-        overall_summary = str(data.get("overall_summary") or "").strip()
-        final_assessment = str(data.get("final_assessment") or "").strip()
-        issues = data.get("issues") or []
+        try:
+            data = app.client.review_code(code, language=lang)
+            narration = str(data.get("narration") or "").strip()
+            overall_summary = str(data.get("overall_summary") or "").strip()
+            final_assessment = str(data.get("final_assessment") or "").strip()
+            issues = data.get("issues") or []
+        except Exception:
+            narration = ""
+            overall_summary = ""
+            final_assessment = "I couldn't complete the code review. Please try again."
+            issues = []
 
         # Also run the same fast, reliable syntax/type check used by
         # "find errors", so a review can catch and offer to fix a real
@@ -551,6 +573,8 @@ def _handle_code_review(app: "ZeroVisionAssistant") -> None:
         found_error = app.detect_code_error(editor_text, lang, editor_path)
 
         def _deliver() -> None:
+            app.speech.set_paused(False)
+            sfx.play_ding()
             if narration:
                 app.interrupt_and_speak(narration)
             elif overall_summary:
