@@ -1,0 +1,64 @@
+---
+import "../styles/global.css";
+import { StarfieldBackground } from "@/components/ui/starfield";
+import { MeshGradientBackground } from "@/components/ui/mesh-gradient";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Zero Vision Coding</title>
+  </head>
+  <body>
+    <div class="hero-gradient__bg" aria-hidden="true"></div>
+    <main class="page-content">
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style>
+	html,
+	body {
+		margin: 0;
+		width: 100%;
+		overflow-x: hidden;
+	}
+
+	body[data-theme="day"] {
+		background-color: #ffffff;
+		background-image: url("/day-background.png");
+		background-size: contain;
+		background-repeat: no-repeat;
+	}
+
+	body[data-theme="night"] {
+		background-color: #05030a;
+	}
+
+	.hero-gradient {
+		position: relative;
+		min-height: 1200vh;
+		
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow-x: hidden;
+		padding: var(--sp-12) var(--sp-6);
+	}
+	.hero-gradient__bg {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(105deg,
+		rgba(255, 138, 247, 0.02) 0%,
+		transparent 10%,
+		transparent 10%,
+		rgba(255, 138, 247, 0.02) 100%);
+	}
+	
+</style>

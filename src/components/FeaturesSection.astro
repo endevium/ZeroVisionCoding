@@ -1,0 +1,136 @@
+---
+import DriftWall from "./DriftWall.jsx";
+
+const items = [
+  {
+    image: "https://picsum.photos/id/1015/600/400",
+    title: "Peaks",
+    href: "https://example.com/one",
+  },
+  {
+    image: "https://picsum.photos/id/1025/600/400",
+    title: "Pup",
+    href: "https://example.com/two",
+  },
+  {
+    image: "https://picsum.photos/id/1039/600/400",
+    title: "Falls",
+    href: "https://example.com/three",
+  },
+];
+---
+
+<div
+  id="stories-section" class="flex flex-col w-full pt-20 pl-20 pr-20 h-[100vh] justify-center items-center gap-7"
+>
+  <div id="stories-content" class="flex flex-col gap-4">
+    <h2 id="stories-title" class="text-purple [body[data-theme='night']_&]:text-white font-orbitron text-[35px] font-bold">
+      <span class="bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent">Their stories. </span> Our inspiration.
+    </h2>
+    <p id="stories-description" class="text-purple [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px] text-center">
+      Every feature of Zero Vision Coding begins with <br />
+      understanding the people we hope to empower.
+    </p>
+  </div>
+
+  <div id="drift-wall" class="flex flex-row justify-center items-center w-full h-full">
+    <DriftWall
+      client:load
+      items={items}
+      columns={5}
+      tileWidth={300}
+      tileHeight={332}
+      gap={18}
+      tilt={0}
+      turn={0}
+      perspective={2350}
+      depth={120}
+      speed={45}
+      direction="up"
+      variance={0.45}
+      parallax={0.6}
+      lift={64}
+      fade={0.1}
+      dim={0.95}
+      overlayColor="#060010"
+      radius={14}
+      roll={0}
+      pauseOnHover={false}
+      grayscale={false}
+    />
+  </div>
+</div>
+
+<script>
+  import gsap from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+  import { SplitText } from "gsap/SplitText";
+
+  gsap.registerPlugin(ScrollTrigger)
+  gsap.registerPlugin(SplitText);
+
+  document.addEventListener("DOMContentLoaded", () => {
+
+    const titleSplit = new SplitText("#stories-title", {
+      type: "words,chars",
+      charsClass: "char"
+    });
+
+    const descriptionSplit = new SplitText("#stories-description", {
+      type: "words"
+    });
+
+    const span = document.querySelector("#stories-title span");
+    if (span) {
+      const chars = span.querySelectorAll(".char");
+      chars.forEach(char => {
+          char.classList.add(
+              "bg-gradient-to-r",
+              "from-[#C824EC]",
+              "to-[#DF308D]",
+              "bg-clip-text",
+              "text-transparent"
+          );
+      });
+      span.classList.remove(
+          "bg-gradient-to-r",
+          "from-[#C824EC]",
+          "to-[#DF308D]",
+          "bg-clip-text",
+          "text-transparent"
+      );
+    }
+
+    const tl = gsap.timeline({
+        scrollTrigger: {
+            trigger: "#stories-section",
+            start: "top 90%",
+            end: "end 20%",
+            toggleActions: "play none none reverse"
+        }
+    });
+
+    tl.from(titleSplit.chars, {
+        y: 150,
+        opacity: 0,
+        duration: 0.5,
+        ease: "power4.out",
+        stagger: 0.04
+    })
+    // Description
+    .from(descriptionSplit.words, {
+        y: 20,
+        opacity: 0,
+        duration: 0.5,
+        ease: "power3.out",
+        stagger: 0.03
+    }, "-=0.4")
+    .from("#drift-wall", {
+        y: 80,
+        opacity: 0,
+        scale: 0.95,
+        duration: 1,
+        ease: "power3.out"
+    }, "-=0.1");
+  })
+</script>

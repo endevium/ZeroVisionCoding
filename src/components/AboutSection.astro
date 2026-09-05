@@ -1,0 +1,235 @@
+---
+import { Image } from "astro:assets";
+---
+
+<div class="flex flex-col h-[120vh] justify-center items-center gap-10" id="about">
+    <div class="flex flex-col gap-4 justify-center items-center ">
+        <h2 id="about-title" class="text-purple [body[data-theme='night']_&]:text-white font-orbitron text-[35px] font-bold">About <span class="bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent"> Our Team</span></h2>
+        <p id="about-description" class="text-purple [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px] text-center">
+            Meet the dedicated team behind Zero Vision Coding, working together to develop an accessible <br />
+            AI-enhanced Braille programming platform for blind and visually impaired learners.
+        </p>
+    </div>
+
+    <div id="team" class="flex items-center gap-5">
+        <button id="prevBtn" class="flex justify-center items-center w-12 h-12 text-white text-[40px] cursor-pointer hover:text-[#C824EC] transition-colors">
+            ←
+        </button>
+
+        <div id="team-carousel" class="h-150 w-300 flex overflow-x-auto gap-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div class="min-w-[400px] h-full relative group bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px] shrink-0">
+                <div class="w-full h-full bg-[#05030a] relative overflow-hidden flex flex-col items-center justify-center">
+                    <div class="w-full h-full flex items-center justify-center text-gray-500 font-inter">
+                        <Image
+                            src="/rash.png"
+                            alt="pogi"
+                            width="370"
+                            height="500"
+                            class="h-full object-cover"
+                        />
+                    </div>
+                    
+                    <div class="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <h3 class="text-white font-orbitron text-[20px] font-bold">John Rasheed Paner</h3>
+                        <p class="text-white font-inter font-thin text-[15px] mt-2">
+                            Project Manager, Lead Developer
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="min-w-[400px] h-full relative group bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px] shrink-0">
+                <div class="w-full h-full bg-[#05030a] relative overflow-hidden flex flex-col items-center justify-center">
+                    <div class="w-full h-full flex items-center justify-center text-gray-500 font-inter">
+                        <Image
+                            src="/gabriel.png"
+                            alt="hi"
+                            width="370"
+                            height="500"
+                            class="h-full object-cover"
+                        />
+                    </div>
+                    
+                    <div class="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <h3 class="text-white font-orbitron text-[20px] font-bold">Gabriel Jose Esperanza</h3>
+                        <p class="text-white font-inter font-thin text-[15px] mt-2">
+                            Assistant Developer
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="min-w-[400px] h-full relative group bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px] shrink-0">
+                <div class="w-full h-full bg-[#05030a] relative overflow-hidden flex flex-col items-center justify-center">
+                    <div class="w-full h-full flex items-center justify-center text-gray-500 font-inter">
+                        <Image
+                            src="/tiger.png"
+                            alt="hi"
+                            width="370"
+                            height="500"
+                            class="h-full object-cover"
+                        />
+                    </div>
+                    
+                    <div class="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <h3 class="text-white font-orbitron text-[20px] font-bold">Tiger Akalec Elegores</h3>
+                        <p class="text-white font-inter font-thin text-[15px] mt-2">
+                            Embedded Systems Developer
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="min-w-[400px] h-full relative group bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px] shrink-0">
+                <div class="w-full h-full bg-[#05030a] relative overflow-hidden flex flex-col items-center justify-center">
+                    <div class="w-full h-full flex items-center justify-center text-gray-500 font-inter">
+                        <Image
+                            src="/april.png"
+                            alt="hi"
+                            width="370"
+                            height="500"
+                            class="h-full object-cover"
+                        />
+                    </div>
+                    
+                    <div class="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <h3 class="text-white font-orbitron text-[20px] font-bold">April Joy Bravo</h3>
+                        <p class="text-white font-inter font-thin text-[15px] mt-2">
+                            Document Specialist
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="min-w-[400px] h-full relative group bg-gradient-to-r from-[#C824EC] to-[#DF308D] p-[1px] shrink-0">
+                <div class="w-full h-full bg-[#05030a] relative overflow-hidden flex flex-col items-center justify-center">
+                    <div class="w-full h-full flex items-center justify-center text-gray-500 font-inter">
+                        <Image
+                            src="/jc.png"
+                            alt="-"
+                            width="370"
+                            height="500"
+                            class="h-full object-cover"
+                        />
+                    </div>
+                    
+                    <div class="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <h3 class="text-white font-orbitron text-[20px] font-bold">John Cristopher Raguindin</h3>
+                        <p class="text-white font-inter font-thin text-[15px] mt-2">
+                            UI/UX Designer, Document Specialist
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button id="nextBtn" class="flex justify-center items-center w-12 h-12 text-white text-[40px] cursor-pointer hover:text-[#DF308D] transition-colors">
+            →
+        </button>
+    </div>
+</div>
+
+<script>
+    const container = document.getElementById('team-carousel');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    let isHovering = false;
+    let isScrolling = false;
+
+    const autoScroll = () => {
+        if (!isHovering && !isScrolling && container) {
+            if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 1) {
+                container.scrollLeft = 0;
+            } else {
+                container.scrollLeft += 1;
+            }
+        }
+        requestAnimationFrame(autoScroll);
+    };
+
+    if (container && prevBtn && nextBtn) {
+        requestAnimationFrame(autoScroll);
+
+        container.addEventListener('mouseenter', () => isHovering = true);
+        container.addEventListener('mouseleave', () => isHovering = false);
+
+        const handleBtnClick = (offset: number) => {
+            isScrolling = true;
+            container.scrollBy({ left: offset, behavior: 'smooth' });
+            setTimeout(() => { isScrolling = false; }, 100);
+        };
+
+        prevBtn.addEventListener('click', () => handleBtnClick(-374));
+        nextBtn.addEventListener('click', () => handleBtnClick(374));
+    }
+
+    // GSAP
+    import gsap from "gsap";
+    import { ScrollTrigger } from "gsap/ScrollTrigger";
+    import { SplitText } from "gsap/SplitText";
+
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.registerPlugin(SplitText);
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const titleSplit = new SplitText("#about-title", {
+            type: "words,chars",
+            charsClass: "char"
+        });
+
+        const descriptionSplit = new SplitText("#about-description", {
+            type: "words"
+        });
+
+        const span = document.querySelector("#about-title span")
+        if (span) {
+            const chars = span.querySelectorAll(".char");
+            chars.forEach(char => {
+                char.classList.add(
+                    "bg-gradient-to-r",
+                    "from-[#C824EC]",
+                    "to-[#DF308D]",
+                    "bg-clip-text",
+                    "text-transparent"
+                );
+            });
+            span.classList.remove(
+                "bg-gradient-to-r",
+                "from-[#C824EC]",
+                "to-[#DF308D]",
+                "bg-clip-text",
+                "text-transparent"
+            );
+        };
+
+        const t1 = gsap.timeline({
+            scrollTrigger: {
+                trigger: "#about-title",
+                start: "top 90%",
+                end: "end 20%",
+                toggleActions: "play none none reverse"
+            }
+        })
+
+        t1.from(titleSplit.chars, {
+            y: 150,
+            opacity: 0,
+            duration: 0.5,
+            ease: "power4.out",
+            stagger: 0.04
+        })
+        .from(descriptionSplit.words, {
+            y: 20,
+            opacity: 0,
+            duration: 0.5,
+            ease: "power3.out",
+            stagger: 0.03
+        }, "-=0.4")
+        .from("#team", {
+            y: 50,
+            opacity: 0,
+            duration: 0.5,
+            ease: "sine.out"
+        })
+    });
+</script>

@@ -1,0 +1,184 @@
+---
+import { Image } from "astro:assets";
+import { StarfieldBackground } from "./ui/starfield.tsx";
+import Latest from "./releases/Latest.astro";
+import AppLatest from "./releases/application/AppLatest.astro";
+import ExtensionLatest from "./releases/extension/ExtensionLatest.astro";
+import OneZeroZero from "./releases/versions/OneZeroZero.astro";
+---
+
+
+<div class="relative flex flex-col flex-1 h-[125vh] justify-center items-center pt-15 pr-20 pl-20 gap-5">
+    <div class="absolute inset-0 w-full h-full overflow-hidden">
+        <StarfieldBackground client:load />
+    </div>
+
+    <div class="flex flex-col gap-2 justify-center items-center z-1">
+        <h2 id="title" class="text-white text-[35px] font-orbitron font-black">
+            Releases
+        </h2>
+
+        <p id="description" class="text-white font-inter font-thin text-[17px] text-center">
+            Everything you need to download, set up, and introduce <br />
+            Zero Vision Coding to your learners.
+        </p>
+    </div>
+
+    <div id="releases" class="flex flex-row bg-[#0a0a0f] border-1 rounded-3xl border-darkgray w-full h-170 z-1">
+        <!-- Tabs aaaa -->
+        <div class="flex flex-col min-w-50 border-r border-r-darkgray h-full">
+            <div class="flex flex-col h-45 w-full border-b border-b-darkgray text-white">
+                <div class="flex flex-col min-h-12 p-4">
+                    <p class="font-orbitron pl-2 text-[15px]">CHANNELS</p>
+                </div>
+
+                <div class="flex flex-col">
+                    <button id="general-latest-btn" class="bg-[#571248] text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">All</button>
+                    <button id="app-latest-btn" class="text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">Zero Vision Coding</button>
+                    <button id="extension-latest-btn" class="text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">VS Code Extension</button>
+                </div>
+            </div>
+            <div class="flex flex-col h-105 w-full text-white">
+                <div class="flex flex-col min-h-12 p-4">
+                    <p class="font-orbitron pl-2 text-[15px]">VERSIONS</p>
+                </div>
+
+                <div class="flex flex-col">
+                    <button id="one-zero-zero-btn" class="text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">1.0.0</button>
+                </div>
+            </div>
+        </div>
+
+        <!--Versions aaaaaaa -->
+        <div class="flex flex-col w-full h-full">
+            <div id="general-latest">
+                <Latest />
+            </div>
+            
+            <div id="app-latest" hidden>
+                <AppLatest />
+            </div>
+
+            <div id="extension-latest" hidden>
+                <ExtensionLatest /> 
+            </div>
+
+            <div id="one-zero-zero" hidden>
+                <OneZeroZero />
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    import gsap from "gsap";
+    import { SplitText } from "gsap/SplitText";
+    gsap.registerPlugin(SplitText);
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const titleSplit = new SplitText("#title", {
+            type: "words,chars",
+            charsClass: "char"
+        })
+
+        const descriptionSplit = new SplitText("#description", {
+            type: "words"
+        })
+
+        const t0 = gsap.timeline();
+
+        t0.from(titleSplit.chars, {
+            y: 150,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power4.out",
+            stagger: 0.04
+        })
+        .from(descriptionSplit.words, {
+            y: 50,
+            opacity: 0,
+            duration: 1.5,
+            ease: "power3.out",
+            stagger: 0.04
+        }, "-=0.4")
+        .from("#releases", {
+            x: -50,
+            opacity: 0,
+            duration: 0.6,
+            ease: "power3.out"
+        }, "-=0.8")
+    })
+
+    // Functionality
+    type State = "general-latest" | "app-latest" | "extension-latest" |
+                "one-zero-zero";
+    let state: State;
+
+    const generalLatest = document.getElementById("general-latest");
+    const applicationLatest = document.getElementById("app-latest");
+    const extensionLatest = document.getElementById("extension-latest");
+    const oneZeroZero = document.getElementById("one-zero-zero");
+
+    const generalLatestBtn = document.getElementById("general-latest-btn");
+    const applicationLatestBtn = document.getElementById("app-latest-btn");
+    const extensionLatestBtn = document.getElementById("extension-latest-btn");
+    const oneZeroZeroBtn = document.getElementById("one-zero-zero-btn");
+
+    function setState(newState: State) {
+        state = newState;
+
+        generalLatest?.setAttribute("hidden", "");
+        applicationLatest?.setAttribute("hidden", "");
+        extensionLatest?.setAttribute("hidden", "");
+        oneZeroZero?.setAttribute("hidden", "");
+
+        generalLatestBtn?.classList.remove("bg-[#571248]");
+        applicationLatestBtn?.classList.remove("bg-[#571248]");
+        extensionLatestBtn?.classList.remove("bg-[#571248]");
+        oneZeroZeroBtn?.classList.remove("bg-[#571248]");
+
+        if (state === "general-latest") {
+            generalLatest?.removeAttribute("hidden");
+            generalLatestBtn?.classList.add("bg-[#571248]");
+        }
+
+        if (state === "app-latest") {
+            applicationLatest?.removeAttribute("hidden");
+            applicationLatestBtn?.classList.add("bg-[#571248]");
+        }
+
+        if (state === "extension-latest") {
+            extensionLatest?.removeAttribute("hidden");
+            extensionLatestBtn?.classList.add("bg-[#571248]");
+        }
+
+        if (state === "one-zero-zero") {
+            oneZeroZero?.removeAttribute("hidden");
+            oneZeroZeroBtn?.classList.add("bg-[#571248]");
+        }
+    }
+
+    generalLatestBtn?.addEventListener("click", () => {
+        if (state != "general-latest") {
+            setState("general-latest");
+        }
+    });
+
+    applicationLatestBtn?.addEventListener("click", () => {
+        if (state != "app-latest") {
+            setState("app-latest");
+        }
+    });
+
+    extensionLatestBtn?.addEventListener("click", () => {
+        if (state != "extension-latest") {
+            setState("extension-latest");
+        }
+    });
+
+    oneZeroZeroBtn?.addEventListener("click", () => {
+        if (state != "one-zero-zero") {
+            setState("one-zero-zero");
+        }
+    });
+</script>

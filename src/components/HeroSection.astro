@@ -1,0 +1,120 @@
+---
+import { Image } from "astro:assets";
+import { StarfieldBackground } from "./ui/starfield";
+---
+
+
+<div class="relative flex flex-col flex-1 pl-20 pr-20 h-[135vh] justify-center items-center mb-20 " id="home">
+    <div class="absolute inset-0 w-full h-full overflow-hidden hidden [body[data-theme='night']_&]:block">
+        <StarfieldBackground client:load />
+    </div>
+    
+    <div id="title" class="flex flex-1 flex-col justify-center items-center gap-7 mt-30 z-10 -mb-20 pb-0">
+        <h2 id="hero-title" class="font-orbitron text-purple [body[data-theme='night']_&]:text-white font-black text-[75px] tracking-widest text-center leading-tight">
+            Code Without <br />
+            <span class="text-purple [body[data-theme='night']_&]:bg-gradient-to-r [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] [body[data-theme='night']_&]:bg-clip-text [body[data-theme='night']_&]:text-transparent">Boundaries</span>
+        </h2>
+
+        <p id="hero-description" class="text-purple [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin  text-[21px] text-center">
+            Zero Vision Coding is an AI-powered programming platform <br/> 
+            designed to make coding accessible through voice, Braille, <br/>
+            and intelligent assistance.
+        </p>
+
+        <div class="flex flex-row gap-7 mt-4">
+            <button id="download-btn" class="flex bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:scale-115 text-white font-inter font-bold text-[16px] h-14 w-45 items-center justify-center rounded-md cursor-pointer">Download</button>
+            <div id="learn-more" class="rounded-lg p-[1px] hover:scale-115">
+                <button class="flex h-14 w-45 items-center justify-center rounded-md bg-transparent text-[16px] font-inter font-bold text-purple [body[data-theme='night']_&]:text-white cursor-pointer transition-all duration-300 ease-in-out [body[data-theme='night']_&]:hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] transition-colors">
+                    Learn More
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="relative flex flex-1 flex-col justify-center items-end gap-4">
+        <div id="braille-image" class="z-20">
+            <Image id="braille" src="/braille-5.png" alt="Braille Keyboard" width={702} height={227} />
+        </div>
+    </div>
+</div>
+
+<script>
+    import gsap from "gsap";
+    import { SplitText } from "gsap/SplitText";
+    gsap.registerPlugin(SplitText);
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const titleSplit = new SplitText("#hero-title", {
+            type: "words,chars",
+            charsClass: "char"
+        });
+
+        const descriptionSplit = new SplitText("#hero-description", {
+            type: "words"
+        });
+
+
+
+        // Gradient on title span
+        const span = document.querySelector("#hero-title span");
+        if (span) {
+            const chars = span.querySelectorAll(".char");
+            chars.forEach(char => {
+                char.classList.add(
+                    "text-purple",
+                    "[body[data-theme='night']_&]:bg-gradient-to-r",
+                    "[body[data-theme='night']_&]:from-[#C824EC]",
+                    "[body[data-theme='night']_&]:to-[#DF308D]",
+                    "[body[data-theme='night']_&]:bg-clip-text",
+                    "[body[data-theme='night']_&]:text-transparent"
+                );
+            });
+            span.classList.remove(
+                "text-purple",
+                "[body[data-theme='night']_&]:bg-gradient-to-r",
+                "[body[data-theme='night']_&]:from-[#C824EC]",
+                "[body[data-theme='night']_&]:to-[#DF308D]",
+                "[body[data-theme='night']_&]:bg-clip-text",
+                "[body[data-theme='night']_&]:text-transparent"
+            );
+        }
+
+        const tl = gsap.timeline();
+
+        // Title
+        tl.from(titleSplit.chars, {
+            y: 150,
+            opacity: 0,
+            duration: 0.9,
+            ease: "power4.out",
+            stagger: 0.04
+        })
+        // Description
+        .from(descriptionSplit.words, {
+            y: 20,
+            opacity: 0,
+            duration: 0.5,
+            ease: "power3.out",
+            stagger: 0.03
+        }, "-=0.9")
+        .from("#download-btn", {
+            y: 50,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power3.out"
+        }, "-=0.2")
+        .from("#learn-more", {
+            y: 50,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power3.out"
+        }, "-=0.6")
+        .from("#braille-image", {
+            y: 100,
+            opacity: 0,
+            duration: 0.7,
+            ease: "power3.out"
+        }, "-=0.5")
+    });
+    
+</script>
