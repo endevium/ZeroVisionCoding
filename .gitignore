@@ -13,6 +13,7 @@ __pycache__/
 htmlcov/
 dist/
 build/
+Output/
 
 # Virtual environments
 .venv/
@@ -71,3 +72,7 @@ models/*.gguf
 # Test cases
 tests/ai_test_cases/*/*.json
 zero-vision-coding\tests\ai_test_cases
+
+# Compilers
+ZeroVisionCoding.spec
+zvcsetup1.iss

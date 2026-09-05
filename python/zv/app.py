@@ -18,6 +18,16 @@ from . import sfx
 from .vscode_client import VSCodeClient
 from .error_parser import parse_python_traceback
 
+import sys
+from pathlib import Path
+
+def get_base_path():
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent
+
+BASE_PATH = get_base_path()
+
 # ── Voice to use across the whole app ──────────────────────────────────────
 DEFAULT_VOICE = "Guy"   # Change to "Ava" or "Jenny" if you prefer
 
@@ -274,7 +284,6 @@ class ZeroVisionAssistant(tk.Tk):
         )
         self.subLabel.pack(anchor="w", padx=8, pady=4)
 
-
         self.vscodeLabel = createLabel(
             listening_frame,
             "● VS Code",
@@ -390,12 +399,12 @@ class ZeroVisionAssistant(tk.Tk):
         try:
             import sys
             import os
+
             python_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
             if python_root not in sys.path:
                 sys.path.insert(0, python_root)
-
             from api.services.llm_service import _model_path, _ensure_model_downloaded
-
+            
             if not _model_path().exists():
                 self.after(0, lambda: self.subLabel.config(text="Downloading LLM... (This may take a while)", fg="yellow"))
                 self.after(0, lambda: self.interrupt_and_speak("Downloading required model files. This may take a few minutes."))

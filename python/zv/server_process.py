@@ -2,44 +2,45 @@ from __future__ import annotations
 
 import os
 import subprocess
+import threading
+import uvicorn
 import sys
 from typing import Optional
+
+from api.server import app as fastapi_app
 
 class ServerProcess:
     def __init__(self) -> None:
         self.proc: Optional[subprocess.Popen] = None
+        self._thread: Optional[threading.Thread] = None
+        self._server: Optional[uvicorn.Server] = None
 
     def start(self) -> None:
-        if self.proc and self.proc.poll() is None:
+        if self._thread and self._thread.is_alive():
             return
 
-        python_dir = os.path.dirname(os.path.abspath(__file__))
-        # repo python/ folder is one up from zv/
-        python_root = os.path.abspath(os.path.join(python_dir, ".."))
-
-        cmd = [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            "api.server:app",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            "8000",
-            "--log-level",
-            "warning",
-            "--no-access-log",
-        ]
-
-        self.proc = subprocess.Popen(cmd, cwd=python_root)
+        config = uvicorn.Config(
+            fastapi_app,
+            host="127.0.0.1",
+            port=8000,
+            reload=False,
+            access_log=False,
+            log_level="warning"
+        )
+        self._server = uvicorn.Server(config)
+        self._thread = threading.Thread(target=self._server.run, daemon=True)
+        self._thread.start()
 
     def is_dead(self) -> bool:
-        return bool(self.proc) and (self.proc.poll() is not None)
+        if self._thread is None:
+            return False
+        return not self._thread.is_alive()
 
     def stop(self) -> None:
-        if self.proc and self.proc.poll() is None:
+        if self._server:
             try:
-                self.proc.terminate()
+                self._server.should_exit = True
             except Exception:
                 pass
-        self.proc = None
+        self._server = None
+        self._thread = None

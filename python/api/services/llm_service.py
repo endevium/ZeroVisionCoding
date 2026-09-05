@@ -1,6 +1,8 @@
 from __future__ import annotations
 import json
 import logging
+import sys
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -17,7 +19,6 @@ _llm = None
 def _models_dir() -> Path:
     """Return <repo_root>/models."""
     return Path(__file__).resolve().parents[3] / "models"
-
 
 def _model_path() -> Path:
     return _models_dir() / MODEL_FILENAME
@@ -364,7 +365,6 @@ def qa_status() -> dict:
         "loaded": bool(_QA_INDEX),
         "error": _QA_LOAD_ERROR,
     }
-
 
 def _build_qa_context(query: str, k: int = 3) -> str:
     _ensure_qa_loaded()

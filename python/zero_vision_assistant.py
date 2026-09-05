@@ -2,22 +2,21 @@ import subprocess
 import time
 from pathlib import Path
 
-def launch_extension_development_host() -> None:
+def launch_vs_code() -> None:
     workspace_root = Path(__file__).resolve().parents[1]
 
     try:
         subprocess.Popen(
-            ["cmd", "/c", "code", "--new-window", f"--extensionDevelopmentPath={workspace_root}"],
+            ["cmd", "/c", "code", "--new-window", "."],
             cwd=str(workspace_root),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        print(f"Opened VS Code for {workspace_root}")
     except Exception as exc:
         print(f"Could not open VS Code: {exc}")
 
 def main() -> None:
-    #launch_extension_development_host()
+    launch_vs_code()
     from zv.app import ZeroVisionAssistant
     app = ZeroVisionAssistant()
 
