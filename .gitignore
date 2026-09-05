@@ -1,3 +1,7 @@
+# release files
+public/downloads/app/
+public/downloads/extension/
+
 # build output
 dist/
 
