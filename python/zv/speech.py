@@ -13,7 +13,14 @@ class SpeechEngine:
         self._sr = None
         self._debug = os.getenv("ZV_DEBUG_SPEECH", "0").strip().lower() in ("1", "true", "yes", "on")
 
-    def start_background(self) -> None:
+    @property
+    def is_running(self) -> bool:
+        return self._stopper is not None
+
+    def start_background(self) -> bool:
+        if self.is_running:
+            return True
+
         if self._sr is None:
             try:
                 import speech_recognition as sr  # type: ignore
@@ -23,7 +30,7 @@ class SpeechEngine:
                 if self._debug:
                     print(f"[speech] import speech_recognition failed: {e!r}", flush=True)
         if self._sr is False:  # type: ignore[comparison-overlap]
-            return
+            return False
 
         sr = self._sr
         recognizer = sr.Recognizer()
@@ -51,7 +58,7 @@ class SpeechEngine:
         except Exception as e:
             if self._debug:
                 print(f"[speech] Microphone init failed (device_index={device_index}): {e!r}", flush=True)
-            return
+            return False
 
         try:
             with mic as source:
@@ -84,10 +91,12 @@ class SpeechEngine:
             self._stopper = recognizer.listen_in_background(mic, _callback, phrase_time_limit=6)
             if self._debug:
                 print("[speech] listen_in_background started", flush=True)
+            return True
         except Exception as e:
             self._stopper = None
             if self._debug:
                 print(f"[speech] listen_in_background failed: {e!r}", flush=True)
+            return False
 
     def stop_background(self) -> None:
         if self._stopper:

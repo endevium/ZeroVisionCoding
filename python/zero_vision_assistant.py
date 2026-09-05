@@ -1,4 +1,4 @@
-import subprocess
+import subprocess 
 import time
 from pathlib import Path
 
@@ -8,10 +8,10 @@ def launch_vs_code() -> None:
     try:
         subprocess.Popen(
             ["cmd", "/c", "code", "--new-window", "."],
-            cwd=str(workspace_root),
-            stdout=subprocess.DEVNULL,
+            cwd=str(workspace_root), 
+            stdout=subprocess.DEVNULL,  
             stderr=subprocess.DEVNULL,
-        )
+        ) 
     except Exception as exc:
         print(f"Could not open VS Code: {exc}")
 

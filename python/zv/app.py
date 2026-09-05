@@ -7,6 +7,7 @@ import tempfile
 import threading
 import time
 import tkinter as tk
+import keyboard
 from PIL import Image, ImageTk
 from typing import Optional
 
@@ -301,8 +302,27 @@ class ZeroVisionAssistant(tk.Tk):
         )
         self.arduinoLabel.pack(anchor="w", padx=8, pady=4)
 
+        self.voice_button = tk.Button(
+            content,
+            text="Enable Voice Recognition (Space + Enter)",
+            command=self.toggle_voice_recognition,
+            font=("Courier New", 12, "bold"),
+            fg="white",
+            bg="#2266aa",
+            activeforeground="white",
+            activebackground="#3388cc",
+            relief="flat",
+            padx=12,
+            pady=8,
+            cursor="hand2",
+        )
+        self.voice_button.pack(anchor="w", pady=(12, 0))
+
         # STATE
         self._closing = False
+        self._speech_enabled = False
+        self._speech_toggle_in_progress = False
+        self._voice_hotkey = None
         self._arduino_connected = False
         self._arduino_port = ""
         self._speech_fast_mode = False
@@ -345,6 +365,7 @@ class ZeroVisionAssistant(tk.Tk):
             fast_mode_getter=lambda: self._speech_fast_mode,
         )
         self.speech = SpeechEngine(on_text=self._on_speech_text)
+        self._register_voice_hotkey()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -391,9 +412,74 @@ class ZeroVisionAssistant(tk.Tk):
         self.vscodeLabel.config(text="", fg="white")
         self.arduinoLabel.config(text="", fg="white")
 
-        threading.Thread(target=self.speech.start_background, daemon=True).start()
         threading.Thread(target=self._check_resources_bg, daemon=True).start()
         threading.Thread(target=self._scan_for_arduino_bg, daemon=True).start()
+
+    def toggle_voice_recognition(self) -> None:
+        """Toggle microphone listening without starting it automatically."""
+        if self._speech_toggle_in_progress:
+            return
+
+        if self._speech_enabled:
+            self.speech.stop_background()
+            self._speech_enabled = False
+            self.voice_button.config(
+                text="Enable Voice Recognition (Space + Enter)",
+                bg="#2266aa",
+                state=tk.NORMAL,
+            )
+            self.subLabel.config(text="● Server", fg="white")
+            self.interrupt_and_speak("Voice recognition disabled.")
+            return
+
+        self._speech_toggle_in_progress = True
+        self.voice_button.config(
+            text="Starting Voice Recognition...",
+            state=tk.DISABLED,
+            bg="#555555",
+        )
+
+        def _start() -> None:
+            started = self.speech.start_background()
+            self.after(0, lambda: self._finish_voice_toggle(started))
+
+        threading.Thread(target=_start, daemon=True).start()
+
+    def _finish_voice_toggle(self, started: bool) -> None:
+        if self._closing:
+            return
+        self._speech_toggle_in_progress = False
+        if started:
+            self._speech_enabled = True
+            self.voice_button.config(
+                text="Disable Voice Recognition",
+                bg="#aa3333",
+                state=tk.NORMAL,
+            )
+            self.subLabel.config(text="● Listening", fg="#55dd55")
+            self.interrupt_and_speak("Voice recognition enabled.")
+        else:
+            self._speech_enabled = False
+            self.voice_button.config(
+                text="Enable Voice Recognition (Space + Enter)",
+                bg="#2266aa",
+                state=tk.NORMAL,
+            )
+            self.subLabel.config(text="● Microphone unavailable", fg="#ff3333")
+            self.interrupt_and_speak("Voice recognition could not be enabled.")
+
+    def _register_voice_hotkey(self) -> None:
+        """Register the global chord and suppress it in the focused app."""
+        try:
+            self._voice_hotkey = keyboard.add_hotkey(
+                "space+enter",
+                lambda: self.after(0, self.toggle_voice_recognition),
+                suppress=True,
+                trigger_on_release=True,
+            )
+        except Exception as exc:
+            print(f"[voice] Could not register Space + Enter hotkey: {exc!r}", flush=True)
+            self.voice_button.config(text="Enable Voice Recognition")
 
     def _check_resources_bg(self) -> None:
         try:
@@ -426,7 +512,10 @@ class ZeroVisionAssistant(tk.Tk):
             return
 
         self.interrupt_and_speak("Welcome to Zero Vision Coding. All required resources are downloaded and ready.")
-        self.subLabel.config(text="● Server", fg="white")
+        if self._speech_enabled:
+            self.subLabel.config(text="● Listening", fg="#55dd55")
+        else:
+            self.subLabel.config(text="● Server", fg="white")
         self.vscodeLabel.config(text="● VS Code", fg="white")
         self.arduinoLabel.config(text="● Keyboard", fg="white")
 
@@ -1202,6 +1291,12 @@ class ZeroVisionAssistant(tk.Tk):
             return
         self._closing = True
         try:
+            if self._voice_hotkey is not None:
+                try:
+                    keyboard.remove_hotkey(self._voice_hotkey)
+                except Exception as exc:
+                    print(f"[voice] Could not unregister Space + Enter hotkey: {exc!r}", flush=True)
+                self._voice_hotkey = None
             try:
                 self.client.enqueue_command("close_extension", {})
             except Exception:
