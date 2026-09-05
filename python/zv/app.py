@@ -1192,7 +1192,7 @@ class ZeroVisionAssistant(tk.Tk):
         # FIX: added explain, fix it, find errors commands that were missing
         self.interrupt_and_speak(
             "Commands: where am I, what file is this, read the whole thing, "
-            "save, save as, open file, run code, find errors in the code, analyze the code, "
+            "save, save as, create new file, move to line, open file, run code, find errors in the code, analyze the code, "
             "explain function, explain class, explain for loop, "
             "fix it, change voice, speak faster, speak slower, close the app."
         )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 import threading
 from typing import TYPE_CHECKING
@@ -113,6 +114,16 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
             app.revert_fix()
             return
 
+    # Cursor navigation
+    move_to_line_match = re.search(r"\b(?:move|go|jump)\s+to\s+line\s+(\d+)\b", t)
+    if move_to_line_match:
+        line_number = int(move_to_line_match.group(1))
+        _handle_move_to_line(app, line_number)
+        return
+    if any(phrase in t for phrase in ("move to line", "go to line", "jump to line")):
+        app.interrupt_and_speak("Please say a line number. For example, move to line 3.")
+        return
+
     # Navigation / readout
     if any(phrase in t for phrase in ("where am i", "current line", "where is my cursor", "cursor position", "where is cursor")):
         app.speak_current_line()
@@ -150,6 +161,24 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
             app.interrupt_and_speak("Please say a file name.")
             return
         _handle_save_as(app, file_name)
+        return
+
+    # Create a blank Python file
+    create_file_phrases = (
+        "create a new python file",
+        "create new python file",
+        "create a python file",
+        "create python file",
+        "create a new file",
+        "create new file",
+        "new python file",
+    )
+    create_file_phrase = next((phrase for phrase in create_file_phrases if phrase in t), None)
+    if create_file_phrase:
+        remainder = extract_after_phrase(t_raw, [create_file_phrase])
+        remainder = remainder.removeprefix("named ").strip()
+        file_name = normalize_spoken_filename(remainder or "untitled")
+        _handle_create_new_file(app, file_name)
         return
 
     # Open saved file
@@ -291,6 +320,25 @@ def _wait_command_result(app: "ZeroVisionAssistant", cmd_id: str, timeout_s: flo
     return {"ok": False, "message": "timeout"}
 
 
+def _handle_move_to_line(app: "ZeroVisionAssistant", line_number: int) -> None:
+    if line_number < 1:
+        app.interrupt_and_speak("Line numbers start at 1.")
+        return
+
+    response = app.client.enqueue_command("move_to_line", {"line": line_number})
+    command_id = response.get("id")
+    if not command_id:
+        app.interrupt_and_speak("I could not move the cursor.")
+        return
+
+    result = _wait_command_result(app, str(command_id), timeout_s=10.0)
+    if result.get("ok"):
+        app.interrupt_and_speak(f"Moved to line {line_number}.")
+    else:
+        message = str(result.get("message") or "").strip()
+        app.interrupt_and_speak(f"I could not move to line {line_number}." + (f" {message}" if message else ""))
+
+
 def _handle_pending_overwrite(app: "ZeroVisionAssistant", t: str) -> None:
     if ("yes" in t) or ("overwrite" in t):
         target_path = app._pending_overwrite_path
@@ -320,6 +368,44 @@ def _handle_save_as(app: "ZeroVisionAssistant", file_name: str) -> None:
         return
 
     app.send_save_as_command(target_path, file_name)
+
+
+def _handle_create_new_file(app: "ZeroVisionAssistant", file_name: str) -> None:
+    target_dir = app.get_active_file_dir()
+    target_path = os.path.join(target_dir, file_name)
+
+    if os.path.exists(target_path):
+        app.interrupt_and_speak(f"{file_name} already exists. Please choose a different file name.")
+        return
+
+    app.interrupt_and_speak(f"Creating blank Python file {file_name}.")
+
+    def _do() -> None:
+        create_response = app.client.apply_file_content(target_path, "")
+        create_id = create_response.get("id")
+        if not create_id:
+            app.after(0, lambda: app.interrupt_and_speak("I could not create the new file."))
+            return
+
+        create_result = _wait_command_result(app, str(create_id), timeout_s=12.0)
+        if not create_result.get("ok"):
+            app.after(0, lambda: app.interrupt_and_speak("I could not create the new file."))
+            return
+
+        open_response = app.client.enqueue_command("open_file", {"path": target_path})
+        open_id = open_response.get("id")
+        if not open_id:
+            app.after(0, lambda: app.interrupt_and_speak("The file was created, but I could not open it."))
+            return
+
+        open_result = _wait_command_result(app, str(open_id), timeout_s=12.0)
+        if open_result.get("ok"):
+            app._saved_files[file_name.lower()] = target_path
+            app.after(0, lambda: app.interrupt_and_speak(f"{file_name} is ready for coding."))
+        else:
+            app.after(0, lambda: app.interrupt_and_speak("The file was created, but I could not open it."))
+
+    threading.Thread(target=_do, daemon=True).start()
 
 
 def _handle_open_saved_file(app: "ZeroVisionAssistant", name: str) -> None:
