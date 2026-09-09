@@ -3,22 +3,22 @@ import { Image } from "astro:assets";
 ---
 
 <div
-  class="fixed top-5 left-1/2 z-50 flex w-350 -translate-x-1/2 items-center pt-2.5 pb-2.5 pl-10 pr-20 rounded border [body[data-theme='night']_&]:border-darkgray bg-[#ffffff] [body[data-theme='night']_&]:bg-[#0a0a0f]"
+  class="fixed top-3 left-1/2 z-50 flex w-350 -translate-x-1/2 items-center pt-2 pb-2.5 pl-10 pr-20 rounded border [body[data-theme='night']_&]:border-darkgray bg-[#ffffff] [body[data-theme='night']_&]:bg-[#0a0a0f]"
 >
   <div>
     <Image
     src="/zv_logo.png"
     alt="Zero Vision Coding Logo"
-    width="157"
-    height="64"
+    width="137"
+    height="44"
     class="hidden [html[data-theme='night']_&]:block"
     />
 
     <Image
       src="/zv-logo-black.png"
       alt="Zero Vision Coding Logo"
-      width="157"
-      height="64"
+      width="137"
+      height="44"
       class="block [html[data-theme='night']_&]:hidden"
     />
   </div>
@@ -26,22 +26,22 @@ import { Image } from "astro:assets";
   <div class="flex flex-1 flex-row gap-10 items-center justify-center">
     <a
       href="/#home"
-      class="flex items-center justify-center transition-all duration-300 ease-in-out text-purple [body[data-theme='night']_&]:text-white hover:scale-115 hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:bg-clip-text hover:text-transparent font-inter text-[16px] hover:font-bold h-15 cursor-pointer"
+      class="flex items-center justify-center transition-all duration-300 ease-in-out text-black [body[data-theme='night']_&]:text-white hover:scale-115 hover:text-lavender font-inter text-[16px] hover:font-bold h-15 cursor-pointer"
       >Home</a
     >
     <a
       href="/#about"
-      class="flex items-center justify-center text-purple [body[data-theme='night']_&]:text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:bg-clip-text hover:text-transparent hover:font-bold"
+      class="flex items-center justify-center text-black [body[data-theme='night']_&]:text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:text-lavender hover:font-bold"
       >About Us</a
     >
     <a
       href="/#contact"
-      class="flex items-center justify-center text-purple [body[data-theme='night']_&]:text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] hover:bg-clip-text hover:text-transparent hover:font-bold"
+      class="flex items-center justify-center text-black [body[data-theme='night']_&]:text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:text-lavender hover:font-bold"
       >Contact</a
     >
     <a
       href="/downloads"
-      class="flex transition-all duration-300 ease-in-out hover:scale-115 bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white font-inter font-bold text-[14px] h-12 w-38 items-center justify-center rounded-lg cursor-pointer"
+      class="flex transition-all duration-300 ease-in-out hover:scale-115 bg-lavender text-white font-inter font-bold text-[14px] h-12 w-38 items-center justify-center rounded cursor-pointer"
       >Download</a
     >
   </div>
@@ -49,7 +49,7 @@ import { Image } from "astro:assets";
   <div>
     <div
       id="theme-toggle"
-      class="relative flex items-center p-1 h-12 w-25 overflow-hidden bg-linear-to-r from-[#EBA9FF] to-[#C7C7C7] rounded-full cursor-pointer"
+      class="relative flex items-center p-1 h-12 w-25 overflow-hidden bg-linear-to-r from-lavender to-[#C7C7C7] rounded-full cursor-pointer"
     >
       <div
         id="notch"
@@ -226,7 +226,7 @@ import { Image } from "astro:assets";
 
 <style>
     #theme-toggle {
-        --toggle-start: #EBA9FF;
+        --toggle-start: #E355FF;
         --toggle-end: #C7C7C7;
 
         background: linear-gradient(

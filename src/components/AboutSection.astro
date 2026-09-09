@@ -4,15 +4,15 @@ import { Image } from "astro:assets";
 
 <div class="flex flex-col h-[120vh] justify-center items-center gap-10" id="about">
     <div class="flex flex-col gap-4 justify-center items-center ">
-        <h2 id="about-title" class="text-purple [body[data-theme='night']_&]:text-white font-orbitron text-[35px] font-bold">About <span class="bg-gradient-to-r from-[#C824EC] to-[#DF308D] bg-clip-text text-transparent"> Our Team</span></h2>
-        <p id="about-description" class="text-purple [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px] text-center">
+        <h2 id="about-title" class="text-black [body[data-theme='night']_&]:text-white font-orbitron text-[35px] font-bold">About <span class="text-lavender"> Our Team</span></h2>
+        <p id="about-description" class="text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px] text-center">
             Meet the dedicated team behind Zero Vision Coding, working together to develop an accessible <br />
             AI-enhanced Braille programming platform for blind and visually impaired learners.
         </p>
     </div>
 
     <div id="team" class="flex items-center gap-5">
-        <button id="prevBtn" class="flex justify-center items-center w-12 h-12 text-white text-[40px] cursor-pointer hover:text-[#C824EC] transition-colors">
+        <button id="prevBtn" class="flex justify-center items-center w-12 h-12 text-lavender text-[40px] cursor-pointer hover:text-[#C824EC] transition-colors">
             ←
         </button>
 
@@ -123,7 +123,7 @@ import { Image } from "astro:assets";
             </div>
         </div>
 
-        <button id="nextBtn" class="flex justify-center items-center w-12 h-12 text-white text-[40px] cursor-pointer hover:text-[#DF308D] transition-colors">
+        <button id="nextBtn" class="flex justify-center items-center w-12 h-12 text-lavender text-[40px] cursor-pointer hover:text-[#DF308D] transition-colors">
             →
         </button>
     </div>
@@ -180,27 +180,6 @@ import { Image } from "astro:assets";
         const descriptionSplit = new SplitText("#about-description", {
             type: "words"
         });
-
-        const span = document.querySelector("#about-title span")
-        if (span) {
-            const chars = span.querySelectorAll(".char");
-            chars.forEach(char => {
-                char.classList.add(
-                    "bg-gradient-to-r",
-                    "from-[#C824EC]",
-                    "to-[#DF308D]",
-                    "bg-clip-text",
-                    "text-transparent"
-                );
-            });
-            span.classList.remove(
-                "bg-gradient-to-r",
-                "from-[#C824EC]",
-                "to-[#DF308D]",
-                "bg-clip-text",
-                "text-transparent"
-            );
-        };
 
         const t1 = gsap.timeline({
             scrollTrigger: {

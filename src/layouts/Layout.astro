@@ -14,13 +14,26 @@ import { MeshGradientBackground } from "@/components/ui/mesh-gradient";
     <meta name="generator" content={Astro.generator} />
     <title>Zero Vision Coding</title>
   </head>
-  <body>
-    <div class="hero-gradient__bg" aria-hidden="true"></div>
+  <body data-theme="day">
+    <div class="background absolute inset-0 w-full h-[987vh] pointer-events-none opacity-70"/>
     <main class="page-content">
       <slot />
     </main>
   </body>
 </html>
+
+<script>
+	import gsap from "gsap";
+
+	gsap.fromTo(".background", {
+		clipPath: "(inset 100% 0 0 0)"
+	},
+	{
+		clipPath: "(inset 0% 0 0 0)",
+		duration: 1,
+		ease: "power1.in"
+	})
+</script>
 
 <style>
 	html,
@@ -28,13 +41,14 @@ import { MeshGradientBackground } from "@/components/ui/mesh-gradient";
 		margin: 0;
 		width: 100%;
 		overflow-x: hidden;
+		background-color: #f4f4f4;
 	}
 
-	body[data-theme="day"] {
-		background-color: #ffffff;
+	[data-theme="day"] .background {
 		background-image: url("/day-background.png");
-		background-size: contain;
+		background-size: cover;
 		background-repeat: no-repeat;
+		background-position: center top;
 	}
 
 	body[data-theme="night"] {

@@ -23,6 +23,10 @@
     --color-random-blue: #285178;
     --color-lightergray: #4a4a4a;
     --color-purple: #AA14F0;
+    --color-day-pink: #EBA9FF;
+    --color-hot-pink: #FF69B4;
+    --color-lavender: #E355FF;
+    --color-night: #05030a;
 }
 
 @theme inline {

@@ -9,16 +9,16 @@ import OneZeroZero from "./releases/versions/OneZeroZero.astro";
 
 
 <div class="relative flex flex-col flex-1 h-[125vh] justify-center items-center pt-15 pr-20 pl-20 gap-5">
-    <div class="absolute inset-0 w-full h-full overflow-hidden">
+    <div class="absolute inset-0 w-full h-full overflow-hidden hidden [body[data-theme='night']_&]:block">
         <StarfieldBackground client:load />
     </div>
 
     <div class="flex flex-col gap-2 justify-center items-center z-1">
-        <h2 id="title" class="text-white text-[35px] font-orbitron font-black">
+        <h2 id="title" class="text-purple [body[data-theme='night']_&]:text-white text-[35px] font-orbitron font-black">
             Releases
         </h2>
 
-        <p id="description" class="text-white font-inter font-thin text-[17px] text-center">
+        <p id="description" class="text-purple [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[17px] text-center">
             Everything you need to download, set up, and introduce <br />
             Zero Vision Coding to your learners.
         </p>
