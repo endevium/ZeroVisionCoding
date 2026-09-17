@@ -323,6 +323,9 @@ class ZeroVisionAssistant(tk.Tk):
         self._speech_enabled = False
         self._speech_toggle_in_progress = False
         self._voice_hotkey = None
+        self._voice_release_hooks: list[object] = []
+        self._voice_activation_timer: Optional[threading.Timer] = None
+        self._voice_activation_lock = threading.Lock()
         self._arduino_connected = False
         self._arduino_port = ""
         self._speech_fast_mode = False
@@ -473,17 +476,42 @@ class ZeroVisionAssistant(tk.Tk):
             self._on_speech_error("microphone")
 
     def _register_voice_hotkey(self) -> None:
-        """Register the global chord and suppress it in the focused app."""
+        """Require Space + Enter to be held for two seconds before toggling."""
         try:
             self._voice_hotkey = keyboard.add_hotkey(
                 "space+enter",
-                lambda: self.after(0, self.toggle_voice_recognition),
+                self._start_voice_activation_delay,
                 suppress=True,
-                trigger_on_release=True,
             )
+            for key in ("space", "enter"):
+                self._voice_release_hooks.append(
+                    keyboard.on_release_key(key, lambda _: self._cancel_voice_activation())
+                )
         except Exception as exc:
             print(f"[voice] Could not register Space + Enter hotkey: {exc!r}", flush=True)
             self.voice_button.config(text="Enable Voice Recognition")
+
+    def _start_voice_activation_delay(self) -> None:
+        with self._voice_activation_lock:
+            if self._voice_activation_timer is not None:
+                return
+            timer = threading.Timer(2.0, self._activate_voice_if_held)
+            timer.daemon = True
+            self._voice_activation_timer = timer
+            timer.start()
+
+    def _cancel_voice_activation(self) -> None:
+        with self._voice_activation_lock:
+            timer = self._voice_activation_timer
+            self._voice_activation_timer = None
+        if timer is not None:
+            timer.cancel()
+
+    def _activate_voice_if_held(self) -> None:
+        with self._voice_activation_lock:
+            self._voice_activation_timer = None
+        if keyboard.is_pressed("space") and keyboard.is_pressed("enter"):
+            self.after(0, self.toggle_voice_recognition)
 
     def _check_resources_bg(self) -> None:
         try:
@@ -1331,6 +1359,13 @@ class ZeroVisionAssistant(tk.Tk):
             return
         self._closing = True
         try:
+            self._cancel_voice_activation()
+            for hook in self._voice_release_hooks:
+                try:
+                    keyboard.unhook(hook)
+                except Exception as exc:
+                    print(f"[voice] Could not unregister key release hook: {exc!r}", flush=True)
+            self._voice_release_hooks.clear()
             if self._voice_hotkey is not None:
                 try:
                     keyboard.remove_hotkey(self._voice_hotkey)
