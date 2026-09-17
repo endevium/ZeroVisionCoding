@@ -15,12 +15,9 @@ import { MeshGradientBackground } from '@/components/ui/mesh-gradient';
 		<meta name="generator" content={Astro.generator} />
 		<title>Download Zero Vision Coding</title>
 	</head>
-	<body>
-		<section class="hero-gradient">
-			<div class="hero-gradient__bg" aria-hidden="true">
-				<slot />
-			</div>
-		</section>
+	<body data-theme="day">
+		<div class="background absolute inset-0 w-full h-[125vh] pointer-events-none opacity-70"/>
+		<slot />
 	</body>
 </html>
 
@@ -31,31 +28,15 @@ import { MeshGradientBackground } from '@/components/ui/mesh-gradient';
 		width: 100%;
 	}
 
-	body[data-theme="day"] {
-		background-color: #ffffff;
+	[data-theme="day"] .background {
+		background-image: url("/day-background.png");
+		background-size: cover;
+		background-repeat: no-repeat;
+		background-position: center top;
 	}
 
 	body[data-theme="night"] {
 		background-color: #05030a;
-	}
-
-	.hero-gradient {
-		position: relative;
-		min-height: 140vh;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		overflow-x: hidden;
-		padding: var(--sp-12) var(--sp-6);
-	} 
-	.hero-gradient__bg {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(105deg,
-		rgba(255, 138, 247, 0.02) 0%,
-		transparent 10%,
-		transparent 10%,
-		rgba(255, 138, 247, 0.02) 100%);
 	}
 	
 </style>

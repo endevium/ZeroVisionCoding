@@ -3,125 +3,148 @@ import { Image } from "astro:assets";
 import { StarfieldBackground } from "./ui/starfield";
 ---
 
+<div
+  class="relative flex flex-col flex-1 px-6 lg:px-20 min-h-screen lg:h-[135vh] justify-center items-center mb-20 pt-32 lg:pt-0"
+  id="home"
+>
+  <div
+    class="absolute inset-0 w-full h-full overflow-hidden hidden [body[data-theme='night']_&]:block"
+  >
+    <StarfieldBackground client:load />
+  </div>
 
-<div class="relative flex flex-col flex-1 pl-20 pr-20 h-[135vh] justify-center items-center mb-20 " id="home">
-    <div class="absolute inset-0 w-full h-full overflow-hidden hidden [body[data-theme='night']_&]:block">
-        <StarfieldBackground client:load />
+  <div
+    id="title"
+    class="flex flex-1 flex-col justify-center items-center gap-7 lg:mt-50 z-10 pb-0"
+  >
+    <h2
+      id="hero-title"
+      class="font-orbitron text-lavender [body[data-theme='night']_&]:text-white font-black text-5xl lg:text-[75px] tracking-widest text-center leading-tight lg:leading-[100px] drop-shadow-xl [body[data-theme='night']_&]:drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+    >
+      Code Without <br />
+      <span
+        class="text-lavender [body[data-theme='night']_&]:text-purple drop-shadow-[0_0_10px_rgba(200,36,236,0.3)]"
+        >Boundaries</span
+      >
+    </h2>
+
+    <p
+      id="hero-description"
+      class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-lg lg:text-[21px] text-center max-w-2xl px-4 lg:px-0"
+    >
+      Zero Vision Coding is an AI-powered programming platform <br />
+      designed to make coding accessible through voice, Braille, <br />
+      and intelligent assistance.
+    </p>
+
+    <div class="flex flex-col sm:flex-row w-full sm:w-auto items-center justify-center gap-4 sm:gap-7 mt-8">
+      <a
+        href="/downloads"
+        id="download-btn"
+        class="flex w-full sm:w-45 bg-lavender [body[data-theme='night']_&]:bg-purple hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20 [body[data-theme='night']_&]:hover:shadow-[0_0_25px_rgba(200,36,236,0.6)] text-white font-inter font-bold text-[16px] h-14 items-center justify-center rounded-xl cursor-pointer border border-transparent hover:border-white/50"
+        >Download</a
+      >
+      <a
+        href="/#learn-more"
+        id="learn-more"
+        class="flex w-full sm:w-45 h-14 items-center justify-center rounded-xl bg-white/50 [body[data-theme='night']_&]:bg-white/5 backdrop-blur-md border border-gray-300 [body[data-theme='night']_&]:border-white/10 text-[16px] font-inter font-bold text-gray-800 [body[data-theme='night']_&]:text-white cursor-pointer hover:bg-gray-100 "
+      >
+        Learn More
+      </a>
     </div>
-    
-    <div id="title" class="flex flex-1 flex-col justify-center items-center gap-7 mt-30 z-10 -mb-20 pb-0">
-        <h2 id="hero-title" class="font-orbitron text-lavender [body[data-theme='night']_&]:text-white font-black text-[65px] tracking-widest text-center leading-23">
-            Code Without <br />
-            <span class="text-lavender [body[data-theme='night']_&]:bg-gradient-to-r [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] [body[data-theme='night']_&]:bg-clip-text [body[data-theme='night']_&]:text-transparent">Boundaries</span>
-        </h2>
+  </div>
 
-        <p id="hero-description" class="text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[21px] text-center">
-            Zero Vision Coding is an AI-powered programming platform <br/> 
-            designed to make coding accessible through voice, Braille, <br/>
-            and intelligent assistance.
-        </p>
-
-        <div class="flex flex-row gap-7 mt-4">
-            <a href="/downloads" id="download-btn" class="flex bg-lavender hover:scale-115 text-white font-inter font-bold text-[16px] h-14 w-45 items-center justify-center rounded cursor-pointer">Download</a>
-            <a href="/#learn-more" id="learn-more" class="flex h-14 w-45 items-center justify-center rounded-md bg-transparent text-[16px] font-inter font-bold text-black [body[data-theme='night']_&]:text-white cursor-pointer transition-all duration-300 ease-in-out [body[data-theme='night']_&]:hover:bg-gradient-to-r from-[#C824EC] to-[#DF308D] transition-colors">
-                Learn More
-            </a>
-        </div>
+  <div class="relative flex flex-1 flex-col justify-center items-end gap-4">
+    <div
+      id="braille-image"
+      class="z-20 drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)] [body[data-theme='night']_&]:drop-shadow-[0_0_40px_rgba(200,36,236,0.4)]"
+    >
+      <Image
+        id="braille"
+        src="/braille-5.png"
+        alt="Braille Keyboard"
+        width={702}
+        height={227}
+      />
     </div>
-
-    <div class="relative flex flex-1 flex-col justify-center items-end gap-4">
-        <div id="braille-image" class="z-20">
-            <Image id="braille" src="/braille-5.png" alt="Braille Keyboard" width={702} height={227} />
-        </div>
-    </div>
+  </div>
 </div>
 
 <script>
-    import gsap from "gsap";
-    import { SplitText } from "gsap/SplitText";
-    gsap.registerPlugin(SplitText);
+  import gsap from "gsap";
+  import { SplitText } from "gsap/SplitText";
+  gsap.registerPlugin(SplitText);
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const titleSplit = new SplitText("#hero-title", {
-            type: "words,chars",
-            charsClass: "char"
-        });
-
-        const descriptionSplit = new SplitText("#hero-description", {
-            type: "words"
-        });
-
-
-
-        // Gradient on title span
-        const span = document.querySelector("#hero-title span");
-        if (span) {
-            const chars = span.querySelectorAll(".char");
-            chars.forEach(char => {
-                char.classList.add(
-                    "text-lavender",
-                    "[body[data-theme='night']_&]:bg-gradient-to-r",
-                    "[body[data-theme='night']_&]:from-[#C824EC]",
-                    "[body[data-theme='night']_&]:to-[#DF308D]",
-                    "[body[data-theme='night']_&]:bg-clip-text",
-                    "[body[data-theme='night']_&]:text-transparent"
-                );
-            });
-            span.classList.remove(
-                "text-lavender",
-                "[body[data-theme='night']_&]:bg-gradient-to-r",
-                "[body[data-theme='night']_&]:from-[#C824EC]",
-                "[body[data-theme='night']_&]:to-[#DF308D]",
-                "[body[data-theme='night']_&]:bg-clip-text",
-                "[body[data-theme='night']_&]:text-transparent"
-            );
-        }
-
-        const tl = gsap.timeline();
-
-        // Title
-        tl.from(titleSplit.chars, {
-            y: 150,
-            opacity: 0,
-            duration: 0.9,
-            ease: "power4.out",
-            stagger: 0.04
-        })
-        // Description
-        .from(descriptionSplit.words, {
-            y: 20,
-            opacity: 0,
-            duration: 0.5,
-            ease: "power3.out",
-            stagger: 0.03
-        }, "-=0.9")
-        .from("#download-btn", {
-            y: 50,
-            opacity: 0,
-            duration: 0.8,
-            ease: "power3.out"
-        }, "-=0.2")
-        .from("#learn-more", {
-            y: 50,
-            opacity: 0,
-            duration: 0.8,
-            ease: "power3.out"
-        }, "-=0.6")
-        .from("#braille-image", {
-            y: 100,
-            opacity: 0,
-            rotation: 3,
-            duration: 1,
-            delay: 0.6,
-            ease: "back.out(1.2)"
-        }, "-=0.5")
-        .to("#braille-image", {
-            y: -10,
-            duration: 1.5,
-            repeat: -1,
-            yoyo: true,
-            ease: "sine.inOut"
-        })
+  document.addEventListener("DOMContentLoaded", () => {
+    const titleSplit = new SplitText("#hero-title", {
+      type: "words,chars",
+      charsClass: "char",
     });
-    
+
+    const descriptionSplit = new SplitText("#hero-description", {
+      type: "words",
+    });
+
+    const tl = gsap.timeline();
+
+    // Title
+    tl.from(titleSplit.chars, {
+      y: 150,
+      opacity: 0,
+      duration: 0.9,
+      ease: "power4.out",
+      stagger: 0.04,
+    })
+      // Description
+      .from(
+        descriptionSplit.words,
+        {
+          y: 20,
+          opacity: 0,
+          duration: 0.5,
+          ease: "power3.out",
+          stagger: 0.03,
+        },
+        "-=0.9",
+      )
+      .from(
+        "#download-btn",
+        {
+          y: 50,
+          opacity: 0,
+          duration: 0.8,
+          ease: "power3.out",
+        },
+        "-=0.2",
+      )
+      .from(
+        "#learn-more",
+        {
+          y: 50,
+          opacity: 0,
+          duration: 0.8,
+          ease: "power3.out",
+        },
+        "-=0.6",
+      )
+      .from(
+        "#braille-image",
+        {
+          y: 100,
+          opacity: 0,
+          rotation: 3,
+          duration: 1,
+          delay: 0.6,
+          ease: "back.out(1.2)",
+        },
+        "-=0.5",
+      )
+      .to("#braille-image", {
+        y: -10,
+        duration: 1.5,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
+  });
 </script>

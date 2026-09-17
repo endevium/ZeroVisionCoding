@@ -3,15 +3,15 @@ import { Image } from "astro:assets";
 ---
 
 <div
-  class="fixed top-3 left-1/2 z-50 flex w-350 -translate-x-1/2 items-center pt-2 pb-2.5 pl-10 pr-20 rounded border [body[data-theme='night']_&]:border-darkgray bg-[#ffffff] [body[data-theme='night']_&]:bg-[#0a0a0f]"
+  class="fixed top-3 left-1/2 z-50 flex w-[calc(100%-1.5rem)] lg:w-350 -translate-x-1/2 items-center justify-between pt-2 pb-2.5 px-4 lg:pl-10 lg:pr-20 rounded-2xl border border-white/30 [body[data-theme='night']_&]:border-purple-500/20 shadow-2xl shadow-black/5 [body[data-theme='night']_&]:shadow-[0_8px_32px_rgba(200,36,236,0.25)] bg-white/60 backdrop-blur-xl backdrop-saturate-150 [body[data-theme='night']_&]:bg-[#0a0a0f]/70 transition-all duration-500"
 >
   <div>
     <Image
-    src="/zv_logo.png"
-    alt="Zero Vision Coding Logo"
-    width="137"
-    height="44"
-    class="hidden [html[data-theme='night']_&]:block"
+      src="/zv_logo.png"
+      alt="Zero Vision Coding Logo"
+      width="137"
+      height="44"
+      class="hidden [html[data-theme='night']_&]:block transition-opacity duration-300 w-24 lg:w-[137px] h-auto"
     />
 
     <Image
@@ -19,45 +19,45 @@ import { Image } from "astro:assets";
       alt="Zero Vision Coding Logo"
       width="137"
       height="44"
-      class="block [html[data-theme='night']_&]:hidden"
+      class="block [html[data-theme='night']_&]:hidden transition-opacity duration-300 w-24 lg:w-[137px] h-auto"
     />
   </div>
 
-  <div class="flex flex-1 flex-row gap-10 items-center justify-center">
+  <div class="!hidden lg:!flex flex-1 flex-row gap-10 items-center justify-center">
     <a
       href="/#home"
-      class="flex items-center justify-center transition-all duration-300 ease-in-out text-black [body[data-theme='night']_&]:text-white hover:scale-115 hover:text-lavender font-inter text-[16px] hover:font-bold h-15 cursor-pointer"
+      class="flex items-center justify-center transition-all duration-300 ease-in-out text-gray-800 [body[data-theme='night']_&]:text-gray-200 hover:-translate-y-1 hover:text-purple-600 [body[data-theme='night']_&]:hover:text-lavender [body[data-theme='night']_&]:hover:drop-shadow-[0_0_8px_rgba(200,36,236,0.8)] font-inter text-[16px] font-medium hover:font-bold h-15 cursor-pointer"
       >Home</a
     >
     <a
       href="/#about"
-      class="flex items-center justify-center text-black [body[data-theme='night']_&]:text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:text-lavender hover:font-bold"
+      class="flex items-center justify-center text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[15px] font-medium h-15 cursor-pointer transition-all duration-300 ease-in-out hover:-translate-y-1 hover:text-purple-600 [body[data-theme='night']_&]:hover:text-lavender [body[data-theme='night']_&]:hover:drop-shadow-[0_0_8px_rgba(200,36,236,0.8)] hover:font-bold"
       >About Us</a
     >
     <a
       href="/#contact"
-      class="flex items-center justify-center text-black [body[data-theme='night']_&]:text-white font-inter text-[15px] h-15 cursor-pointer transition-all duration-300 ease-in-out hover:scale-115 hover:text-lavender hover:font-bold"
+      class="flex items-center justify-center text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[15px] font-medium h-15 cursor-pointer transition-all duration-300 ease-in-out hover:-translate-y-1 hover:text-purple-600 [body[data-theme='night']_&]:hover:text-lavender [body[data-theme='night']_&]:hover:drop-shadow-[0_0_8px_rgba(200,36,236,0.8)] hover:font-bold"
       >Contact</a
     >
     <a
       href="/downloads"
-      class="flex transition-all duration-300 ease-in-out hover:scale-115 bg-lavender text-white font-inter font-bold text-[14px] h-12 w-38 items-center justify-center rounded cursor-pointer"
+      class="flex transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 [body[data-theme='night']_&]:hover:shadow-[0_0_15px_rgba(200,36,236,0.6)] bg-lavender [body[data-theme='night']_&]:bg-purple text-white font-inter font-bold text-[14px] h-12 w-38 items-center justify-center rounded-xl cursor-pointer border border-transparent hover:border-white/50"
       >Download</a
     >
   </div>
 
-  <div>
+  <div class="flex items-center gap-4">
     <div
       id="theme-toggle"
-      class="relative flex items-center p-1 h-12 w-25 overflow-hidden bg-linear-to-r from-lavender to-[#C7C7C7] rounded-full cursor-pointer"
+      class="relative flex items-center p-1 h-8 lg:h-12 w-16 lg:w-25 overflow-hidden bg-linear-to-r from-lavender to-[#C7C7C7] rounded-full cursor-pointer scale-90 lg:scale-100"
     >
       <div
         id="notch"
-        class="h-9 w-9 rounded-full bg-linear-to-r from-[#FFF500] to-[#FFC700]"
+        class="h-6 w-6 lg:h-9 lg:w-9 rounded-full bg-linear-to-r from-[#FFF500] to-[#FFC700]"
       >
       </div>
 
-      <div id="elements" class="absolute inset-0 pointer-events-none">
+      <div id="elements" class="absolute inset-0 pointer-events-none scale-75 lg:scale-100 origin-left">
         <div id="clouds">
           <svg class="absolute w-6 h-8 left-13 top-0" viewBox="0 0 200 100">
             <circle cx="50" cy="60" r="30" fill="white"></circle>
@@ -122,142 +122,199 @@ import { Image } from "astro:assets";
         </div>
       </div>
     </div>
+    
+    <button id="mobile-menu-btn" class="block lg:hidden text-gray-800 [body[data-theme='night']_&]:text-gray-200 focus:outline-none cursor-pointer">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
   </div>
 </div>
 
+<div id="mobile-menu" class="fixed inset-0 z-40 hidden flex flex-col bg-white/95 backdrop-blur-xl [body[data-theme='night']_&]:bg-[#0a0a0f]/95 items-center pt-25 gap-8 text-2xl font-inter font-medium opacity-0 transition-opacity duration-300">
+  <a href="/#home" class="mobile-link text-gray-800 [body[data-theme='night']_&]:text-gray-200 hover:text-purple-600 [body[data-theme='night']_&]:hover:text-lavender">Home</a>
+  <a href="/#about" class="mobile-link text-gray-800 [body[data-theme='night']_&]:text-gray-200 hover:text-purple-600 [body[data-theme='night']_&]:hover:text-lavender">About Us</a>
+  <a href="/#contact" class="mobile-link text-gray-800 [body[data-theme='night']_&]:text-gray-200 hover:text-purple-600 [body[data-theme='night']_&]:hover:text-lavender">Contact</a>
+  <a href="/downloads" class="mobile-link bg-lavender [body[data-theme='night']_&]:bg-purple text-white px-8 py-3 rounded-xl hover:scale-105 transition-transform duration-300">Download</a>
+</div>
+
 <script>
-    import gsap from "gsap";
-    type Theme = "day" | "night";
+  import gsap from "gsap";
+  type Theme = "day" | "night";
 
-    const themeToggle = document.getElementById("theme-toggle");
-    const notch = document.getElementById("notch");
-    const elements = document.getElementById("elements");
-    const clouds = document.getElementById("clouds");
-    const stars = document.getElementById("stars");
+  const themeToggle = document.getElementById("theme-toggle");
+  const notch = document.getElementById("notch");
+  const elements = document.getElementById("elements");
+  const clouds = document.getElementById("clouds");
+  const stars = document.getElementById("stars");
 
-    function switchTheme(newTheme: Theme) {
-        document.documentElement.dataset.theme = newTheme
-        document.body.dataset.theme = newTheme
+  function switchTheme(newTheme: Theme) {
+    document.documentElement.dataset.theme = newTheme;
+    document.body.dataset.theme = newTheme;
 
-        const t0 = gsap.timeline();
+    const t0 = gsap.timeline();
 
-        if (newTheme === "night") {
-            t0.to(notch, {
-                x: 55,
-                opacity: 1,
-                duration: 0.25,
-                ease: "power2.in",
-            })
-            .to(elements, {
-                x: -38,
-                opacity: 1,
-                duration: 0.2,
-                ease: "power2.in",  
-            }, "-=0.2");
+    if (newTheme === "night") {
+      t0.to(notch, {
+        x: 55,
+        opacity: 1,
+        duration: 0.25,
+        ease: "power2.in",
+      }).to(
+        elements,
+        {
+          x: -38,
+          opacity: 1,
+          duration: 0.2,
+          ease: "power2.in",
+        },
+        "-=0.2",
+      );
 
-            gsap.to(themeToggle, {
-                "--toggle-start": "#BC3CD8",
-                "--toggle-end": "#BC3CD8",
-                duration: 0.4,
-                ease: "power2.out"
-            });
+      gsap.to(themeToggle, {
+        "--toggle-start": "#BC3CD8",
+        "--toggle-end": "#BC3CD8",
+        duration: 0.4,
+        ease: "power2.out",
+      });
 
-            gsap.to(notch, {
-                "--body-start": "#E5E0CF",
-                "--body-end": "#E5E0CF",
-                "--patch": "rgba(170, 165, 145, 0.20)",
-                duration: 0.45,
-                ease: "power2.inOut"
-            });
-            
-            clouds?.setAttribute("hidden", "");
-            stars?.removeAttribute("hidden");
+      gsap.to(notch, {
+        "--body-start": "#E5E0CF",
+        "--body-end": "#E5E0CF",
+        "--patch": "rgba(170, 165, 145, 0.20)",
+        duration: 0.45,
+        ease: "power2.inOut",
+      });
 
-            themeToggle?.classList.remove("from-[#EBA9FF]", "to-[#C7C7C7]");
-            themeToggle?.classList.add("from-[#BC3CD8]", "to-[#BC3CD8]");
-            notch?.classList.remove("from-[#FFF500]", "to-[#FFC700]");
-            notch?.classList.add("bg-[radial-gradient(circle_at_30%_28%,rgba(180,175,155,0.35)_0%,rgba(180,175,155,0.35)_13%,transparent_14%),radial-gradient(circle_at_70%_65%,rgba(180,175,155,0.3)_0%,rgba(180,175,155,0.3)_18%,transparent_19%),radial-gradient(circle_at_25%_72%,rgba(180,175,155,0.25)_0%,rgba(180,175,155,0.25)_9%,transparent_10%),radial-gradient(circle_at_65%_25%,rgba(180,175,155,0.22)_0%,rgba(180,175,155,0.22)_7%,transparent_8%),linear-gradient(to_right,#E5E0CF,#E5E0CF)]");
-        } else if (newTheme === "day") {
-            t0.to(notch, {
-                x: 0,
-                opacity: 1,
-                duration: 0.25,
-                ease: "power2.in",
-            })
-            .to(elements, {
-                x: 0,
-                opacity: 1,
-                duration: 0.2,
-                ease: "power2.in",
-            }, "-=0.2");
+      clouds?.setAttribute("hidden", "");
+      stars?.removeAttribute("hidden");
 
-            gsap.to(themeToggle, {
-                "--toggle-start": "#EBA9FF",
-                "--toggle-end": "#C7C7C7",
-                duration: 0.4,
-                ease: "power2.out"
-            });
+      themeToggle?.classList.remove("from-[#EBA9FF]", "to-[#C7C7C7]");
+      themeToggle?.classList.add("from-[#BC3CD8]", "to-[#BC3CD8]");
+      notch?.classList.remove("from-[#FFF500]", "to-[#FFC700]");
+      notch?.classList.add(
+        "bg-[radial-gradient(circle_at_30%_28%,rgba(180,175,155,0.35)_0%,rgba(180,175,155,0.35)_13%,transparent_14%),radial-gradient(circle_at_70%_65%,rgba(180,175,155,0.3)_0%,rgba(180,175,155,0.3)_18%,transparent_19%),radial-gradient(circle_at_25%_72%,rgba(180,175,155,0.25)_0%,rgba(180,175,155,0.25)_9%,transparent_10%),radial-gradient(circle_at_65%_25%,rgba(180,175,155,0.22)_0%,rgba(180,175,155,0.22)_7%,transparent_8%),linear-gradient(to_right,#E5E0CF,#E5E0CF)]",
+      );
+    } else if (newTheme === "day") {
+      t0.to(notch, {
+        x: 0,
+        opacity: 1,
+        duration: 0.25,
+        ease: "power2.in",
+      }).to(
+        elements,
+        {
+          x: 0,
+          opacity: 1,
+          duration: 0.2,
+          ease: "power2.in",
+        },
+        "-=0.2",
+      );
 
-            gsap.to(notch, {
-                "--body-start": "#FFF500",
-                "--body-end": "#FFC700",
-                "--patch": "rgba(180, 160, 70, 0)",
-                duration: 0.45,
-                ease: "power2.inOut"
-            });
+      gsap.to(themeToggle, {
+        "--toggle-start": "#EBA9FF",
+        "--toggle-end": "#C7C7C7",
+        duration: 0.4,
+        ease: "power2.out",
+      });
 
-            stars?.setAttribute("hidden","");
-            clouds?.removeAttribute("hidden");
+      gsap.to(notch, {
+        "--body-start": "#FFF500",
+        "--body-end": "#FFC700",
+        "--patch": "rgba(180, 160, 70, 0)",
+        duration: 0.45,
+        ease: "power2.inOut",
+      });
 
-            themeToggle?.classList.remove("from-[#BC3CD8]", "to-[#BC3CD8]");
-            themeToggle?.classList.add("from-[#EBA9FF]", "to-[#C7C7C7]");
-            notch?.classList.remove("bg-[radial-gradient(circle_at_30%_28%,rgba(180,175,155,0.35)_0%,rgba(180,175,155,0.35)_13%,transparent_14%),radial-gradient(circle_at_70%_65%,rgba(180,175,155,0.3)_0%,rgba(180,175,155,0.3)_18%,transparent_19%),radial-gradient(circle_at_25%_72%,rgba(180,175,155,0.25)_0%,rgba(180,175,155,0.25)_9%,transparent_10%),radial-gradient(circle_at_65%_25%,rgba(180,175,155,0.22)_0%,rgba(180,175,155,0.22)_7%,transparent_8%),linear-gradient(to_right,#E5E0CF,#E5E0CF)]");
-            notch?.classList.add("from-[#FFF500]", "to-[#FFC700]");
-        }
+      stars?.setAttribute("hidden", "");
+      clouds?.removeAttribute("hidden");
+
+      themeToggle?.classList.remove("from-[#BC3CD8]", "to-[#BC3CD8]");
+      themeToggle?.classList.add("from-[#EBA9FF]", "to-[#C7C7C7]");
+      notch?.classList.remove(
+        "bg-[radial-gradient(circle_at_30%_28%,rgba(180,175,155,0.35)_0%,rgba(180,175,155,0.35)_13%,transparent_14%),radial-gradient(circle_at_70%_65%,rgba(180,175,155,0.3)_0%,rgba(180,175,155,0.3)_18%,transparent_19%),radial-gradient(circle_at_25%_72%,rgba(180,175,155,0.25)_0%,rgba(180,175,155,0.25)_9%,transparent_10%),radial-gradient(circle_at_65%_25%,rgba(180,175,155,0.22)_0%,rgba(180,175,155,0.22)_7%,transparent_8%),linear-gradient(to_right,#E5E0CF,#E5E0CF)]",
+      );
+      notch?.classList.add("from-[#FFF500]", "to-[#FFC700]");
     }
 
-    themeToggle?.addEventListener("click", () => {
-      const theme = document.documentElement.dataset.theme;
-      document.body.dataset.theme = theme;
+    localStorage.setItem("theme", newTheme);
+  }
 
-      switchTheme(theme === "night" ? "day" : "night");
+  const savedTheme = (localStorage.getItem("theme") as Theme) || null;
+
+  switchTheme(savedTheme ?? "day");
+
+  themeToggle?.addEventListener("click", () => {
+    const currentTheme = document.documentElement.dataset.theme as Theme;
+
+    switchTheme(currentTheme === "night" ? "day" : "night");
+  });
+
+  // Mobile menu logic
+  const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+  const mobileMenu = document.getElementById("mobile-menu");
+  const mobileLinks = document.querySelectorAll(".mobile-link");
+
+  let isMenuOpen = false;
+
+  function toggleMenu() {
+    isMenuOpen = !isMenuOpen;
+    if (isMenuOpen) {
+      mobileMenu?.classList.remove("hidden");
+      // slight delay to allow display:block to apply before animating opacity
+      setTimeout(() => {
+        mobileMenu?.classList.remove("opacity-0");
+        mobileMenu?.classList.add("opacity-100");
+      }, 10);
+    } else {
+      mobileMenu?.classList.remove("opacity-100");
+      mobileMenu?.classList.add("opacity-0");
+      setTimeout(() => {
+        mobileMenu?.classList.add("hidden");
+      }, 300);
+    }
+  }
+
+  mobileMenuBtn?.addEventListener("click", toggleMenu);
+
+  mobileLinks.forEach(link => {
+    link.addEventListener("click", () => {
+      if (isMenuOpen) toggleMenu();
     });
+  });
 </script>
 
 <style>
-    #theme-toggle {
-        --toggle-start: #E355FF;
-        --toggle-end: #C7C7C7;
+  #theme-toggle {
+    --toggle-start: #e355ff;
+    --toggle-end: #c7c7c7;
 
-        background: linear-gradient(
-            to left,
-            var(--toggle-start),
-            var(--toggle-end)
-        );
-    }
+    background: linear-gradient(
+      to left,
+      var(--toggle-start),
+      var(--toggle-end)
+    );
+  }
 
-    #notch {
-        --body-start: #FFF500;
-        --body-end: #FFC700;
-        --patch: rgba(180, 160, 70, 0);
-        
-        background:
-            radial-gradient(
-                circle at 30% 28%,
-                var(--patch) 0%,
-                var(--patch) 13%,
-                transparent 14%
-            ),
-            radial-gradient(
-                circle at 70% 65%,
-                var(--patch) 0%,
-                var(--patch) 18%,
-                transparent 19%
-            ),
-            linear-gradient(
-                to right,
-                var(--body-start),
-                var(--body-end)
-            );
-    }
+  #notch {
+    --body-start: #fff500;
+    --body-end: #ffc700;
+    --patch: rgba(180, 160, 70, 0);
+
+    background:
+      radial-gradient(
+        circle at 30% 28%,
+        var(--patch) 0%,
+        var(--patch) 13%,
+        transparent 14%
+      ),
+      radial-gradient(
+        circle at 70% 65%,
+        var(--patch) 0%,
+        var(--patch) 18%,
+        transparent 19%
+      ),
+      linear-gradient(to right, var(--body-start), var(--body-end));
+  }
 </style>

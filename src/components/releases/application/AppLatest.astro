@@ -2,34 +2,34 @@
 import { Image } from "astro:assets";
 ---
 
-<div class="flex flex-col h-15 w-full border-b border-b-darkgray text-white">
+<div class="flex flex-col h-15 w-full border-b border-b-gray-200/50 [body[data-theme='night']_&]:border-b-purple-500/20 text-gray-800 [body[data-theme='night']_&]:text-gray-200">
     <div class="flex flex-col min-h-12 p-4">
-        <p class="font-inter pl-2 text-[17px] tracking-wider">August 2026</p>
+        <p class="font-inter pl-2 text-[17px] tracking-wider font-medium">August 2026</p>
     </div>
 </div>
 
-<div class="flex flex-row p-5 w-full h-full gap-4">
-    <div class="flex flex-col bg-black-idk w-75 h-55 rounded">
-        <div class="flex flex-col h-33 border-b border-b-darkgray p-4">
+<div class="flex flex-col lg:flex-row p-5 w-full h-full gap-4">
+    <div class="flex flex-col bg-white/50 backdrop-blur-md [body[data-theme='night']_&]:bg-[#0a0a0f]/50 border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 w-full lg:w-75 h-auto lg:h-55 rounded-2xl shadow-lg [body[data-theme='night']_&]:shadow-[0_0_20px_rgba(200,36,236,0.15)] hover:-translate-y-1 transition-all duration-300">
+        <div class="flex flex-col h-33 border-b border-b-gray-200/50 [body[data-theme='night']_&]:border-b-purple-500/20 p-4">
             <div class="flex flex-col">
-                <p class="font-inter  text-[15px] tracking-wider text-white">Zero Vision Coding: 1.0.0</p>
+                <p class="font-inter font-bold text-[16px] tracking-wider text-gray-900 [body[data-theme='night']_&]:text-white">Zero Vision Coding: 1.0.0</p>
             </div>
 
             <div class="flex flex-col">
-                <p class="font-inter text-[14px] tracking-wider text-white font-thin">August 21, 2026</p>
+                <p class="font-inter text-[14px] tracking-wider text-gray-500 [body[data-theme='night']_&]:text-gray-400 font-light">August 21, 2026</p>
             </div>
         </div>
 
         <!-- Actual downloads lol -->
         <div class="flex flex-row gap-4 h-full m-5 justify-center items-center">
-            <div class="flex flex-col w-50 h-25 border-2 border-darkgray">
-                <div class="flex justify-center items-center bg-blacker w-full h-1/2 border-b border-b-darkgray">
-                    <h2 class="flex text-white font-inter tracking-wider text-[15px]">Windows 11</h2>
+            <div class="flex flex-col w-50 h-25 border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 rounded-xl overflow-hidden">
+                <div class="flex justify-center items-center bg-gray-100/50 [body[data-theme='night']_&]:bg-black/40 w-full h-1/2 border-b border-b-gray-200/50 [body[data-theme='night']_&]:border-b-purple-500/20">
+                    <h2 class="flex text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter tracking-wider text-[15px] font-medium">Windows 11</h2>
                 </div>
 
-                <a href="/downloads/app/zvc-setup_1.0.0.exe" download class="flex flex-row gap-4 justify-center items-center hover:bg-lightergray transition-colors cursor-pointer w-full h-1/2 border-b border-b-darkgray">
-                    <Image src="/download.png" alt="download icon" width="16" height="16" />
-                    <h2 class="flex text-white font-inter tracking-wider text-[14px]">Download</h2>
+                <a href="/downloads/app/zvc-setup_1.0.0.exe" download class="flex flex-row gap-4 justify-center items-center hover:bg-gray-200/80 [body[data-theme='night']_&]:hover:bg-purple-500/20 transition-colors cursor-pointer w-full h-1/2 group">
+                    <Image src="/download.png" alt="download icon" width="16" height="16" class="opacity-70 group-hover:opacity-100 transition-opacity" />
+                    <h2 class="flex text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter tracking-wider text-[14px] group-hover:text-purple-600 [body[data-theme='night']_&]:group-hover:text-white transition-colors">Download</h2>
                 </a>
             </div>
         </div>

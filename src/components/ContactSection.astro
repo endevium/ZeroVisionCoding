@@ -1,89 +1,206 @@
-<div class="flex flex-col h-[120vh] pr-20 pl-20 justify-center items-center gap-10">
-    <div class="flex flex-col gap-4 justify-center z-10">
-        <h2 class="font-orbitron text-[30px] font-bold text-center text-lavender">Contact Us</h2>
-        <p class="text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px]">
-            Have questions, feedback, or want to order our Braille keyboard? Send us a message and we’ll be happy to assist you.
-        </p>
-    </div>
+<div
+  class="flex flex-col min-h-screen lg:h-[120vh] pt-32 lg:pt-0 px-6 lg:px-10 justify-center items-center gap-10"
+>
+  <div class="flex flex-col gap-4 justify-center items-center z-10">
+    <h2
+      class="font-orbitron text-[40px] font-black tracking-wide text-center drop-shadow-md [body[data-theme='night']_&]:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+    >
+      <span
+        class="text-lavender [body[data-theme='night']_&]:text-purple drop-shadow-[0_0_10px_rgba(200,36,236,0.3)]"
+        >Contact Us</span
+      >
+    </h2>
+    <p
+      class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-[21px] text-center max-w-2xl"
+    >
+      Have questions, feedback, or want to order our Braille keyboard? Send us a
+      message and we’ll be happy to assist you.
+    </p>
+  </div>
 
-    <div class="flex flex-row justify-center items-center" id="contact">
-        <div id="contact-box" class="flex flex-row gap-3 bg-white [body[data-theme='night']_&]:bg-[#0a0a0f] p-13 justify-between rounded border [body[data-theme='night']_&]:border-darkgray">
-            <div class="flex flex-col relative gap-4 w-150 justify-end border rounded p-5">
-                <div class="absolute inset-0 w-full h-full bg-[url('/blind-individuals.jpg')] bg-no-repeat bg-cover bg-center">
-                </div>
-
-                <h2 class="text-white [body[data-theme='night']_&]:text-white font-orbitron text-[23px] text-left">Email:</h2>
-                <p class="text-white [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[20px] tracking-wider">
-                    zerovisioncoding@gmail.com
-                </p>
-
-                <h2 class="text-white [body[data-theme='night']_&]:text-white font-orbitron text-[23px] text-left">Phone:</h2>
-                <p class="text-white [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[20px] tracking-wider">
-                    +63 912 3456 789
-                </p>
-            </div>
-
-            <div class="flex justify-center items-center w-140 h-155 rounded p-5 bg-white [body[data-theme='night']_&]:bg-[#0a0a0f] [body[data-theme='night']_&]:border-darkgray border">
-                <form class="flex flex-col gap-4" aria-required>
-                    <div class="flex flex-row gap-4">
-                        <div class="flex flex-col gap-2">
-                            <label class="text-black [body[data-theme='night']_&]:text-white [body[data-theme='night']_&]:font-thin text-[17px]">First Name</label>
-                            <input class="border [body[data-theme='night']_&]:border-darkgray h-12 w-61 rounded text-white p-4" type="text" />
-                        </div>
-
-                        <div class="flex flex-col gap-2">
-                            <label class="text-black [body[data-theme='night']_&]:text-white [body[data-theme='night']_&]:font-thin text-[17px]">Last Name</label>
-                            <input class="border [body[data-theme='night']_&]:border-darkgray h-12 w-61 rounded text-white p-4" type="text" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="flex flex-col gap-2">
-                            <label class="text-black [body[data-theme='night']_&]:text-white [body[data-theme='night']_&]:font-thin text-[17px]">Email Address</label>
-                            <input class="border [body[data-theme='night']_&]:border-darkgray h-12 w-126 rounded text-purple [body[data-theme='night']_&]:text-white p-4" type="email" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="flex flex-col gap-4">
-                            <label class="text-black [body[data-theme='night']_&]:text-white [body[data-theme='night']_&]:font-thin text-[17px]">Message</label>
-                            <textarea class="border [body[data-theme='night']_&]:border-darkgray h-52 w-126 rounded text-white p-4 resize-none" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <input type="submit" class="flex bg-lavender text-white font-inter font-bold text-[15px] h-14 w-126 my-5 items-center justify-center rounded" />
-                    </div>
-                </form>
-            </div>
+  <div class="flex flex-row justify-center items-center" id="contact">
+    <div
+      id="contact-box"
+      class="flex flex-col lg:flex-row gap-3 bg-white/70 backdrop-blur-lg [body[data-theme='night']_&]:bg-[#0a0a0f]/60 p-3 lg:p-5 justify-between rounded-2xl border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 shadow-2xl [body[data-theme='night']_&]:shadow-[0_0_30px_rgba(200,36,236,0.2)] w-full max-w-6xl"
+    >
+      <div
+        class="flex flex-col relative gap-1 w-full lg:w-160 min-h-[250px] lg:min-h-0 justify-end rounded-xl p-5 overflow-hidden border border-transparent [body[data-theme='night']_&]:border-purple-500/20"
+      >
+        <div
+          class="absolute inset-0 bg-[url('/blind-individuals.jpg')] bg-cover bg-center z-0"
+        >
         </div>
+        <div
+          class="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent [body[data-theme='night']_&]:from-[#0a0a0f] [body[data-theme='night']_&]:via-[#0a0a0f]/80 z-0"
+        >
+        </div>
+
+        <h2
+          class="relative z-10 text-lavender [body[data-theme='night']_&]:text-white font-orbitron text-[19px] text-left"
+        >
+          Email:
+        </h2>
+        <p
+          class="relative z-10 text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[17px]"
+        >
+          zerovisioncoding@gmail.com
+        </p>
+
+        <h2
+          class="relative z-10 text-lavender [body[data-theme='night']_&]:text-white font-orbitron text-[19px] text-left mt-2"
+        >
+          Phone:
+        </h2>
+        <p
+          class="relative z-10 text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[17px]"
+        >
+          +63 912 3456 789
+        </p>
+      </div>
+
+      <div
+        class="flex justify-center items-center w-full lg:w-140 h-auto lg:h-155 py-8 lg:py-0 rounded-xl bg-white/50 [body[data-theme='night']_&]:bg-black/30 backdrop-blur-md"
+      >
+        <form
+          id="contact-form"
+          class="flex flex-col gap-4 w-full px-4 lg:px-8"
+          action="https://api.web3forms.com/submit"
+          method="POST"
+        >
+          <div class="flex flex-col sm:flex-row gap-4 w-full">
+            <div class="flex flex-col gap-2 w-full sm:w-1/2">
+              <label
+                class="text-black [body[data-theme='night']_&]:text-white [body[data-theme='night']_&]:font-thin text-[16px]"
+                >First Name</label
+              >
+              <input
+                name="first_name"
+                class="border border-gray-300 [body[data-theme='night']_&]:border-purple-500/30 h-12 w-full rounded-lg text-gray-800 [body[data-theme='night']_&]:text-white p-4 bg-white/80 [body[data-theme='night']_&]:bg-black/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                type="text"
+                required
+                aria-required="true"
+              />
+            </div>
+
+            <div class="flex flex-col gap-2 w-full sm:w-1/2">
+              <label
+                class="text-black [body[data-theme='night']_&]:text-white [body[data-theme='night']_&]:font-thin text-[16px]"
+                >Last Name</label
+              >
+              <input
+                name="last_name"
+                class="border border-gray-300 [body[data-theme='night']_&]:border-purple-500/30 h-12 w-full rounded-lg text-gray-800 [body[data-theme='night']_&]:text-white p-4 bg-white/80 [body[data-theme='night']_&]:bg-black/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                type="text"
+                required
+                aria-required="true"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div class="flex flex-col gap-2">
+              <label
+                class="text-black [body[data-theme='night']_&]:text-white [body[data-theme='night']_&]:font-thin text-[16px]"
+                >Email Address</label
+              >
+              <input
+                name="email_address"
+                class="border border-gray-300 [body[data-theme='night']_&]:border-purple-500/30 h-12 w-full rounded-lg text-gray-800 [body[data-theme='night']_&]:text-white p-4 bg-white/80 [body[data-theme='night']_&]:bg-black/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+                type="email"
+                required
+                aria-required="true"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div class="flex flex-col gap-4">
+              <label
+                class="text-black [body[data-theme='night']_&]:text-white [body[data-theme='night']_&]:font-thin text-[16px]"
+                >Message</label
+              >
+              <textarea
+                name="message"
+                class="border border-gray-300 [body[data-theme='night']_&]:border-purple-500/30 h-52 w-full rounded-lg text-gray-800 [body[data-theme='night']_&]:text-white p-4 bg-white/80 [body[data-theme='night']_&]:bg-black/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all resize-none"
+                required
+                aria-required="true"></textarea>
+            </div>
+          </div>
+
+          <div>
+            <input
+              type="submit"
+              id="form-submit"
+              class="flex bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white font-inter font-bold text-[16px] h-14 w-full my-5 items-center justify-center rounded-xl cursor-pointer hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300"
+            />
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
 
-
 <script>
-    import gsap from "gsap";
-    import { ScrollTrigger } from "gsap/ScrollTrigger";
-    import { SplitText } from "gsap/SplitText";
+  import gsap from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+  import { SplitText } from "gsap/SplitText";
 
-    gsap.registerPlugin(ScrollTrigger);
-    gsap.registerPlugin(SplitText);
+  gsap.registerPlugin(ScrollTrigger);
+  gsap.registerPlugin(SplitText);
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const t1 = gsap.timeline({
-            scrollTrigger: {
-                trigger: "#contact-box",
-                start: "top 30%",
-                end: "end 50%",
-                toggleActions: "play none none reverse"
-            }
-        })
-
-        t1.from("#contact-box", {
-            x: -100,
-            opacity: 0,
-            duration: 0.9,
-            ease: "bounce.out"
-        })
+  document.addEventListener("DOMContentLoaded", () => {
+    const t1 = gsap.timeline({
+      scrollTrigger: {
+        trigger: "#contact-box",
+        start: "top 30%",
+        end: "end 50%",
+        toggleActions: "play none none reverse",
+      },
     });
+
+    t1.from("#contact-box", {
+      x: -100,
+      opacity: 0,
+      duration: 0.9,
+      ease: "bounce.out",
+    });
+  });
+
+  const form = document.getElementById("contact-form") as HTMLFormElement;
+  const submitBtn = document.querySelector<HTMLInputElement>("#form-submit");
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+    formData.append("access_key", "38653c24-5adf-46c2-bdb9-3a3b1006f6fa");
+
+    if (submitBtn) {
+      submitBtn.value = "Sending...";
+      submitBtn.disabled = true;
+    }
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Success! Your message has been sent.");
+        form.reset();
+      } else {
+        alert("Error: " + data.message);
+      }
+    } catch (error) {
+      alert("Something went wrong. Please try again.");
+    } finally {
+      if (submitBtn) {
+        submitBtn.value = "Submit";
+        submitBtn.disabled = false;
+      }
+    }
+  });
 </script>

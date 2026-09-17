@@ -8,43 +8,43 @@ import OneZeroZero from "./releases/versions/OneZeroZero.astro";
 ---
 
 
-<div class="relative flex flex-col flex-1 h-[125vh] justify-center items-center pt-15 pr-20 pl-20 gap-5">
+<div class="relative flex flex-col flex-1 min-h-screen lg:h-[125vh] justify-center items-center pt-32 lg:pt-15 px-6 lg:px-20 gap-5">
     <div class="absolute inset-0 w-full h-full overflow-hidden hidden [body[data-theme='night']_&]:block">
         <StarfieldBackground client:load />
     </div>
 
-    <div class="flex flex-col gap-2 justify-center items-center z-1">
-        <h2 id="title" class="text-purple [body[data-theme='night']_&]:text-white text-[35px] font-orbitron font-black">
+    <div class="flex flex-col gap-2 justify-center items-center z-10">
+        <h2 id="title" class="text-4xl lg:text-[45px] font-orbitron font-black tracking-wide text-center drop-shadow-md [body[data-theme='night']_&]:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] text-lavender [body[data-theme='night']_&]:text-purple">
             Releases
         </h2>
 
-        <p id="description" class="text-purple [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[17px] text-center">
-            Everything you need to download, set up, and introduce <br />
+        <p id="description" class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-lg lg:text-[21px] text-center max-w-2xl mt-2 px-4 lg:px-0">
+            Everything you need to download, set up, and introduce <br class="hidden lg:block" />
             Zero Vision Coding to your learners.
         </p>
     </div>
 
-    <div id="releases" class="flex flex-row bg-[#0a0a0f] border-1 rounded-3xl border-darkgray w-full h-170 z-1">
+    <div id="releases" class="flex flex-col lg:flex-row bg-white/70 backdrop-blur-xl [body[data-theme='night']_&]:bg-[#0a0a0f]/70 border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 shadow-2xl [body[data-theme='night']_&]:shadow-[0_0_40px_rgba(200,36,236,0.15)] w-full min-h-[80vh] lg:h-170 z-1 overflow-hidden rounded-3xl mt-6">
         <!-- Tabs aaaa -->
-        <div class="flex flex-col min-w-50 border-r border-r-darkgray h-full">
-            <div class="flex flex-col h-45 w-full border-b border-b-darkgray text-white">
+        <div class="flex flex-col w-full lg:w-auto lg:min-w-[250px] border-b lg:border-b-0 lg:border-r border-gray-200 [body[data-theme='night']_&]:border-purple-500/20 h-auto lg:h-full bg-gray-50/50 [body[data-theme='night']_&]:bg-black/20">
+            <div class="flex flex-col h-auto lg:h-45 w-full border-b border-b-gray-200 [body[data-theme='night']_&]:border-b-purple-500/20 text-gray-800 [body[data-theme='night']_&]:text-gray-200 pb-4 lg:pb-0">
                 <div class="flex flex-col min-h-12 p-4">
                     <p class="font-orbitron pl-2 text-[15px]">CHANNELS</p>
                 </div>
 
                 <div class="flex flex-col">
-                    <button id="general-latest-btn" class="bg-[#571248] text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">All</button>
-                    <button id="app-latest-btn" class="text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">Zero Vision Coding</button>
-                    <button id="extension-latest-btn" class="text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">VS Code Extension</button>
+                    <button id="general-latest-btn" class="bg-gray-200/80 [body[data-theme='night']_&]:bg-purple-500/20 border-l-4 border-purple-500 text-left hover:bg-gray-200/80 [body[data-theme='night']_&]:hover:bg-purple-500/20 transition-all duration-300 cursor-pointer pl-6 items-center h-10 font-inter text-[15px] font-medium">All</button>
+                    <button id="app-latest-btn" class="border-l-4 border-transparent text-left hover:bg-gray-200/80 [body[data-theme='night']_&]:hover:bg-purple-500/20 transition-all duration-300 cursor-pointer pl-6 hover:pl-8 items-center h-10 font-inter text-[15px] font-medium">Zero Vision Coding</button>
+                    <button id="extension-latest-btn" class="border-l-4 border-transparent text-left hover:bg-gray-200/80 [body[data-theme='night']_&]:hover:bg-purple-500/20 transition-all duration-300 cursor-pointer pl-6 hover:pl-8 items-center h-10 font-inter text-[15px] font-medium">VS Code Extension</button>
                 </div>
             </div>
-            <div class="flex flex-col h-105 w-full text-white">
+            <div class="flex flex-col h-auto lg:h-105 w-full text-gray-800 [body[data-theme='night']_&]:text-gray-200 pb-4 lg:pb-0">
                 <div class="flex flex-col min-h-12 p-4">
                     <p class="font-orbitron pl-2 text-[15px]">VERSIONS</p>
                 </div>
 
                 <div class="flex flex-col">
-                    <button id="one-zero-zero-btn" class="text-left hover:bg-[#82166b] transition-colors cursor-pointer pl-5 items-center h-8 font-inter text-[15px] font-thin">1.0.0</button>
+                    <button id="one-zero-zero-btn" class="border-l-4 border-transparent text-left hover:bg-gray-200/80 [body[data-theme='night']_&]:hover:bg-purple-500/20 transition-all duration-300 cursor-pointer pl-6 hover:pl-8 items-center h-10 font-inter text-[15px] font-medium">1.0.0</button>
                 </div>
             </div>
         </div>
@@ -132,29 +132,39 @@ import OneZeroZero from "./releases/versions/OneZeroZero.astro";
         extensionLatest?.setAttribute("hidden", "");
         oneZeroZero?.setAttribute("hidden", "");
 
-        generalLatestBtn?.classList.remove("bg-[#571248]");
-        applicationLatestBtn?.classList.remove("bg-[#571248]");
-        extensionLatestBtn?.classList.remove("bg-[#571248]");
-        oneZeroZeroBtn?.classList.remove("bg-[#571248]");
+        const activeClasses = ["bg-gray-200/80", "[body[data-theme='night']_&]:bg-purple-500/20", "border-purple-500"];
+        
+        generalLatestBtn?.classList.remove(...activeClasses);
+        generalLatestBtn?.classList.add("border-transparent");
+        applicationLatestBtn?.classList.remove(...activeClasses);
+        applicationLatestBtn?.classList.add("border-transparent");
+        extensionLatestBtn?.classList.remove(...activeClasses);
+        extensionLatestBtn?.classList.add("border-transparent");
+        oneZeroZeroBtn?.classList.remove(...activeClasses);
+        oneZeroZeroBtn?.classList.add("border-transparent");
 
         if (state === "general-latest") {
             generalLatest?.removeAttribute("hidden");
-            generalLatestBtn?.classList.add("bg-[#571248]");
+            generalLatestBtn?.classList.add(...activeClasses);
+            generalLatestBtn?.classList.remove("border-transparent");
         }
 
         if (state === "app-latest") {
             applicationLatest?.removeAttribute("hidden");
-            applicationLatestBtn?.classList.add("bg-[#571248]");
+            applicationLatestBtn?.classList.add(...activeClasses);
+            applicationLatestBtn?.classList.remove("border-transparent");
         }
 
         if (state === "extension-latest") {
             extensionLatest?.removeAttribute("hidden");
-            extensionLatestBtn?.classList.add("bg-[#571248]");
+            extensionLatestBtn?.classList.add(...activeClasses);
+            extensionLatestBtn?.classList.remove("border-transparent");
         }
 
         if (state === "one-zero-zero") {
             oneZeroZero?.removeAttribute("hidden");
-            oneZeroZeroBtn?.classList.add("bg-[#571248]");
+            oneZeroZeroBtn?.classList.add(...activeClasses);
+            oneZeroZeroBtn?.classList.remove("border-transparent");
         }
     }
 

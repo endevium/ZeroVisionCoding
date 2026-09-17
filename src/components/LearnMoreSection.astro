@@ -2,238 +2,359 @@
 import { FirstFeature } from "./ui/video-player.tsx";
 ---
 
-
 <div id="learn-more" class="flex flex-col w-full px-6 lg:px-20 pt-32 pb-20">
-    <div class="flex flex-col gap-4 justify-center items-center min-h-[40vh]">
-        <h2 id="features-title" class="text-black [body[data-theme='night']_&]:text-white font-orbitron text-[36px] font-bold text-center">
-            Built for <span class="text-lavender [body[data-theme='night']_&]:text-purple"> Accessible Programming
-            </span>
-        </h2>
-        <p id="features-description" class="text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px] text-center">
-            Explore the tools that make programming more accessible, <br />
-            from tactile Braille input and voice commands to <br />
-            AI-assisted code feedback.
-        </p>
+  <div class="flex flex-col gap-2 justify-center items-center min-h-[40vh]">
+    <h2
+      id="features-title"
+      class="text-gray-900 [body[data-theme='night']_&]:text-white font-orbitron text-3xl lg:text-[45px] font-black tracking-wide text-center drop-shadow-md [body[data-theme='night']_&]:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+    >
+      Built for <span
+        class="text-lavender [body[data-theme='night']_&]:text-purple drop-shadow-[0_0_10px_rgba(200,36,236,0.3)]"
+      >
+        Accessible Programming
+      </span>
+    </h2>
+    <p
+      id="features-description"
+      class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-[21px] text-center mt-4"
+    >
+      Explore the tools that make programming more accessible, <br />
+      from tactile Braille input and voice commands to <br />
+      AI-assisted code feedback.
+    </p>
+  </div>
+
+  <div id="features" class="relative flex flex-col w-full gap-24 lg:gap-60 mt-12 lg:mt-0">
+    <!-- First Feature -->
+    <div class="feature h-auto lg:h-[60vh] w-full flex items-center overflow-hidden">
+      <div
+        class="feature-inner flex flex-col lg:flex-row gap-10 lg:gap-15 w-full items-center justify-center"
+      >
+        <div class="flex flex-col gap-4 justify-center w-full lg:w-1/2">
+          <h2
+            class="bg-gradient-to-r from-purple-600 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] bg-clip-text text-transparent font-orbitron text-2xl lg:text-[35px] font-bold drop-shadow-sm [body[data-theme='night']_&]:drop-shadow-[0_0_10px_rgba(200,36,236,0.2)] text-center lg:text-left"
+          >
+            Voice Commands
+          </h2>
+          <p
+            class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-lg lg:text-[21px] leading-relaxed text-center lg:text-left"
+          >
+            Navigate and interact with the coding environment through speech.
+          </p>
+
+          <div class="h-auto lg:h-[15vh] flex items-center mt-4">
+            <ul
+              class="flex flex-col gap-2 text-purple [body[data-theme='night']_&]:text-white"
+            >
+              <li
+                class="flex items-center gap-4 text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[19px] font-medium"
+              >
+                <span
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white text-sm font-bold shadow-md shadow-purple-500/20 [body[data-theme='night']_&]:shadow-[0_0_10px_rgba(200,36,236,0.5)]"
+                >
+                  ✓
+                </span>
+                Voice-based navigation
+              </li>
+
+              <li
+                class="flex items-center gap-4 text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[19px] font-medium"
+              >
+                <span
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white text-sm font-bold shadow-md shadow-purple-500/20 [body[data-theme='night']_&]:shadow-[0_0_10px_rgba(200,36,236,0.5)]"
+                >
+                  ✓
+                </span>
+                Less reliance on visual interfaces
+              </li>
+
+              <li
+                class="flex items-center gap-4 text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[19px] font-medium"
+              >
+                <span
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white text-sm font-bold shadow-md shadow-purple-500/20 [body[data-theme='night']_&]:shadow-[0_0_10px_rgba(200,36,236,0.5)]"
+                >
+                  ✓
+                </span>
+                Accessible and comprehensible commands system
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="w-full lg:w-[85vh] aspect-video lg:aspect-auto lg:h-[60vh] rounded">
+          <div
+            class="w-full h-full bg-black rounded-2xl border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 drop-shadow-xl [body[data-theme='night']_&]:drop-shadow-[0_0_25px_rgba(200,36,236,0.25)] overflow-hidden"
+          >
+            <video controls class="w-full h-full object-cover rounded">
+              <source
+                src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4"
+                type="video/mp4"
+              />
+            </video>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div id="features" class="relative flex flex-col w-full gap-60">
-        <!-- First Feature -->
-        <div class="feature h-[60vh] w-full flex items-center overflow-hidden">
-            <div class="feature-inner flex flex-col lg:flex-row gap-10 lg:gap-15 w-full items-center justify-center">
-                <div class="flex flex-col gap-4 justify-center w-full lg:w-1/2">
-                    <h2 class="text-lavender [body[data-theme='night']_&]:text-white font-orbitron text-[30px] font-medium">Voice Commands</h2>
-                    <p class="text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px]">
-                        Navigate and interact with the coding environment through speech.
-                    </p>
-
-                    <div class="h-auto lg:h-[15vh] flex items-center mt-4">
-                        <ul class="flex flex-col gap-2 text-purple [body[data-theme='night']_&]:text-white">
-                            <li class="flex items-center gap-3 text-black [body[data-theme='night']_&]:text-white font-inter text-[19px]">
-                                <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
-                                    ✓
-                                </span>
-                                Voice-based navigation
-                            </li>
-
-                            <li class="flex items-center gap-3 text-black [body[data-theme='night']_&]:text-white font-inter text-[19px]">
-                                <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
-                                    ✓
-                                </span>
-                                Less reliance on visual interfaces
-                            </li>
-
-                            <li class="flex items-center gap-3 text-black [body[data-theme='night']_&]:text-white font-inter text-[19px]">
-                                <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
-                                    ✓
-                                </span>
-                                Accessible and comprehensible commands system
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="w-full lg:w-[85vh] h-[40vh] lg:h-[60vh] rounded">
-                    <div class="w-full h-full bg-black rounded-2xl">
-                        <video controls class="w-full h-full object-cover rounded">
-                            <source src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4" type="video/mp4">
-                        </video>
-                    </div>
-                </div>
-            </div>
+    <!-- Second Feature -->
+    <div class="feature h-auto lg:h-[60vh] w-full flex items-center overflow-hidden">
+      <div
+        class="feature-inner flex flex-col-reverse lg:flex-row gap-10 lg:gap-15 w-full items-center justify-center"
+      >
+        <div class="w-full lg:w-[85vh] aspect-video lg:aspect-auto lg:h-[60vh] rounded">
+          <div
+            class="w-full h-full bg-black rounded-2xl border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 drop-shadow-xl [body[data-theme='night']_&]:drop-shadow-[0_0_25px_rgba(200,36,236,0.25)] overflow-hidden"
+          >
+            <video controls class="w-full h-full object-cover rounded">
+              <source
+                src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4"
+                type="video/mp4"
+              />
+            </video>
+          </div>
         </div>
 
-        <!-- Second Feature -->
-         <div class="feature h-[60vh] w-full flex items-center overflow-hidden">
-            <div class="feature-inner flex flex-col-reverse lg:flex-row gap-10 lg:gap-15 w-full items-center justify-center">
-                <div class="w-full lg:w-[85vh] h-[40vh] lg:h-[60vh] rounded">
-                    <div class="w-full h-full bg-black rounded">
-                        <video controls class="w-full h-full object-cover rounded">
-                            <source src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4" type="video/mp4">
-                        </video>
-                    </div>
-                </div>
+        <div class="flex flex-col gap-4 justify-center w-full lg:w-1/2">
+          <h2
+            class="bg-gradient-to-r from-purple-600 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] bg-clip-text text-transparent font-orbitron text-2xl lg:text-[35px] font-bold drop-shadow-sm [body[data-theme='night']_&]:drop-shadow-[0_0_10px_rgba(200,36,236,0.2)] text-center lg:text-left"
+          >
+            Audio Feedback
+          </h2>
+          <p
+            class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-lg lg:text-[21px] leading-relaxed text-center lg:text-left"
+          >
+            Receive spoken feedback from the coding environment to understand
+            code, actions, and system responses without relying on visual
+            output.
+          </p>
 
-                <div class="flex flex-col gap-4 justify-center w-full lg:w-1/2">
-                    <h2 class="text-lavender [body[data-theme='night']_&]:text-white font-orbitron text-[30px] font-medium">Audio Feedback</h2>
-                    <p class="text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px]">
-                        Receive spoken feedback from the coding environment to understand code, actions, and system responses without relying on visual output.
-                    </p>
+          <div class="h-auto lg:h-[15vh] flex items-center mt-4">
+            <ul
+              class="flex flex-col gap-2 text-purple [body[data-theme='night']_&]:text-white"
+            >
+              <li
+                class="flex items-center gap-4 text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[19px] font-medium"
+              >
+                <span
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white text-sm font-bold shadow-md shadow-purple-500/20 [body[data-theme='night']_&]:shadow-[0_0_10px_rgba(200,36,236,0.5)]"
+                >
+                  ✓
+                </span>
+                Text-to-speech feedback
+              </li>
 
-                    <div class="h-auto lg:h-[15vh] flex items-center mt-4">
-                        <ul class="flex flex-col gap-2 text-purple [body[data-theme='night']_&]:text-white">
-                            <li class="flex items-center gap-3 text-black [body[data-theme='night']_&]:text-white font-inter text-[19px]">
-                                <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
-                                    ✓
-                                </span>
-                                Text-to-speech feedback
-                            </li>
+              <li
+                class="flex items-center gap-4 text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[19px] font-medium"
+              >
+                <span
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white text-sm font-bold shadow-md shadow-purple-500/20 [body[data-theme='night']_&]:shadow-[0_0_10px_rgba(200,36,236,0.5)]"
+                >
+                  ✓
+                </span>
+                Audio-based interaction
+              </li>
 
-                            <li class="flex items-center gap-3 text-black [body[data-theme='night']_&]:text-white font-inter text-[19px]">
-                                <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
-                                    ✓
-                                </span>
-                                Audio-based interaction
-                            </li>
-
-                            <li class="flex items-center gap-3 text-black [body[data-theme='night']_&]:text-white font-inter text-[19px]">
-                                <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
-                                    ✓
-                                </span>
-                                Quick system responses
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+              <li
+                class="flex items-center gap-4 text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[19px] font-medium"
+              >
+                <span
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white text-sm font-bold shadow-md shadow-purple-500/20 [body[data-theme='night']_&]:shadow-[0_0_10px_rgba(200,36,236,0.5)]"
+                >
+                  ✓
+                </span>
+                Quick system responses
+              </li>
+            </ul>
+          </div>
         </div>
-
-        <!-- Third Feature -->
-        <div class="feature h-[60vh] w-full flex items-center overflow-hidden">
-            <div class="feature-inner flex flex-col lg:flex-row gap-10 lg:gap-15 w-full items-center justify-center">
-                <div class="flex flex-col gap-4 justify-center w-full lg:w-1/2">
-                    <h2 class="text-lavender [body[data-theme='night']_&]:text-white font-orbitron text-[30px] font-medium">Understand and Improve Code</h2>
-                    <p class="text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px]">
-                        AI-powered code analysis provides feedback that can help learners understand errors, improve their code, and develop programming skills.
-                    </p>
-
-                    <div class="h-auto lg:h-[15vh] flex items-center mt-4">
-                        <ul class="flex flex-col gap-2 text-purple [body[data-theme='night']_&]:text-white">
-                            <li class="flex items-center gap-3 text-black [body[data-theme='night']_&]:text-white font-inter text-[19px]">
-                                <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
-                                    ✓
-                                </span>
-                                Smart code analysis
-                            </li>
-
-                            <li class="flex items-center gap-3 text-black [body[data-theme='night']_&]:text-white font-inter text-[19px]">
-                                <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
-                                    ✓
-                                </span>
-                                Error and improvement feedback
-                            </li>
-
-                            <li class="flex items-center gap-3 text-black [body[data-theme='night']_&]:text-white font-inter text-[19px]">
-                                <span class="flex items-center justify-center w-7 h-7 rounded bg-gradient-to-r from-[#C824EC] to-[#DF308D] text-white text-s font-bold">
-                                    ✓
-                                </span>
-                                Supports independent learning
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="w-full lg:w-[85vh] h-[40vh] lg:h-[60vh] rounded">
-                    <div class="w-full h-full bg-black rounded">
-                        <video controls class="w-full h-full object-cover rounded">
-                            <source src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4" type="video/mp4">
-                        </video>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Fourth Feature -->
-         <div class="feature h-[60vh] w-full flex items-center overflow-hidden">
-            <div class="feature-inner flex flex-col-reverse lg:flex-row gap-10 lg:gap-15 w-full items-center justify-center">
-                <div class="w-full lg:w-[85vh] h-[40vh] lg:h-[60vh] rounded">
-                    <div class="w-full h-full bg-black rounded">
-                        <video controls class="w-full h-full object-cover rounded">
-                            <source src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4" type="video/mp4">
-                        </video>
-                    </div>
-                </div>
-
-                <div class="flex flex-col gap-4 justify-center w-full lg:w-1/2">
-                    <h2 class="text-lavender [body[data-theme='night']_&]:text-white font-orbitron text-[30px] font-medium">VS Code Integration</h2>
-                    <p class="text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px]">
-                        Bring accessible programming directly into Visual Studio Code through the Zero Vision Coding extension.
-                    </p>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+
+    <!-- Third Feature -->
+    <div class="feature h-auto lg:h-[60vh] w-full flex items-center overflow-hidden">
+      <div
+        class="feature-inner flex flex-col lg:flex-row gap-10 lg:gap-15 w-full items-center justify-center"
+      >
+        <div class="flex flex-col gap-4 justify-center w-full lg:w-1/2">
+          <h2
+            class="bg-gradient-to-r from-purple-600 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] bg-clip-text text-transparent font-orbitron text-2xl lg:text-[35px] font-bold drop-shadow-sm [body[data-theme='night']_&]:drop-shadow-[0_0_10px_rgba(200,36,236,0.2)] text-center lg:text-left"
+          >
+            Understand and Improve Code
+          </h2>
+          <p
+            class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-lg lg:text-[21px] leading-relaxed text-center lg:text-left"
+          >
+            AI-powered code analysis provides feedback that can help learners
+            understand errors, improve their code, and develop programming
+            skills.
+          </p>
+
+          <div class="h-auto lg:h-[15vh] flex items-center mt-4">
+            <ul
+              class="flex flex-col gap-2 text-purple [body[data-theme='night']_&]:text-white"
+            >
+              <li
+                class="flex items-center gap-4 text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[19px] font-medium"
+              >
+                <span
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white text-sm font-bold shadow-md shadow-purple-500/20 [body[data-theme='night']_&]:shadow-[0_0_10px_rgba(200,36,236,0.5)]"
+                >
+                  ✓
+                </span>
+                Smart code analysis
+              </li>
+
+              <li
+                class="flex items-center gap-4 text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[19px] font-medium"
+              >
+                <span
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white text-sm font-bold shadow-md shadow-purple-500/20 [body[data-theme='night']_&]:shadow-[0_0_10px_rgba(200,36,236,0.5)]"
+                >
+                  ✓
+                </span>
+                Error and improvement feedback
+              </li>
+
+              <li
+                class="flex items-center gap-4 text-gray-800 [body[data-theme='night']_&]:text-gray-200 font-inter text-[19px] font-medium"
+              >
+                <span
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] text-white text-sm font-bold shadow-md shadow-purple-500/20 [body[data-theme='night']_&]:shadow-[0_0_10px_rgba(200,36,236,0.5)]"
+                >
+                  ✓
+                </span>
+                Supports independent learning
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="w-full lg:w-[85vh] aspect-video lg:aspect-auto lg:h-[60vh] rounded">
+          <div
+            class="w-full h-full bg-black rounded-2xl border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 drop-shadow-xl [body[data-theme='night']_&]:drop-shadow-[0_0_25px_rgba(200,36,236,0.25)] overflow-hidden"
+          >
+            <video controls class="w-full h-full object-cover rounded">
+              <source
+                src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4"
+                type="video/mp4"
+              />
+            </video>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fourth Feature -->
+    <div class="feature h-auto lg:h-[60vh] w-full flex items-center overflow-hidden">
+      <div
+        class="feature-inner flex flex-col-reverse lg:flex-row gap-10 lg:gap-15 w-full items-center justify-center"
+      >
+        <div class="w-full lg:w-[85vh] aspect-video lg:aspect-auto lg:h-[60vh] rounded">
+          <div
+            class="w-full h-full bg-black rounded-2xl border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 drop-shadow-xl [body[data-theme='night']_&]:drop-shadow-[0_0_25px_rgba(200,36,236,0.25)] overflow-hidden"
+          >
+            <video controls class="w-full h-full object-cover rounded">
+              <source
+                src="https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU/high.mp4"
+                type="video/mp4"
+              />
+            </video>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4 justify-center w-full lg:w-1/2">
+          <h2
+            class="bg-gradient-to-r from-purple-600 to-pink-500 [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] bg-clip-text text-transparent font-orbitron text-2xl lg:text-[35px] font-bold drop-shadow-sm [body[data-theme='night']_&]:drop-shadow-[0_0_10px_rgba(200,36,236,0.2)] text-center lg:text-left"
+          >
+            VS Code Integration
+          </h2>
+          <p
+            class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-lg lg:text-[21px] leading-relaxed text-center lg:text-left"
+          >
+            Bring accessible programming directly into Visual Studio Code
+            through the Zero Vision Coding extension.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-
 <script>
-    import gsap from "gsap";
-    import { ScrollTrigger } from "gsap/ScrollTrigger";
-    import { SplitText } from "gsap/SplitText";
+  import gsap from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+  import { SplitText } from "gsap/SplitText";
 
-    gsap.registerPlugin(ScrollTrigger);
-    gsap.registerPlugin(SplitText);
+  gsap.registerPlugin(ScrollTrigger);
+  gsap.registerPlugin(SplitText);
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const titleSplit = new SplitText("#features-title", {
-            type: "words,chars",
-            charsClass: "char"
-        });
+  document.addEventListener("DOMContentLoaded", () => {
+    const features = gsap.utils.toArray<HTMLElement>(".feature");
 
-        const descriptionSplit = new SplitText("#features-description", {
-            type: "words"
-        });
+    const titleSplit = new SplitText("#features-title", {
+      type: "words,chars",
+      charsClass: "char",
+    });
 
-        const t1 = gsap.timeline({
-            scrollTrigger: {
-                trigger: "#features-title",
-                start: "top 30%",
-                end: "end 20%",
-                toggleActions: "play none none reverse"
-            }
-        });
+    const descriptionSplit = new SplitText("#features-description", {
+      type: "words",
+    });
 
-        t1.from(titleSplit.chars, {
-            y: 150,
-            opacity: 0,
-            duration: 0.5,
-            ease: "power4.out",
-            stagger: 0.04
-        })
-        .from(descriptionSplit.words, {
-            y: 20,
-            opacity: 0,
-            duration: 0.5,
-            ease: "power3.out",
-            stagger: 0.03
-        }, "-=0.4");
+    const t1 = gsap.timeline({
+      scrollTrigger: {
+        trigger: "#features-title",
+        start: "top 30%",
+        end: "end 20%",
+        toggleActions: "play none none reverse",
+      },
+    });
 
-        const features = gsap.utils.toArray<HTMLElement>(".feature");
-
-        features.forEach((feature, index) => {
-            const inner = feature.querySelector(".feature-inner");
-
-            if (inner) {
-                gsap.from(inner, {
-                    scrollTrigger: {
-                        trigger: feature,
-                        start: "top 70%",
-                        toggleActions: "play none none reverse"
-                    },
-                    xPercent: index % 2 === 0 ? -20 : 20,
-                    opacity: 0,
-                    duration: 1,
-                    ease: "power3.out"
-                });
-            }
-        });
+    t1.from(titleSplit.chars, {
+      y: 150,
+      opacity: 0,
+      duration: 0.5,
+      ease: "power4.out",
+      stagger: 0.04,
     })
+      .from(
+        descriptionSplit.words,
+        {
+          y: 20,
+          opacity: 0,
+          duration: 0.5,
+          ease: "power3.out",
+          stagger: 0.03,
+        },
+        "-=0.4",
+      )
+      .from(
+        features,
+        {
+          y: 20,
+          opacity: 0,
+          duration: 0.5,
+          ease: "power3.out",
+          stagger: 0.03,
+        },
+        "-=0.5",
+      );
+
+    features.forEach((feature, index) => {
+      const inner = feature.querySelector(".feature-inner");
+
+      if (inner) {
+        gsap.from(inner, {
+          scrollTrigger: {
+            trigger: feature,
+            start: "top 70%",
+            toggleActions: "play none none reverse",
+          },
+          xPercent: index % 2 === 0 ? -20 : 20,
+          opacity: 0,
+          duration: 1,
+          ease: "power3.out",
+        });
+      }
+    });
+  });
 </script>

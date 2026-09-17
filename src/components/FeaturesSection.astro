@@ -21,19 +21,19 @@ const items = [
 ---
 
 <div
-  id="stories-section" class="flex flex-col w-full pt-20 pl-20 pr-20 h-[110vh] justify-center items-center gap-7"
+  id="stories-section" class="flex flex-col w-full pt-32 lg:pt-20 px-6 lg:px-20 min-h-screen lg:h-[110vh] justify-center items-center gap-7 overflow-hidden"
 >
-  <div id="stories-content" class="flex flex-col gap-4">
-    <h2 id="stories-title" class="text-black [body[data-theme='night']_&]:text-white font-orbitron text-[35px] font-black">
-      <span class="text-lavender [body[data-theme='night']_&]:bg-gradient-to-r [body[data-theme='night']_&]:from-[#C824EC] [body[data-theme='night']_&]:to-[#DF308D] [body[data-theme='night']_&]:bg-clip-text [body[data-theme='night']_&]:text-transparent">Their stories. </span> Our inspiration.
+  <div id="stories-content" class="flex flex-col gap-4 relative z-10">
+    <h2 id="stories-title" class="text-gray-900 [body[data-theme='night']_&]:text-white font-orbitron text-3xl lg:text-[40px] font-black tracking-wide drop-shadow-md [body[data-theme='night']_&]:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] text-center">
+      <span class="text-lavender [body[data-theme='night']_&]:text-purple drop-shadow-[0_0_10px_rgba(200,36,236,0.3)]">Their stories. </span> Our inspiration.
     </h2>
-    <p id="stories-description" class="text-black [body[data-theme='night']_&]:text-white font-inter [body[data-theme='night']_&]:font-thin text-[19px] text-center">
+    <p id="stories-description" class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-lg lg:text-[21px] text-center px-4 lg:px-0">
       Every feature of Zero Vision Coding begins with <br />
       understanding the people we hope to empower.
     </p>
   </div>
 
-  <div id="drift-wall" class="flex flex-row justify-center items-center w-full h-full border p-7">
+  <div id="drift-wall" class="flex flex-row justify-center items-center w-full h-[60vh] lg:h-full p-2 lg:p-7 drop-shadow-[0_10px_30px_rgba(200,36,236,0.15)] [body[data-theme='night']_&]:drop-shadow-[0_0_40px_rgba(200,36,236,0.3)]">
     <DriftWall
       client:load
       items={items}
