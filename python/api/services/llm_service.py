@@ -143,25 +143,21 @@ EXPLAIN_SYMBOL_PROMPT = (
 
 ''' FOR AI-ASSISTED DEBUGGING '''
 FIX_PYTHON_ERROR_PROMPT = (
-    "You are an expert Python code fixing assistant.\n"
-    "You will be given a Python file and a traceback/error message.\n"
-    "Fix the error with the smallest reasonable change.\n"
-    "Before answering, verify the fix carefully against the traceback and the surrounding code.\n"
-    "CRITICAL REQUIREMENT:\n"
-    "- Do NOT output the entire file. Use the 'replacements' array to specify EXACT lines to search for and what to replace them with.\n"
-    "- Your 'search' text MUST match the original code exactly, including leading spaces.\n"
-    "- CRITICAL: The 'replace' text MUST be different from the 'search' text. Do not output a replacement that makes no changes.\n"
-    "- Verify that every proposed replacement actually differs from the original code and modifies the behavior to address the issue.\n"
-    "- Confirm that the modified code resolves the reported exception and compiles successfully.\n"
-    "- You MUST preserve the original program logic. Do NOT rewrite, refactor, or optimize the code. Confine your replacements to the exact lines causing the error.\n"
-    "- Keep 'search' blocks as small as possible—ideally a single line. Never replace an entire function if only one line is broken.\n"
-    "- Avoid introducing new behavior unless it is absolutely necessary to fix the error.\n"
-    "- If the error is an environment issue (like FileNotFoundError), leave the 'replacements' array empty and provide your recommendation in the 'summary' field.\n"
-    "- If fixing an IndexError, explicitly reason about list lengths and loop bounds in your 'reasoning' field.\n"
-    "- If fixing a KeyError, explicitly reason about key existence and proper dictionary handling.\n"
-    "- If no valid fix can be generated from the traceback and code context, leave the 'replacements' array empty and explain why in the 'summary' field instead of claiming the error was fixed.\n"
-    "- In a final self-check, compare each proposed replacement against the original code and discard any replacement that does not change behavior.\n"
-    "Return ONLY valid JSON with this exact schema:\n"
+    "You are an expert Python debugging assistant.\n"
+    "You will receive Python code and a traceback.\n"
+    "Identify the exact line causing the error and propose the smallest possible fix.\n"
+    "\n"
+    "RULES:\n"
+    "- Preserve the original program logic.\n"
+    "- Do not rewrite or refactor the code.\n"
+    "- Make only the changes necessary to fix the reported error.\n"
+    "- Keep each search block as small as possible, preferably one line.\n"
+    "- The 'search' text must exactly match the original code.\n"
+    "- The 'replace' text must be different from the search text.\n"
+    "- If the problem is an environment issue that cannot be fixed by changing the code, return an empty replacements array.\n"
+    "- If there is not enough information to safely determine a fix, return an empty replacements array.\n"
+    "\n"
+    "Return ONLY valid JSON:\n"
     "{\n"
     '  "original_intent": string,\n'
     '  "reasoning": string,\n'
@@ -173,7 +169,7 @@ FIX_PYTHON_ERROR_PROMPT = (
     '  ],\n'
     '  "summary": string\n'
     "}\n"
-    "No markdown fences around the JSON. No extra text."
+    "No markdown. No extra text."
 )
 
 ''' FOR AI CODE REVIEW '''
@@ -471,7 +467,7 @@ def llm_chat(user_message: str, *, temperature: float = 0.3, num_predict: int = 
 
     return {"reply": _strip_code_fences(raw).strip() or "No response.", "question_id": None}
 
-def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predict: int = 1500) -> dict:
+def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predict: int = 1500, seed: int = 42) -> dict:
     language = (language or "python").lower()
     if language in ("python", "py"):
         outline = _python_outline(code)
@@ -512,7 +508,7 @@ def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predi
 
     return {"steps": steps, "narration": narration}
 
-def llm_explain_symbol(code: str, language: str, symbol: str, kind: str = "") -> dict:
+def llm_explain_symbol(code: str, language: str, symbol: str, kind: str = "", seed: int = 42) -> dict:
     messages = [
         {"role": "system", "content": EXPLAIN_SYMBOL_PROMPT},
         {
@@ -529,8 +525,8 @@ def llm_explain_symbol(code: str, language: str, symbol: str, kind: str = "") ->
     try:
         result = _get_llm().create_chat_completion(
             messages=messages,
-            temperature=0.2,
-            max_tokens=320,
+            temperature=0.1,
+            max_tokens=640,
         )
         raw = result["choices"][0]["message"]["content"]
     except Exception:
@@ -599,7 +595,7 @@ def _fix_common_syntax_typo(code: str, err_line: Optional[int]) -> tuple[str, bo
     return code, False
 
 
-def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.0, num_predict: int = 1000) -> dict:
+def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.1, num_predict: int = 1000) -> dict:
     import ast
 
     current_code = code.replace("\r\n", "\n")
@@ -852,7 +848,7 @@ def _python_outline(code: str) -> str:
 
     return "\n".join(lines).strip()
 
-def llm_code_review(code: str, language: str, *, temperature: float = 0.0, num_predict: int = 1500) -> dict:
+def llm_code_review(code: str, language: str, *, temperature: float = 0.1, num_predict: int = 1500, seed: int = 42) -> dict:
     # TODO: Fix narrator saying the _ or other symbols
     language = (language or "python").lower()
     outline = _python_outline(code)

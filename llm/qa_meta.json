@@ -26,212 +26,327 @@
   },
   {
     "id": "Q006",
-    "question": "list commands",
-    "answer": "Available commands: move to line X, go to definition, run program, stop program, save file, open file, close file, explain code."
-  },
-  {
-    "id": "Q007",
     "question": "what can you do",
     "answer": "I can navigate code, run and stop programs, explain code snippets, and speak editor changes."
   },
   {
-    "id": "Q008",
-    "question": "repeat that",
-    "answer": "Sure, I'll repeat: %last_spoken%"
-  },
-  {
-    "id": "Q009",
-    "question": "say that again",
-    "answer": "Okay, repeating now: %last_spoken%"
-  },
-  {
-    "id": "Q010",
+    "id": "Q007",
     "question": "goodbye",
     "answer": "Goodbye. If you need me, just say a command"
   },
   {
-    "id": "Q011",
+    "id": "Q008",
     "question": "thanks",
     "answer": "You're welcome"
   },
   {
-    "id": "Q012",
+    "id": "Q009",
     "question": "thank you",
     "answer": "No problem! I'm glad to help."
   },
   {
-    "id": "Q018",
-    "question": "debug",
-    "answer": "Triggering F5 (start debugging)."
-  },
-  {
-    "id": "Q023",
-    "question": "close editor",
-    "answer": "Closing the current editor window."
-  },
-  {
-    "id": "Q030",
-    "question": "find function",
-    "answer": "Searching for the function by name — please say the function name."
-  },
-  {
-    "id": "Q031",
-    "question": "find variable",
-    "answer": "Searching for the variable — please say its name."
-  },
-  {
-    "id": "Q032",
-    "question": "select line",
-    "answer": "Selecting the current line."
-  },
-  {
-    "id": "Q033",
-    "question": "delete line",
-    "answer": "Deleting the current line."
-  },
-  {
-    "id": "Q034",
-    "question": "insert new line",
-    "answer": "Inserting a new blank line below the cursor."
-  },
-  {
-    "id": "Q035",
-    "question": "undo",
-    "answer": "Undo the last edit."
-  },
-  {
-    "id": "Q036",
-    "question": "redo",
-    "answer": "Redo the last undone edit."
-  },
-  {
-    "id": "Q037",
-    "question": "search",
-    "answer": "Searching in the workspace — please say the search term."
-  },
-  {
-    "id": "Q039",
-    "question": "next error",
-    "answer": "Moving to the next error."
-  },
-  {
-    "id": "Q040",
-    "question": "previous error",
-    "answer": "Moving to the previous error."
-  },
-  {
-    "id": "Q041",
-    "question": "explain code",
-    "answer": "Please specify which function or selection to explain."
-  },
-  {
-    "id": "Q042",
-    "question": "explain this function",
-    "answer": "Explaining the current function."
-  },
-  {
-    "id": "Q043",
-    "question": "read line",
-    "answer": "Reading the current line."
-  },
-  {
-    "id": "Q044",
-    "question": "read file",
-    "answer": "Reading the file from top to bottom (or specify lines)."
-  },
-  {
-    "id": "Q045",
-    "question": "what line am i on",
-    "answer": "You are on line %current_line%."
-  },
-  {
-    "id": "Q046",
-    "question": "show current line",
-    "answer": "The current line is: %line_text%."
-  },
-  {
-    "id": "Q047",
+    "id": "Q010",
     "question": "how to run",
     "answer": "Say 'run program'."
   },
   {
-    "id": "Q048",
+    "id": "Q011",
     "question": "how to stop",
     "answer": "Say 'stop program' to terminate the running program."
   },
   {
-    "id": "Q049",
+    "id": "Q012",
     "question": "how to move to a line",
     "answer": "Say 'move to line' followed by a number, for example: move to line 42."
   },
   {
-    "id": "Q051",
-    "question": "switch file",
-    "answer": "Switching files — say the file name to open."
-  },
-  {
-    "id": "Q052",
-    "question": "open recent",
-    "answer": "Listing recent files — please choose one."
-  },
-  {
-    "id": "Q053",
-    "question": "show errors",
-    "answer": "There are errors: %error_summary%."
-  },
-  {
-    "id": "Q054",
-    "question": "what errors do i have",
-    "answer": "There are %error_count% errors. Say 'show errors' to list them."
-  },
-  {
-    "id": "Q059",
-    "question": "where am i",
-    "answer": "You are in the editor at line %current_line% of %filename%."
-  },
-  {
-    "id": "Q060",
+    "id": "Q013",
     "question": "good morning",
     "answer": "Good morning. How can I assist you with your code today?"
   },
   {
-    "id": "Q061",
+    "id": "Q014",
     "question": "good night",
     "answer": "Good night. See you next time."
   },
   {
-    "id": "Q063",
+    "id": "Q015",
     "question": "what is zero",
     "answer": "Zero is a voice assistant for coding; I help navigate, run, and explain code."
   },
   {
-    "id": "Q064",
+    "id": "Q016",
     "question": "thanks for the help",
     "answer": "You're welcome. Happy coding."
   },
   {
-    "id": "Q071",
-    "question": "where is my cursor",
-    "answer": "Your cursor is at line %current_line%, column %current_column%."
+    "id": "Q017",
+    "question": "what does code review do",
+    "answer": "Code review checks your code for possible issues, mistakes, and areas for improvement, then gives suggestions through audio feedback."
   },
   {
-    "id": "Q072",
-    "question": "select word",
-    "answer": "Selecting the word under the cursor."
+    "id": "Q018",
+    "question": "how to use code review",
+    "answer": "Open the Python code you want to review, then say 'review my code'. Zero Vision Coding sends the relevant code to the AI and reads the review through audio feedback."
   },
   {
-    "id": "Q073",
-    "question": "select next word",
-    "answer": "Selecting the next word."
+    "id": "Q019",
+    "question": "what is code analysis",
+    "answer": "Code analysis examines your code to identify possible problems, patterns, or areas that may need attention."
   },
   {
-    "id": "Q074",
-    "question": "show current function",
-    "answer": "Reading the function signature and its docstring."
+    "id": "Q020",
+    "question": "how to analyze code",
+    "answer": "Open or select the code you want to analyze, then use the code analysis voice command. Zero Vision Coding sends the relevant code to the AI and provides the result through audio feedback."
   },
   {
-    "id": "Q075",
-    "question": "explain selection",
-    "answer": "Explaining the selected code."
+    "id": "Q021",
+    "question": "analyze my code",
+    "answer": "Analyzing the relevant code. Please wait for the AI response."
+  },
+  {
+    "id": "Q022",
+    "question": "what does code explanation do",
+    "answer": "Code explanation describes what the selected code or function does in simpler terms and provides the explanation through audio feedback."
+  },
+  {
+    "id": "Q023",
+    "question": "how to explain code",
+    "answer": "Select the code or place the cursor in the function you want explained, then say 'explain code' or 'explain this function'."
+  },
+  {
+    "id": "Q024",
+    "question": "what does code fixing do",
+    "answer": "Code fixing uses the AI to identify a programming error and suggest or apply a correction based on the available code and error information."
+  },
+  {
+    "id": "Q025",
+    "question": "how to fix code",
+    "answer": "Place the cursor on the code with the error and request code fixing. Zero Vision Coding uses the available code and error information to generate a correction."
+  },
+  {
+    "id": "Q026",
+    "question": "what does debugging do",
+    "answer": "Debugging starts the Visual Studio Code debugging process so you can investigate problems while the program is running."
+  },
+  {
+    "id": "Q027",
+    "question": "how to debug",
+    "answer": "Say 'debug' to start the Visual Studio Code debugging process."
+  },
+  {
+    "id": "Q028",
+    "question": "what does explain selection do",
+    "answer": "Explain selection reads the selected code and asks the AI to describe what it does."
+  },
+  {
+    "id": "Q029",
+    "question": "how to explain a selection",
+    "answer": "Select the code you want explained, then say 'explain selection'."
+  },
+  {
+    "id": "Q030",
+    "question": "what does move to line do",
+    "answer": "Move to line takes the cursor directly to a specific line number in the current file."
+  },
+  {
+    "id": "Q031",
+    "question": "how to move to line",
+    "answer": "Say 'move to line' followed by the line number, for example, 'move to line 42'."
+  },
+  {
+    "id": "Q032",
+    "question": "what does where am i do",
+    "answer": "Where am I tells you where your cursor is located."
+  },
+  {
+    "id": "Q033",
+    "question": "how do i know where i am",
+    "answer": "Say 'where am I' to hear the current file and cursor line."
+  },
+  {
+    "id": "Q034",
+    "question": "how to check my current line",
+    "answer": "Say 'what line am I on' to hear the current line number."
+  },
+  {
+    "id": "Q035",
+    "question": "what does delete line do",
+    "answer": "Delete line removes the line where the cursor is currently located."
+  },
+  {
+    "id": "Q036",
+    "question": "how to delete a line",
+    "answer": "Place the cursor on the line you want to remove, then say 'delete line'."
+  },
+  {
+    "id": "Q037",
+    "question": "what does insert new line do",
+    "answer": "Insert new line adds a blank line below the current cursor position."
+  },
+  {
+    "id": "Q038",
+    "question": "how to insert a new line",
+    "answer": "Place the cursor where you want the new line, then say 'insert new line'."
+  },
+  {
+    "id": "Q039",
+    "question": "what does undo do",
+    "answer": "Undo reverses the most recent edit."
+  },
+  {
+    "id": "Q040",
+    "question": "how to undo",
+    "answer": "Say 'undo' to reverse the last edit."
+  },
+  {
+    "id": "Q041",
+    "question": "what does redo do",
+    "answer": "Redo restores the most recent edit that was undone."
+  },
+  {
+    "id": "Q042",
+    "question": "how to redo",
+    "answer": "Say 'redo' to restore the last undone edit."
+  },
+  {
+    "id": "Q043",
+    "question": "what does run program do",
+    "answer": "Run program starts the current Python program so you can test its behavior."
+  },
+  {
+    "id": "Q044",
+    "question": "how to run a program",
+    "answer": "Make sure the Python file is ready, then say 'run program'."
+  },
+  {
+    "id": "Q045",
+    "question": "what does stop program do",
+    "answer": "Stop program terminates the currently running program."
+  },
+  {
+    "id": "Q046",
+    "question": "how to stop a program",
+    "answer": "Say 'stop program' while the program is running."
+  },
+  {
+    "id": "Q047",
+    "question": "what does save file do",
+    "answer": "Save file saves the current file and its latest changes."
+  },
+  {
+    "id": "Q048",
+    "question": "how to save a file",
+    "answer": "Say 'save file' to save the current file."
+  },
+  {
+    "id": "Q049",
+    "question": "what does open file do",
+    "answer": "Open file opens a file so you can work with it in Visual Studio Code."
+  },
+  {
+    "id": "Q050",
+    "question": "how to open a file",
+    "answer": "Say 'open file' and provide the file name when requested."
+  },
+  {
+    "id": "Q051",
+    "question": "what does close file do",
+    "answer": "Close file closes the current editor file."
+  },
+  {
+    "id": "Q052",
+    "question": "how to close a file",
+    "answer": "Say 'close file' to close the current editor file."
+  },
+  {
+    "id": "Q053",
+    "question": "what happens if my voice command is not recognized",
+    "answer": "Zero Vision Coding should tell you that the command was not recognized and allow you to try again or ask for help."
+  },
+  {
+    "id": "Q054",
+    "question": "voice command not recognized",
+    "answer": "I didn't recognize that command. Please try again or say 'help' for available commands."
+  },
+  {
+    "id": "Q055",
+    "question": "what should i do if the ai has no code",
+    "answer": "Make sure the relevant Python code or selection is available in Visual Studio Code, then try the AI command again."
+  },
+  {
+    "id": "Q056",
+    "question": "ai cannot process my request",
+    "answer": "Check that Zero Vision Coding and its required services are running, make sure relevant code is available, and try the request again."
+  },
+  {
+    "id": "Q057",
+    "question": "what should i do if i forget a command",
+    "answer": "Say 'help' or 'available commands' to hear the supported commands."
+  },
+  {
+    "id": "Q058",
+    "question": "how do i get help",
+    "answer": "Say 'help' to hear available commands and examples."
+  },
+  {
+    "id": "Q059",
+    "question": "why did the system not do anything after my command",
+    "answer": "The command may not have been recognized or the required resource may be unavailable. Try the command again or say 'list commands' for supported commands."
+  },
+  {
+    "id": "Q060",
+    "question": "what programming language does zero vision coding support",
+    "answer": "Zero Vision Coding currently focuses on Python programming."
+  },
+  {
+    "id": "Q061",
+    "question": "what editor does zero vision coding use",
+    "answer": "Zero Vision Coding is designed to work within Visual Studio Code."
+  },
+  {
+    "id": "Q062",
+    "question": "does zero vision coding support frontend development",
+    "answer": "Zero Vision Coding currently focuses on foundational Python programming and does not provide full frontend development support."
+  },
+  {
+    "id": "Q063",
+    "question": "does zero vision coding support backend development",
+    "answer": "Zero Vision Coding currently focuses on foundational Python programming and does not provide full backend development support."
+  },
+  {
+    "id": "Q064",
+    "question": "does zero vision coding need internet",
+    "answer": "The current Zero Vision Coding setup requires an internet connection for the system's supported online requirements."
+  },
+  {
+    "id": "Q065",
+    "question": "what ai model does zero vision coding use",
+    "answer": "Zero Vision Coding uses the locally deployed Qwen2.5-Coder 3B model for AI-assisted programming functions."
+  },
+  {
+    "id": "Q066",
+    "question": "where does the ai run",
+    "answer": "The AI model is deployed locally on the computer through the Zero Vision Coding services."
+  },
+  {
+    "id": "Q067",
+    "question": "what is the braille keyboard for",
+    "answer": "The Braille keyboard provides tactile input for entering letters, numbers, and symbols while programming."
+  },
+  {
+    "id": "Q068",
+    "question": "how do i use the braille keyboard",
+    "answer": "Use the six-key Braille keyboard to enter Braille combinations. The Arduino Pro Micro converts the key combinations into input for Zero Vision Coding."
+  },
+  {
+    "id": "Q069",
+    "question": "what does the ai do",
+    "answer": "The AI can assist with code analysis, explanation, review, summarization, debugging, and error fixing."
+  },
+  {
+    "id": "Q070",
+    "question": "can i ask the ai questions",
+    "answer": "Yes. Use the supported voice command for the AI function you need, such as explaining, reviewing, analyzing, or fixing code."
   }
 ]

@@ -302,21 +302,7 @@ class ZeroVisionAssistant(tk.Tk):
         )
         self.arduinoLabel.pack(anchor="w", padx=8, pady=4)
 
-        self.voice_button = tk.Button(
-            content,
-            text="Enable Voice Recognition (Space + Enter)",
-            command=self.toggle_voice_recognition,
-            font=("Courier New", 12, "bold"),
-            fg="white",
-            bg="#2266aa",
-            activeforeground="white",
-            activebackground="#3388cc",
-            relief="flat",
-            padx=12,
-            pady=8,
-            cursor="hand2",
-        )
-        self.voice_button.pack(anchor="w", pady=(12, 0))
+
 
         # STATE
         self._closing = False
@@ -430,21 +416,11 @@ class ZeroVisionAssistant(tk.Tk):
         if self._speech_enabled:
             self.speech.stop_background()
             self._speech_enabled = False
-            self.voice_button.config(
-                text="Enable Voice Recognition (Space + Enter)",
-                bg="#2266aa",
-                state=tk.NORMAL,
-            )
             self.subLabel.config(text="● Server", fg="white")
             self.interrupt_and_speak("Voice recognition disabled.")
             return
 
         self._speech_toggle_in_progress = True
-        self.voice_button.config(
-            text="Starting Voice Recognition...",
-            state=tk.DISABLED,
-            bg="#555555",
-        )
 
         def _start() -> None:
             started = self.speech.start_background()
@@ -458,20 +434,10 @@ class ZeroVisionAssistant(tk.Tk):
         self._speech_toggle_in_progress = False
         if started:
             self._speech_enabled = True
-            self.voice_button.config(
-                text="Disable Voice Recognition",
-                bg="#aa3333",
-                state=tk.NORMAL,
-            )
             self.subLabel.config(text="● Listening", fg="#55dd55")
             self.interrupt_and_speak("Voice recognition enabled.")
         else:
             self._speech_enabled = False
-            self.voice_button.config(
-                text="Enable Voice Recognition (Space + Enter)",
-                bg="#2266aa",
-                state=tk.NORMAL,
-            )
             self.subLabel.config(text="● Microphone unavailable", fg="#ff3333")
             self._on_speech_error("microphone")
 
@@ -489,7 +455,6 @@ class ZeroVisionAssistant(tk.Tk):
                 )
         except Exception as exc:
             print(f"[voice] Could not register Space + Enter hotkey: {exc!r}", flush=True)
-            self.voice_button.config(text="Enable Voice Recognition")
 
     def _start_voice_activation_delay(self) -> None:
         with self._voice_activation_lock:
@@ -544,10 +509,13 @@ class ZeroVisionAssistant(tk.Tk):
             return
 
         self.interrupt_and_speak("Welcome to Zero Vision Coding. All required resources are downloaded and ready.")
-        if self._speech_enabled:
-            self.subLabel.config(text="● Listening", fg="#55dd55")
-        else:
-            self.subLabel.config(text="● Server", fg="white")
+        
+        self._speech_toggle_in_progress = True
+        def _start() -> None:
+            started = self.speech.start_background()
+            self.after(0, lambda: self._finish_voice_toggle(started))
+        threading.Thread(target=_start, daemon=True).start()
+
         self.vscodeLabel.config(text="● VS Code", fg="white")
         self.arduinoLabel.config(text="● Keyboard", fg="white")
 
@@ -584,11 +552,6 @@ class ZeroVisionAssistant(tk.Tk):
         def _deliver_feedback() -> None:
             if error_type == "microphone" and self._speech_enabled:
                 self._speech_enabled = False
-                self.voice_button.config(
-                    text="Enable Voice Recognition (Space + Enter)",
-                    bg="#2266aa",
-                    state=tk.NORMAL,
-                )
                 self.subLabel.config(text="● Microphone unavailable", fg="#ff3333")
             self.interrupt_and_speak(message)
 
@@ -713,8 +676,6 @@ class ZeroVisionAssistant(tk.Tk):
 
         if self._arduino_connected:
             self.arduinoLabel.config(text=f"● Braille Keyboard", fg="lightgreen")
-            sfx.play_ding()
-            self.after(140, lambda: self.interrupt_and_speak("Braille keyboard connected"))
         else:
             self.arduinoLabel.config(text="● Braille Keyboard", fg="red")
 

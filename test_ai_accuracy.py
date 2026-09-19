@@ -49,130 +49,130 @@ def ask_groq_judge(system_instruction, user_prompt, max_retries=3):
             print(f"Groq API error: {e}")
             return {}
 
-# def test_fixer(test_cases_dir):
-#     print("Testing Code Fixer...")
-#     results = []
-#     fixer_dir = test_cases_dir / "fixer"
-#     if not fixer_dir.exists(): return []
-
-#     for test_file in fixer_dir.glob("*.json"):
-#         with open(test_file, "r", encoding="utf-8") as f:
-#             data = json.load(f)
-            
-#         code = data.get("code", "")
-#         error_msg = data.get("error", "")
-        
-#         print(f"  -> Running {test_file.name}...")
-#         start_time = time.time()
-        
-#         fix_response = llm_fix_python_error(code=code, error=error_msg)
-#         content = fix_response.get("content", "")
-#         duration = time.time() - start_time
-        
-#         # Deterministic check: Runtime Success Rate
-#         runtime_success = 0.0
-#         fix_success = 0.0
-        
-#         if content.strip():
-#             fix_success = 1.0
-#             temp_file = test_cases_dir / "_temp_fixer_exec.py"
-#             with open(temp_file, "w", encoding="utf-8") as f:
-#                 f.write(content)
-                
-#             try:
-#                 proc = subprocess.run([sys.executable, str(temp_file)], capture_output=True, text=True, timeout=5)
-#                 if proc.returncode == 0:
-#                     runtime_success = 1.0
-#             except Exception:
-#                 pass
-#             finally:
-#                 if temp_file.exists(): os.remove(temp_file)
-                
-#         # Subjective check via Groq
-#         prompt = f"""
-#         Original Code:
-#         {code}
-        
-#         Traceback:
-#         {error_msg}
-        
-#         1.5B Model's Patched Code:
-#         {content}
-        
-#         Evaluate the following metrics (0.0 to 1.0):
-#         "Error Detection Accuracy": Did the patch address the actual root cause of the error?
-#         "Logic Preservation Rate": Did the patch maintain the original behavior without deleting unrelated functions?
-        
-#         Return ONLY JSON: {{"Error Detection Accuracy": float, "Logic Preservation Rate": float}}
-#         """
-#         judge_res = ask_groq_judge("You are a strict code evaluator.", prompt)
-        
-#         results.append({
-#             "name": test_file.name,
-#             "Error Detection Accuracy": judge_res.get("Error Detection Accuracy", 0.0),
-#             "Fix Success Rate": fix_success,
-#             "Runtime Success Rate": runtime_success,
-#             "Logic Preservation Rate": judge_res.get("Logic Preservation Rate", 0.0),
-#             "Response Time": duration
-#         })
-        
-#     return results
-
-def test_reviewer(test_cases_dir):
-    print("Testing Code Reviewer...")
+def test_fixer(test_cases_dir):
+    print("Testing Code Fixer...")
     results = []
-    reviewer_dir = test_cases_dir / "reviewer"
-    if not reviewer_dir.exists(): return []
+    fixer_dir = test_cases_dir / "fixer"
+    if not fixer_dir.exists(): return []
 
-    for test_file in reviewer_dir.glob("*.json"):
+    for test_file in fixer_dir.glob("*.json"):
         with open(test_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             
         code = data.get("code", "")
-        expected_bugs = data.get("expected_bugs", [])
+        error_msg = data.get("error", "")
         
         print(f"  -> Running {test_file.name}...")
         start_time = time.time()
         
-        review_response = llm_code_review(code=code, language="python")
+        fix_response = llm_fix_python_error(code=code, error=error_msg)
+        content = fix_response.get("content", "")
         duration = time.time() - start_time
         
-        issues = review_response.get("issues", [])
-        overall_summary = review_response.get("overall_summary", "")
-        narration = review_response.get("narration", "")
+        # Deterministic check: Runtime Success Rate
+        runtime_success = 0.0
+        fix_success = 0.0
         
+        if content.strip():
+            fix_success = 1.0
+            temp_file = test_cases_dir / "_temp_fixer_exec.py"
+            with open(temp_file, "w", encoding="utf-8") as f:
+                f.write(content)
+                
+            try:
+                proc = subprocess.run([sys.executable, str(temp_file)], capture_output=True, text=True, timeout=5)
+                if proc.returncode == 0:
+                    runtime_success = 1.0
+            except Exception:
+                pass
+            finally:
+                if temp_file.exists(): os.remove(temp_file)
+                
+        # Subjective check via Groq
         prompt = f"""
         Original Code:
         {code}
         
-        Model's Reported Issues:
-        {json.dumps(issues, indent=2)}
+        Traceback:
+        {error_msg}
         
-        Model's Overall Summary: {overall_summary}
-        Model's Narration: {narration}
+        1.5B Model's Patched Code:
+        {content}
         
         Evaluate the following metrics (0.0 to 1.0):
-        "Issue Detection Accuracy": Did it find the expected bugs listed above? Score 1.0 if all expected bugs were found, 0.0 if none were. If the expected bugs list is empty and no issues were reported, score 1.0.
-        "False Positive Rate": Did it report bugs that do not actually exist in the code? 0.0 means all reported issues are real. 1.0 means all reported issues are fake or hallucinated. If no issues were reported, score 0.0.
-        "Suggestion Quality": For each reported issue, is the recommendation concrete, actionable, and correct? Does it include a short example of how to fix it? Score 1.0 if all suggestions are good, 0.0 if none are.
-        "Severity Classification Accuracy": Are the severity labels correct based on these rules: Critical means the code WILL crash or produce wrong results every time. High means it will crash or misbehave under common conditions. Medium means it works but has a clear quality or safety problem. Low means it works fine but could be cleaner. Score 1.0 if all labels are correct, 0.0 if all are wrong.
+        "Error Detection Accuracy": Did the patch address the actual root cause of the error?
+        "Logic Preservation Rate": Did the patch maintain the original behavior without deleting unrelated functions?
         
-        Return ONLY JSON: {{"Issue Detection Accuracy": float, "False Positive Rate": float, "Suggestion Quality": float, "Severity Classification Accuracy": float}}
+        Return ONLY JSON: {{"Error Detection Accuracy": float, "Logic Preservation Rate": float}}
         """
         judge_res = ask_groq_judge("You are a strict code evaluator.", prompt)
         
-        res_dict = {
+        results.append({
             "name": test_file.name,
+            "Error Detection Accuracy": judge_res.get("Error Detection Accuracy", 0.0),
+            "Fix Success Rate": fix_success,
+            "Runtime Success Rate": runtime_success,
+            "Logic Preservation Rate": judge_res.get("Logic Preservation Rate", 0.0),
             "Response Time": duration
-        }
-        res_dict.update(judge_res)
-        # Handle failures in API
-        for k in ["Issue Detection Accuracy", "False Positive Rate", "Suggestion Quality", "Severity Classification Accuracy"]:
-            if k not in res_dict: res_dict[k] = 0.0
-            
-        results.append(res_dict)
+        })
         
     return results
+
+# def test_reviewer(test_cases_dir):
+#     print("Testing Code Reviewer...")
+#     results = []
+#     reviewer_dir = test_cases_dir / "reviewer"
+#     if not reviewer_dir.exists(): return []
+
+#     for test_file in reviewer_dir.glob("*.json"):
+#         with open(test_file, "r", encoding="utf-8") as f:
+#             data = json.load(f)
+            
+#         code = data.get("code", "")
+#         expected_bugs = data.get("expected_bugs", [])
+        
+#         print(f"  -> Running {test_file.name}...")
+#         start_time = time.time()
+        
+#         review_response = llm_code_review(code=code, language="python")
+#         duration = time.time() - start_time
+        
+#         issues = review_response.get("issues", [])
+#         overall_summary = review_response.get("overall_summary", "")
+#         narration = review_response.get("narration", "")
+        
+#         prompt = f"""
+#         Original Code:
+#         {code}
+        
+#         Model's Reported Issues:
+#         {json.dumps(issues, indent=2)}
+        
+#         Model's Overall Summary: {overall_summary}
+#         Model's Narration: {narration}
+        
+#         Evaluate the following metrics (0.0 to 1.0):
+#         "Issue Detection Accuracy": Did it find the expected bugs listed above? Score 1.0 if all expected bugs were found, 0.0 if none were. If the expected bugs list is empty and no issues were reported, score 1.0.
+#         "False Positive Rate": Did it report bugs that do not actually exist in the code? 0.0 means all reported issues are real. 1.0 means all reported issues are fake or hallucinated. If no issues were reported, score 0.0.
+#         "Suggestion Quality": For each reported issue, is the recommendation concrete, actionable, and correct? Does it include a short example of how to fix it? Score 1.0 if all suggestions are good, 0.0 if none are.
+#         "Severity Classification Accuracy": Are the severity labels correct based on these rules: Critical means the code WILL crash or produce wrong results every time. High means it will crash or misbehave under common conditions. Medium means it works but has a clear quality or safety problem. Low means it works fine but could be cleaner. Score 1.0 if all labels are correct, 0.0 if all are wrong.
+        
+#         Return ONLY JSON: {{"Issue Detection Accuracy": float, "False Positive Rate": float, "Suggestion Quality": float, "Severity Classification Accuracy": float}}
+#         """
+#         judge_res = ask_groq_judge("You are a strict code evaluator.", prompt)
+        
+#         res_dict = {
+#             "name": test_file.name,
+#             "Response Time": duration
+#         }
+#         res_dict.update(judge_res)
+#         # Handle failures in API
+#         for k in ["Issue Detection Accuracy", "False Positive Rate", "Suggestion Quality", "Severity Classification Accuracy"]:
+#             if k not in res_dict: res_dict[k] = 0.0
+            
+#         results.append(res_dict)
+        
+#     return results
 
 
 # def test_analyze(test_cases_dir):
@@ -265,8 +265,8 @@ def test_reviewer(test_cases_dir):
 def main():
     test_cases_dir = PROJECT_ROOT / "tests" / "ai_test_cases"
     
-    # fixer_results = test_fixer(test_cases_dir)
-    reviewer_results = test_reviewer(test_cases_dir)
+    fixer_results = test_fixer(test_cases_dir)
+    # reviewer_results = test_reviewer(test_cases_dir)
     # analyze_results = test_analyze(test_cases_dir)
     # explain_results = test_explain(test_cases_dir)
     
@@ -297,8 +297,8 @@ def main():
         out += "\n"
         return out
         
-    # report += format_results("Code Debugging (Fixer)", fixer_results)
-    report += format_results("Code Review", reviewer_results)
+    report += format_results("Code Debugging (Fixer)", fixer_results)
+    # report += format_results("Code Review", reviewer_results)
     # report += format_results("Analyze Code", analyze_results)
     # report += format_results("Explain Code", explain_results)
     

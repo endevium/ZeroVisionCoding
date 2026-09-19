@@ -2,47 +2,70 @@ question_id,question,answer
 Q001,hi,"Hello, I'm Zero! How can I help you today?"
 Q002,hello,"Hi, I'm Zero! How can I help you today?"
 Q003,hey,"Hey, I'm Zero! What would you like to do?"
-Q004,what's your name,"My name is Zero. I'm here to assist you with coding by voice."
+Q004,what's your name,My name is Zero. I'm here to assist you with coding by voice.
 Q005,available commands,"You can say things like: move to line ten, run program, stop program, save file, open file, explain this function, or list commands."
-Q006,list commands,"Available commands: move to line X, go to definition, run program, stop program, save file, open file, close file, explain code."
-Q007,what can you do,"I can navigate code, run and stop programs, explain code snippets, and speak editor changes."
-Q008,repeat that,"Sure, I'll repeat: %last_spoken%"
-Q009,say that again,"Okay, repeating now: %last_spoken%"
-Q010,goodbye,"Goodbye. If you need me, just say a command"
-Q011,thanks,You're welcome
-Q012,thank you,No problem! I'm glad to help.
-Q018,debug,Triggering F5 (start debugging).
-Q023,close editor,Closing the current editor window.
-Q030,find function,Searching for the function by name — please say the function name.
-Q031,find variable,Searching for the variable — please say its name.
-Q032,select line,Selecting the current line.
-Q033,delete line,Deleting the current line.
-Q034,insert new line,Inserting a new blank line below the cursor.
-Q035,undo,Undo the last edit.
-Q036,redo,Redo the last undone edit.
-Q037,search,Searching in the workspace — please say the search term.
-Q039,next error,Moving to the next error.
-Q040,previous error,Moving to the previous error.
-Q041,explain code,Please specify which function or selection to explain.
-Q042,explain this function,Explaining the current function.
-Q043,read line,Reading the current line.
-Q044,read file,Reading the file from top to bottom (or specify lines).
-Q045,what line am i on,You are on line %current_line%.
-Q046,show current line,The current line is: %line_text%.
-Q047,how to run,Say 'run program'.
-Q048,how to stop,Say 'stop program' to terminate the running program.
-Q049,how to move to a line,"Say 'move to line' followed by a number, for example: move to line 42."
-Q051,switch file,Switching files — say the file name to open.
-Q052,open recent,Listing recent files — please choose one.
-Q053,show errors,There are errors: %error_summary%.
-Q054,what errors do i have,There are %error_count% errors. Say 'show errors' to list them.
-Q059,where am i,You are in the editor at line %current_line% of %filename%.
-Q060,good morning,Good morning. How can I assist you with your code today?
-Q061,good night,Good night. See you next time.
-Q063,what is zero,"Zero is a voice assistant for coding; I help navigate, run, and explain code."
-Q064,thanks for the help,You're welcome. Happy coding.
-Q071,where is my cursor,"Your cursor is at line %current_line%, column %current_column%."
-Q072,select word,Selecting the word under the cursor.
-Q073,select next word,Selecting the next word.
-Q074,show current function,Reading the function signature and its docstring.
-Q075,explain selection,Explaining the selected code.
+Q006,what can you do,"I can navigate code, run and stop programs, explain code snippets, and speak editor changes."
+Q007,goodbye,"Goodbye. If you need me, just say a command"
+Q008,thanks,You're welcome
+Q009,thank you,No problem! I'm glad to help.
+Q010,how to run,Say 'run program'.
+Q011,how to stop,Say 'stop program' to terminate the running program.
+Q012,how to move to a line,"Say 'move to line' followed by a number, for example: move to line 42."
+Q013,good morning,Good morning. How can I assist you with your code today?
+Q014,good night,Good night. See you next time.
+Q015,what is zero,"Zero is a voice assistant for coding; I help navigate, run, and explain code."
+Q016,thanks for the help,You're welcome. Happy coding.
+Q017,what does code review do,"Code review checks your code for possible issues, mistakes, and areas for improvement, then gives suggestions through audio feedback."
+Q018,how to use code review,"Open the Python code you want to review, then say 'review my code'. Zero Vision Coding sends the relevant code to the AI and reads the review through audio feedback."
+Q019,what is code analysis,"Code analysis examines your code to identify possible problems, patterns, or areas that may need attention."
+Q020,how to analyze code,"Open or select the code you want to analyze, then use the code analysis voice command. Zero Vision Coding sends the relevant code to the AI and provides the result through audio feedback."
+Q021,analyze my code,Analyzing the relevant code. Please wait for the AI response.
+Q022,what does code explanation do,Code explanation describes what the selected code or function does in simpler terms and provides the explanation through audio feedback.
+Q023,how to explain code,"Select the code or place the cursor in the function you want explained, then say 'explain code' or 'explain this function'."
+Q024,what does code fixing do,Code fixing uses the AI to identify a programming error and suggest or apply a correction based on the available code and error information.
+Q025,how to fix code,Place the cursor on the code with the error and request code fixing. Zero Vision Coding uses the available code and error information to generate a correction.
+Q026,what does debugging do,Debugging starts the Visual Studio Code debugging process so you can investigate problems while the program is running.
+Q027,how to debug,Say 'debug' to start the Visual Studio Code debugging process.
+Q028,what does explain selection do,Explain selection reads the selected code and asks the AI to describe what it does.
+Q029,how to explain a selection,"Select the code you want explained, then say 'explain selection'."
+Q030,what does move to line do,Move to line takes the cursor directly to a specific line number in the current file.
+Q031,how to move to line,"Say 'move to line' followed by the line number, for example, 'move to line 42'."
+Q032,what does where am i do,Where am I tells you where your cursor is located.
+Q033,how do i know where i am,Say 'where am I' to hear the current file and cursor line.
+Q034,how to check my current line,Say 'what line am I on' to hear the current line number.
+Q035,what does delete line do,Delete line removes the line where the cursor is currently located.
+Q036,how to delete a line,"Place the cursor on the line you want to remove, then say 'delete line'."
+Q037,what does insert new line do,Insert new line adds a blank line below the current cursor position.
+Q038,how to insert a new line,"Place the cursor where you want the new line, then say 'insert new line'."
+Q039,what does undo do,Undo reverses the most recent edit.
+Q040,how to undo,Say 'undo' to reverse the last edit.
+Q041,what does redo do,Redo restores the most recent edit that was undone.
+Q042,how to redo,Say 'redo' to restore the last undone edit.
+Q043,what does run program do,Run program starts the current Python program so you can test its behavior.
+Q044,how to run a program,"Make sure the Python file is ready, then say 'run program'."
+Q045,what does stop program do,Stop program terminates the currently running program.
+Q046,how to stop a program,Say 'stop program' while the program is running.
+Q047,what does save file do,Save file saves the current file and its latest changes.
+Q048,how to save a file,Say 'save file' to save the current file.
+Q049,what does open file do,Open file opens a file so you can work with it in Visual Studio Code.
+Q050,how to open a file,Say 'open file' and provide the file name when requested.
+Q051,what does close file do,Close file closes the current editor file.
+Q052,how to close a file,Say 'close file' to close the current editor file.
+Q053,what happens if my voice command is not recognized,Zero Vision Coding should tell you that the command was not recognized and allow you to try again or ask for help.
+Q054,voice command not recognized,I didn't recognize that command. Please try again or say 'help' for available commands.
+Q055,what should i do if the ai has no code,"Make sure the relevant Python code or selection is available in Visual Studio Code, then try the AI command again."
+Q056,ai cannot process my request,"Check that Zero Vision Coding and its required services are running, make sure relevant code is available, and try the request again."
+Q057,what should i do if i forget a command,Say 'help' or 'available commands' to hear the supported commands.
+Q058,how do i get help,Say 'help' to hear available commands and examples.
+Q059,why did the system not do anything after my command,The command may not have been recognized or the required resource may be unavailable. Try the command again or say 'list commands' for supported commands.
+Q060,what programming language does zero vision coding support,Zero Vision Coding currently focuses on Python programming.
+Q061,what editor does zero vision coding use,Zero Vision Coding is designed to work within Visual Studio Code.
+Q062,does zero vision coding support frontend development,Zero Vision Coding currently focuses on foundational Python programming and does not provide full frontend development support.
+Q063,does zero vision coding support backend development,Zero Vision Coding currently focuses on foundational Python programming and does not provide full backend development support.
+Q064,does zero vision coding need internet,The current Zero Vision Coding setup requires an internet connection for the system's supported online requirements.
+Q065,what ai model does zero vision coding use,Zero Vision Coding uses the locally deployed Qwen2.5-Coder 3B model for AI-assisted programming functions.
+Q066,where does the ai run,The AI model is deployed locally on the computer through the Zero Vision Coding services.
+Q067,what is the braille keyboard for,"The Braille keyboard provides tactile input for entering letters, numbers, and symbols while programming."
+Q068,how do i use the braille keyboard,Use the six-key Braille keyboard to enter Braille combinations. The Arduino Pro Micro converts the key combinations into input for Zero Vision Coding.
+Q069,what does the ai do,"The AI can assist with code analysis, explanation, review, summarization, debugging, and error fixing."
+Q070,can i ask the ai questions,"Yes. Use the supported voice command for the AI function you need, such as explaining, reviewing, analyzing, or fixing code."
