@@ -96,19 +96,16 @@ async function registerExtension() {
 
         if (!res.ok) {
             _registeredOnce = false;
-            output.appendLine(`VS Code registration failed: HTTP ${res.status}`);
             return false;
         }
 
         if (!_registeredOnce) {
-            output.appendLine('VS Code successfully registered');
             _registeredOnce = true;
         }
 
         return true;
     } catch (e) {
         _registeredOnce = false;
-        output.appendLine(`VS Code registration error: ${e?.message ?? String(e)}`);
         return false;
     }
 }
@@ -154,16 +151,12 @@ async function fetchNextCommand() {
         if (res.status === 204) return null;
 
         if (!res.ok) {
-            // This is the bug visibility you need
-            output.appendLine(`[poll] next-command failed: HTTP ${res.status}`);
             return null;
         }
 
         const data = await res.json();
-        output.appendLine(`[poll] got command: ${JSON.stringify(data)}`);
         return data;
     } catch (e) {
-        output.appendLine(`[poll] next-command error: ${e?.message ?? String(e)}`);
         return null;
     }
 }
@@ -420,7 +413,6 @@ async function handleCommand(cmd) {
 
 function activate(context) {
     output = vscode.window.createOutputChannel('Zero Vision Coding');
-    output.appendLine('Activated: zero-vision-coding');
     output.show(true);
 
     extensionStopped = false;
@@ -441,7 +433,6 @@ function activate(context) {
                 if (ok) delayMs = okDelayMs;
                 else delayMs = Math.min(maxDelayMs, Math.max(500, Math.floor(delayMs * 1.6)));
             } catch (e) {
-                output.appendLine(`VS Code registration error: ${e?.message ?? String(e)}`);
                 delayMs = Math.min(maxDelayMs, Math.max(500, Math.floor(delayMs * 1.6)));
             }
 
@@ -454,7 +445,7 @@ function activate(context) {
         try {
             await sendActiveEditorSnapshot();
         } catch (e) {
-            output.appendLine(`Failed to send editor snapshot: ${e?.message ?? String(e)}`);
+            // nothing here
         }
     });
 
@@ -513,7 +504,6 @@ function activate(context) {
 
     // Poll server for commands and execute them
     (async () => {
-        output.appendLine('Command polling started');
         while (!stopped && !extensionStopped) {
             const cmd = await fetchNextCommand();
             if (cmd) await handleCommand(cmd);

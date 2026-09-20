@@ -2,7 +2,7 @@
   "name": "zero-vision-coding",
   "displayName": "Zero Vision Coding",
   "description": "Zero Vision Coding helps visually impaired developers code independently using voice guidance, accessible navigation, and AI-assisted code understanding.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
     "vscode": "^1.108.1"
   },
@@ -15,7 +15,6 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "onCommand:zero-vision-coding.helloWorld",
     "onCommand:zero-vision-coding.runProgram"
   ],
   "main": "./extension.js",
@@ -24,10 +23,6 @@
       {
         "command": "zero-vision-coding.helloWorld",
         "title": "Zero Vision Coding: Hello World"
-      },
-      {
-        "command": "zero-vision-coding.runProgram",
-        "title": "Zero Vision Coding: Run Program"
       }
     ]
   },
