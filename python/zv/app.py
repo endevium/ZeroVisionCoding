@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import queue
 import subprocess
 import json
 import tempfile
@@ -322,8 +323,8 @@ class ZeroVisionAssistant(tk.Tk):
         self._current_voice_index: int = 0
         self._terminal_reader_running = False
         self._terminal_last_text = ""
-        self._terminal_last_out: str = ""   # FIX: initialised here to avoid crash
-        self._terminal_last_err: str = ""   # FIX: initialised here to avoid crash
+        self._terminal_last_out: str = "" 
+        self._terminal_last_err: str = ""  
         self._saved_files: dict[str, str] = {}
         self._pending_overwrite_path: Optional[str] = None
         self._pending_overwrite_name: Optional[str] = None
@@ -343,7 +344,9 @@ class ZeroVisionAssistant(tk.Tk):
         self._typing_letter_flush_after_id: Optional[str] = None
         self._typing_letter_flush_ms: int = 140
         self._startup_connection_announced: bool = False
+        self._keyboard_connection_announced: bool = False
         self._last_editor_version: int = -1
+        self._ui_callbacks: queue.SimpleQueue = queue.SimpleQueue()
 
         # SERVICES
         self.server = ServerProcess()
@@ -365,6 +368,27 @@ class ZeroVisionAssistant(tk.Tk):
         # FIX: set Guy as default voice 500 ms after startup
         self.after(500, self._set_default_voice)
         self.after(0, self._post_init_startup)
+        self.after(50, self._process_ui_callbacks)
+
+    def _dispatch_to_ui(self, callback) -> None:
+        self._ui_callbacks.put(callback)
+
+    def _process_ui_callbacks(self) -> None:
+        if self._closing:
+            return
+
+        while True:
+            try:
+                callback = self._ui_callbacks.get_nowait()
+            except queue.Empty:
+                break
+
+            try:
+                callback()
+            except Exception as exc:
+                print(f"[ui] callback failed: {exc!r}", flush=True)
+
+        self.after(50, self._process_ui_callbacks)
 
     # ── FIX: force Guy (or DEFAULT_VOICE) on startup ───────────────────────
     def _set_default_voice(self) -> None:
@@ -400,7 +424,7 @@ class ZeroVisionAssistant(tk.Tk):
         except Exception:
             pass
 
-        self.interrupt_and_speak("Welcome to Zero Vision Coding. Please wait while we check if you have all the required resources.")
+        self.interrupt_and_speak("Welcome to Zero Vision Coding. I am checking if you have the required resources.")
         self.subLabel.config(text="Checking resources...", fg="yellow")
         self.vscodeLabel.config(text="", fg="white")
         self.arduinoLabel.config(text="", fg="white")
@@ -417,7 +441,6 @@ class ZeroVisionAssistant(tk.Tk):
             self.speech.stop_background()
             self._speech_enabled = False
             self.subLabel.config(text="● Server", fg="white")
-            self.interrupt_and_speak("Voice recognition disabled.")
             return
 
         self._speech_toggle_in_progress = True
@@ -435,7 +458,6 @@ class ZeroVisionAssistant(tk.Tk):
         if started:
             self._speech_enabled = True
             self.subLabel.config(text="● Listening", fg="#55dd55")
-            self.interrupt_and_speak("Voice recognition enabled.")
         else:
             self._speech_enabled = False
             self.subLabel.config(text="● Microphone unavailable", fg="#ff3333")
@@ -508,7 +530,7 @@ class ZeroVisionAssistant(tk.Tk):
         if self._closing:
             return
 
-        self.interrupt_and_speak("Welcome to Zero Vision Coding. All required resources are downloaded and ready.")
+        self.interrupt_and_speak("All required resources are downloaded and ready.")
         
         self._speech_toggle_in_progress = True
         def _start() -> None:
@@ -676,6 +698,10 @@ class ZeroVisionAssistant(tk.Tk):
 
         if self._arduino_connected:
             self.arduinoLabel.config(text=f"● Braille Keyboard", fg="lightgreen")
+            if not self._keyboard_connection_announced:
+                self._keyboard_connection_announced = True
+                sfx.play_ding()
+                self.after(140, lambda: self.interrupt_and_speak("Braille keyboard connected"))
         else:
             self.arduinoLabel.config(text="● Braille Keyboard", fg="red")
 
@@ -1310,7 +1336,7 @@ class ZeroVisionAssistant(tk.Tk):
         # FIX: added explain, fix it, find errors commands that were missing
         self.interrupt_and_speak(
             "Commands: where am I, what file is this, read the whole thing, "
-            "save, save as, create new file, move to line, open file, run code, find errors in the code, analyze the code, "
+            "save, save as, create new file, move to line, go to the editor, go to the terminal, open file, run code, find errors in the code, analyze the code, "
             "explain function, explain class, explain for loop, "
             "fix it, change voice, speak faster, speak slower, close the app."
         )
@@ -1427,7 +1453,7 @@ class ZeroVisionAssistant(tk.Tk):
                         msg = "\n".join(new_parts)
                         if len(msg) > 800:
                             msg = msg[-800:]
-                        self.after(0, lambda t=msg: self.speak(t))
+                        self._dispatch_to_ui(lambda t=msg: self.speak(t))
 
                     exit_code = snap.get("exit_code")
                     finished = bool(snap.get("finished") or snap.get("done") or (exit_code is not None))
@@ -1449,20 +1475,18 @@ class ZeroVisionAssistant(tk.Tk):
                                 }
                                 self._awaiting_fix_offer = True
                                 loc = f"line {parsed.line}" + (f", column {parsed.column}" if parsed.column else "")
-                                self.after(
-                                    0,
+                                self._dispatch_to_ui(
                                     lambda m=parsed.message, l=loc: self.interrupt_and_speak(
                                         f"There is an error at {l}. {m}. Do you want me to fix it? Say yes or no."
-                                    ),
+                                    )
                                 )
                             else:
                                 self._pending_fix_request = {"path": "", "line": 0, "column": None, "stderr": combined_err}
                                 self._awaiting_fix_offer = True
-                                self.after(
-                                    0,
+                                self._dispatch_to_ui(
                                     lambda: self.interrupt_and_speak(
                                         "Your program failed. Do you want me to try to fix it? Say yes or no."
-                                    ),
+                                    )
                                 )
                             return
 
@@ -1475,10 +1499,10 @@ class ZeroVisionAssistant(tk.Tk):
                             if delta:
                                 if len(delta) > 900:
                                     delta = delta[-900:]
-                                self.after(0, lambda t=delta: self.interrupt_and_speak(t))
+                                self._dispatch_to_ui(lambda t=delta: self.interrupt_and_speak(t))
                                 self._terminal_last_out = out
 
-                        self.after(0, lambda c=code_i: self.speak(f"Program finished with exit code {c}."))
+                            self._dispatch_to_ui(lambda c=code_i: self.speak(f"Program finished with exit code {c}."))
                         return
 
                     time.sleep(0.4)
@@ -1568,14 +1592,42 @@ class ZeroVisionAssistant(tk.Tk):
             return
 
         self.interrupt_and_speak("Generating fix, please wait.")
-        self.client.enqueue_command("open_file", {"path": path})
 
         def _do() -> None:
             try:
+                # Opening a file is queued for the extension, so wait for it
+                # before reading the editor. Otherwise the fixer can receive
+                # the previously active file and generate no applicable fix.
+                open_response = self.client.enqueue_command("open_file", {"path": path})
+                open_id = open_response.get("id")
+                if not open_id:
+                    self.after(0, lambda: self.interrupt_and_speak("I could not open the file to fix."))
+                    return
+
+                open_result = {}
+                start = time.time()
+                while time.time() - start < 12.0:
+                    open_result = self.client.command_result(str(open_id))
+                    if "ok" in open_result:
+                        break
+                    time.sleep(0.3)
+
+                if not open_result.get("ok"):
+                    message = str(open_result.get("message") or "").strip()
+                    spoken = "I could not open the file to fix."
+                    if message:
+                        spoken += f" {message}"
+                    self.after(0, lambda spoken=spoken: self.interrupt_and_speak(spoken))
+                    return
+
                 ed = self.client.editor()
                 original_code = str(ed.get("text") or "")
                 if not original_code.strip():
                     original_code = str(req.get("code") or "")
+
+                if not original_code.strip():
+                    self.after(0, lambda: self.interrupt_and_speak("The file is empty, so I could not generate a fix."))
+                    return
 
                 fix = self.client.fix_python_error(code=original_code, error=err)
                 new_content = str(fix.get("content") or "")

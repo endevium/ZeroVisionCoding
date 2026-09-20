@@ -144,8 +144,10 @@ EXPLAIN_SYMBOL_PROMPT = (
 ''' FOR AI-ASSISTED DEBUGGING '''
 FIX_PYTHON_ERROR_PROMPT = (
     "You are an expert Python debugging assistant.\n"
-    "You will receive Python code and a traceback.\n"
-    "Identify the exact line causing the error and propose the smallest possible fix.\n"
+    "You will receive Python code and an error report. The report may be a Python traceback, a syntax error, "
+    "a runtime error, or a static type-checker diagnostic such as Pyright output.\n"
+    "Identify the exact line causing the error and propose the smallest possible fix. For a type-checker diagnostic, "
+    "fix the incompatible expression or annotation while preserving the intended behavior.\n"
     "\n"
     "RULES:\n"
     "- Preserve the original program logic.\n"
@@ -576,7 +578,11 @@ def _apply_code_replacement(code: str, search: str, replace: str, err_line: Opti
     return code, False
 
 
-def _fix_common_syntax_typo(code: str, err_line: Optional[int]) -> tuple[str, bool]:
+def _fix_common_syntax_typo(
+    code: str,
+    err_line: Optional[int],
+    error_message: str = "",
+) -> tuple[str, bool]:
     import re
 
     code_norm = code.replace("\r\n", "\n")
@@ -590,6 +596,39 @@ def _fix_common_syntax_typo(code: str, err_line: Optional[int]) -> tuple[str, bo
         new_line = re.sub(r'=\s*[/m+*\-@%]\s*', '= ', line)
         if new_line != line:
             lines[idx] = new_line
+            return "\n".join(lines), True
+
+    if "unterminated string" in error_message.lower():
+        for idx in target_indices:
+            line = lines[idx]
+            quote: Optional[str] = None
+            escaped = False
+            for character in line:
+                if escaped:
+                    escaped = False
+                    continue
+                if character == "\\":
+                    escaped = True
+                    continue
+                if quote is None and character in ("'", '"'):
+                    quote = character
+                elif quote == character:
+                    quote = None
+
+            if quote is None:
+                continue
+
+            closing_index = len(line)
+            while closing_index > 0 and line[closing_index - 1].isspace():
+                closing_index -= 1
+            if closing_index > 0 and line[closing_index - 1] in ")]}":
+                lines[idx] = (
+                    line[: closing_index - 1]
+                    + quote
+                    + line[closing_index - 1 :]
+                )
+            else:
+                lines[idx] = line + quote
             return "\n".join(lines), True
 
     return code, False
@@ -663,7 +702,11 @@ def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.1, num
 
         # Fallback: try deterministic syntax typo repair if LLM replacement didn't apply
         if not applied_this_pass:
-            new_code, ok = _fix_common_syntax_typo(current_code, err_line)
+            new_code, ok = _fix_common_syntax_typo(
+                current_code,
+                err_line,
+                error_message=current_error,
+            )
             if ok:
                 current_code = new_code
                 applied_this_pass = True

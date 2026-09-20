@@ -27,6 +27,39 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         value = value.strip(" .,!?:;")
         return value in ("no", "nope", "revert", "undo", "wrong", "cancel", "take it back", "discard")
 
+    def _spoken_line_number(value: str) -> int | None:
+        value = value.lower().strip(" .,!?:;")
+        if value.isdigit():
+            return int(value)
+
+        small_numbers = {
+            "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4,
+            "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+            "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+            "fourteen": 14, "fifteen": 15, "sixteen": 16,
+            "seventeen": 17, "eighteen": 18, "nineteen": 19,
+        }
+        if value in small_numbers:
+            return small_numbers[value]
+
+        tens = {
+            "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+            "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+        }
+        parts = value.replace("-", " ").split()
+        if len(parts) == 1 and parts[0] in tens:
+            return tens[parts[0]]
+        if len(parts) == 2 and parts[0] in tens and parts[1] in small_numbers:
+            return tens[parts[0]] + small_numbers[parts[1]]
+        return None
+
+    if getattr(app, "_awaiting_line_number", False):
+        line_number = _spoken_line_number(t)
+        if line_number is not None:
+            app._awaiting_line_number = False
+            _handle_move_to_line(app, line_number)
+            return
+
     explain_triggers: list[tuple[str, str]] = [
         ("explain function", "function"),
         ("explain the function", "function"),
@@ -116,13 +149,24 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
             return
 
     # Cursor navigation
-    move_to_line_match = re.search(r"\b(?:move|go|jump)\s+to\s+line\s+(\d+)\b", t)
+    move_to_line_match = re.search(r"\b(?:move|go|jump)\s+to\s+line\s+(.+?)\s*$", t)
     if move_to_line_match:
-        line_number = int(move_to_line_match.group(1))
-        _handle_move_to_line(app, line_number)
-        return
+        line_number = _spoken_line_number(move_to_line_match.group(1))
+        if line_number is not None:
+            app._awaiting_line_number = False
+            _handle_move_to_line(app, line_number)
+            return
     if any(phrase in t for phrase in ("move to line", "go to line", "jump to line")):
+        app._awaiting_line_number = True
         app.interrupt_and_speak("Please say a line number. For example, move to line 3.")
+        return
+
+    if any(phrase in t for phrase in ("go to the editor", "go to editor", "focus the editor", "focus editor")):
+        _handle_focus_command(app, "focus_editor", "editor")
+        return
+
+    if any(phrase in t for phrase in ("go to the terminal", "go to terminal", "focus the terminal", "focus terminal", "go to the pseudoterminal", "go to pseudoterminal", "go to the pseudo terminal", "go to pseudo terminal", "focus the pseudoterminal", "focus pseudo terminal")):
+        _handle_focus_command(app, "focus_terminal", "terminal")
         return
 
     # Navigation / readout
@@ -240,21 +284,6 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
     if ("review my code" in t) or (("review" in t) and ("code" in t)):
         _handle_code_review(app)
         return
-    
-    # Tutorial Mode
-    if ("enter tutorial mode" in t) or ("tutorial mode" in t) or (("tutorial") and (("mode") in t)):
-        app.interrupt_and_speak("You have entered tutorial mode. This mode will help you learn how to use Zero Vision Coding and the fundamentals of Zero Vision Coding. Say 'list lessons' to hear the available lessons, or say a lesson name to begin. To exit tutorial mode, say 'exit tutorial mode'.")
-        return
-    
-    # List of lessons
-    if ("list lessons" in t) or ("what are the lessons" in t) or ("list all lessons" in t) or ("what are all the lessons" in t):
-        app.interrupt_and_speak("The available lessons are 'Lesson 1: Get Started', 'Lesson 2: Braille Keyboard', 'Lesson 3: Voice Commands', 'Lesson 4: Python Basics', 'Lesson 5: Variables', 'Lesson 6: Conditionals', 'Lesson 7: Loops'")
-        return
-    
-    # Exit Tutorial Mode
-    if ("exit tutorial mode" in t) or ("exit tutorial" in t) or ("stop tutorial" in t) or ("end tutorial" in t):
-        app.interrupt_and_speak("You have exited tutorial mode.")
-        return
 
 
     def _do_llm() -> None:
@@ -338,6 +367,17 @@ def _handle_move_to_line(app: "ZeroVisionAssistant", line_number: int) -> None:
     else:
         message = str(result.get("message") or "").strip()
         app.interrupt_and_speak(f"I could not move to line {line_number}." + (f" {message}" if message else ""))
+
+
+def _handle_focus_command(app: "ZeroVisionAssistant", command_type: str, name: str) -> None:
+    response = app.client.enqueue_command(command_type, {})
+    command_id = response.get("id")
+    if not command_id:
+        app.interrupt_and_speak(f"I could not go to the {name}.")
+        return
+
+    result = _wait_command_result(app, str(command_id), timeout_s=10.0)
+    app.interrupt_and_speak(f"Moved to the {name}." if result.get("ok") else f"I could not go to the {name}.")
 
 
 def _handle_pending_overwrite(app: "ZeroVisionAssistant", t: str) -> None:
