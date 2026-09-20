@@ -2,7 +2,7 @@
   "name": "zero-vision-coding",
   "displayName": "Zero Vision Coding",
   "description": "Zero Vision Coding helps visually impaired developers code independently using voice guidance, accessible navigation, and AI-assisted code understanding.",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "engines": {
     "vscode": "^1.108.1"
   },

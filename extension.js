@@ -275,6 +275,18 @@ async function handleCommand(cmd) {
             return;
         }
 
+        if (type === 'focus_editor') {
+            await vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup');
+            await postCommandResult(id, true, 'Focused editor');
+            return;
+        }
+
+        if (type === 'focus_terminal') {
+            await vscode.commands.executeCommand('workbench.action.terminal.focus');
+            await postCommandResult(id, true, 'Focused terminal');
+            return;
+        }
+
         if (type === 'open_file') {
             const targetPath = String(payload.path || '').trim();
             if (!targetPath) {
@@ -524,16 +536,41 @@ async function terminalFinish(exitCode) {
 function runPythonCaptured(filePath) {
     const writeEmitter = new vscode.EventEmitter();
     const closeEmitter = new vscode.EventEmitter();
+    let child = null;
 
     const pty = {
         onDidWrite: writeEmitter.event,
         onDidClose: closeEmitter.event,
+        handleInput: (data) => {
+            if (!child?.stdin?.writable) {
+                return;
+            }
+
+            try {
+                // VS Code may send \r for Enter.
+                // Python's stdin works correctly with \n.
+                const input = data === '\r' ? '\n' : data;
+
+                child.stdin.write(input);
+
+                // Echo what the user typed into the custom terminal.
+                writeEmitter.fire(
+                    input.replace(/\r?\n/g, '\r\n')
+                );
+            } catch (error) {
+                console.error('Failed to write to Python stdin:', error);
+            }
+        },
         open: async () => {
             const cmdLine = `py "${filePath}"\r\n`;
             writeEmitter.fire(`Zero Vision Coding runner\r\n> ${cmdLine}\r\n`);
             await terminalReset(`py "${filePath}"`);
 
-            const child = spawn('py', [filePath], { cwd: require('path').dirname(filePath) });
+            child = spawn('py', [filePath], {
+                cwd: require('path').dirname(filePath),
+                stdio: ['pipe', 'pipe', 'pipe']
+            });
+            runningChild = child;
 
             child.stdout.on('data', (buf) => {
                 const s = buf.toString('utf8');
@@ -548,6 +585,9 @@ function runPythonCaptured(filePath) {
             });
 
             child.on('close', (code) => {
+                if (runningChild === child) {
+                    runningChild = null;
+                }
                 writeEmitter.fire(`\r\n[process exited with code ${code ?? 0}]\r\n`);
                 terminalFinish(code ?? 0);
             });
@@ -555,8 +595,11 @@ function runPythonCaptured(filePath) {
         close: () => {
             // If terminal is closed manually, stop the running program
             try {
+                if (child) {
+                    child.kill();
+                    child = null;
+                }
                 if (runningChild) {
-                    runningChild.kill();
                     runningChild = null;
                 }
             } catch {}
