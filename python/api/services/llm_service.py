@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import logging
+import random
 import sys
 import os
 import threading
@@ -9,7 +10,6 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_UNCLEAR_RESPONSE_INDEX = 0
 _UNCLEAR_RESPONSE_LOCK = threading.Lock()
 _UNCLEAR_RESPONSES = (
     "Sorry, I didn't quite catch that. Can you repeat?",
@@ -26,14 +26,9 @@ _UNCLEAR_RESPONSES = (
 
 
 def unclear_response() -> str:
-    """Return a different natural clarification prompt on each call."""
-    global _UNCLEAR_RESPONSE_INDEX
+    """Return one randomly selected natural clarification prompt."""
     with _UNCLEAR_RESPONSE_LOCK:
-        response = _UNCLEAR_RESPONSES[_UNCLEAR_RESPONSE_INDEX]
-        _UNCLEAR_RESPONSE_INDEX = (
-            _UNCLEAR_RESPONSE_INDEX + 1
-        ) % len(_UNCLEAR_RESPONSES)
-    return response
+        return random.choice(_UNCLEAR_RESPONSES)
 
 # ---------------------------------------------------------------------------
 # Model configuration
