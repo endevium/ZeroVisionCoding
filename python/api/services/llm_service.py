@@ -3,10 +3,37 @@ import json
 import logging
 import sys
 import os
+import threading
 from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+_UNCLEAR_RESPONSE_INDEX = 0
+_UNCLEAR_RESPONSE_LOCK = threading.Lock()
+_UNCLEAR_RESPONSES = (
+    "Sorry, I didn't quite catch that. Can you repeat?",
+    "Could you say that again?",
+    "Sorry, can you repeat that?",
+    "I didn't understand. Could you explain it again?",
+    "Could you repeat that one more time?",
+    "Sorry, I missed that. Can you say it again?",
+    "Can you go over that again?",
+    "Could you clarify that for me?",
+    "I'm not sure I understood. Can you explain it again?",
+    "Sorry, I didn't hear you clearly. Can you repeat that?",
+)
+
+
+def unclear_response() -> str:
+    """Return a different natural clarification prompt on each call."""
+    global _UNCLEAR_RESPONSE_INDEX
+    with _UNCLEAR_RESPONSE_LOCK:
+        response = _UNCLEAR_RESPONSES[_UNCLEAR_RESPONSE_INDEX]
+        _UNCLEAR_RESPONSE_INDEX = (
+            _UNCLEAR_RESPONSE_INDEX + 1
+        ) % len(_UNCLEAR_RESPONSES)
+    return response
 
 # ---------------------------------------------------------------------------
 # Model configuration
@@ -828,7 +855,7 @@ def chat(message: str) -> dict:
     _ensure_qa_loaded()
     msg = (message or "").strip()
     if not msg:
-        return {"reply": "I'm sorry, I didn't quite get that, can you repeat?", "question_id": None}
+        return {"reply": unclear_response(), "question_id": None}
 
     if _QA_INDEX:
         try:
@@ -846,7 +873,7 @@ def chat(message: str) -> dict:
         except Exception:
             pass
 
-    return {"reply": "I'm sorry, I didn't quite get that, can you repeat?", "question_id": None}
+    return {"reply": unclear_response(), "question_id": None}
 
 def _python_outline(code: str) -> str:
     """

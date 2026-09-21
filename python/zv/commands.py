@@ -564,7 +564,7 @@ def _handle_chat(app: "ZeroVisionAssistant", user_text: str) -> None:
         if reply:
             app.speak(reply)
         else:
-            app.speak("I'm sorry, I didn't quite get that.")
+            app.speak(llm_service.unclear_response())
     except Exception:
         app.speak("Chat failed.")
     

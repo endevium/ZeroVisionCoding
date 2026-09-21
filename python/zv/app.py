@@ -340,6 +340,7 @@ class ZeroVisionAssistant(tk.Tk):
         self._typing_echo_after_id: Optional[str] = None
         self._typing_last_editor_text: str = ""
         self._typing_last_cursor: dict = {}
+        self._typing_last_editor_identity: str = ""
         self._typing_letter_buffer: list[str] = []
         self._typing_letter_flush_after_id: Optional[str] = None
         self._typing_letter_flush_ms: int = 140
@@ -722,6 +723,20 @@ class ZeroVisionAssistant(tk.Tk):
             snapshots = [self.client.editor()]
 
         latest_snapshot: dict = snapshots[-1] if snapshots else {}
+        active_path = str(latest_snapshot.get("path") or "").strip()
+        active_uri = str(latest_snapshot.get("uri") or "").strip()
+        active_identity = active_path or active_uri
+        if active_identity:
+            snapshots = [
+                snapshot
+                for snapshot in snapshots
+                if isinstance(snapshot, dict)
+                and (
+                    str(snapshot.get("path") or "").strip()
+                    or str(snapshot.get("uri") or "").strip()
+                ) == active_identity
+            ]
+
         last_text = getattr(self, "_typing_last_editor_text", "")
         last_version = getattr(self, "_last_editor_version", -1)
 
@@ -733,6 +748,17 @@ class ZeroVisionAssistant(tk.Tk):
                 version = int(snapshot.get("version") or 0)
             except Exception:
                 version = 0
+
+            path = str(snapshot.get("path") or "").strip()
+            uri = str(snapshot.get("uri") or "").strip()
+            editor_identity = path or uri
+            if editor_identity != self._typing_last_editor_identity:
+                # VS Code versions are scoped to a document and can reset
+                # when a newly created file is opened.
+                self._typing_last_editor_identity = editor_identity
+                last_text = ""
+                last_version = -1
+                self._typing_last_editor_fingerprint = ""
 
             if version <= last_version:
                 continue

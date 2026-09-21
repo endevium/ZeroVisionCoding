@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import threading
 import time
-import audioop
 from typing import Callable, Optional
 
 
@@ -80,22 +79,26 @@ class SpeechEngine:
 
         stop_event = threading.Event()
         self._stop_event = stop_event
+        # Give the UI time to finish its "voice recognition enabled" prompt
+        # before microphone input is treated as a user command.
+        listen_ready_at = time.monotonic() + 2.5
 
         def _listen_loop() -> None:
-            last_no_voice = 0.0
             try:
                 with mic as source:
                     while not stop_event.is_set():
+                        remaining = listen_ready_at - time.monotonic()
+                        if remaining > 0:
+                            time.sleep(min(remaining, 0.1))
+                            continue
                         if self._pause_event.is_set():
                             time.sleep(0.1)
                             continue
                         try:
                             audio = recognizer.listen(source, timeout=6, phrase_time_limit=6)
                         except sr.WaitTimeoutError:
-                            now = time.monotonic()
-                            if now - last_no_voice >= 15:
-                                self._report_error("no_voice")
-                                last_no_voice = now
+                            # Silence is normal while voice recognition is enabled.
+                            # Do not interrupt the user with a "no voice" message.
                             continue
 
                         if self._lock.locked():
@@ -103,14 +106,7 @@ class SpeechEngine:
                         with self._lock:
                             try:
                                 raw_audio = audio.get_raw_data()
-                                rms = audioop.rms(raw_audio, audio.sample_width) if raw_audio else 0
                                 duration = len(raw_audio) / max(1, audio.sample_rate * audio.sample_width)
-                                if rms == 0:
-                                    self._report_error("no_voice")
-                                    continue
-                                if rms <= max(120, recognizer.energy_threshold * 1.2):
-                                    self._report_error("too_quiet")
-                                    continue
                                 if self._debug:
                                     print("[speech] recognizing...", flush=True)
                                 started_at = time.monotonic()
@@ -124,10 +120,11 @@ class SpeechEngine:
                                     self._report_error("partial")
                                     continue
                             except sr.UnknownValueError:
-                                if rms > recognizer.energy_threshold * 8:
-                                    self._report_error("background_noise")
-                                else:
-                                    self._report_error("unclear")
+                                # Background noise and the app's own startup
+                                # announcements commonly reach the microphone
+                                # but do not contain a recognizable command.
+                                # Treat that as normal silence instead of
+                                # repeatedly interrupting the user.
                                 continue
                             except sr.RequestError:
                                 self._report_error("processing")
