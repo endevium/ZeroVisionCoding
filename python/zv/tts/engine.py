@@ -21,8 +21,22 @@ _TTS_SPEAKER = None
 
 _SAPI_ASYNC_FLAG = 1
 _SAPI_PURGE_FLAG = 2
+_SAPI_ONLINE_MARKERS = ("online", "naturalvoice", "neural")
 
 _DEBUG_TTS = os.getenv("ZV_DEBUG_TTS", "1").strip().lower() in ("1", "true", "yes", "on")
+
+_KOKORO_ENABLED = os.getenv(
+    "ZERO_VISION_KOKORO_TTS",
+    "1",
+).strip().lower() in ("1", "true", "yes", "on")
+_KOKORO_VOICE = os.getenv(
+    "ZERO_VISION_KOKORO_VOICE",
+    "am_adam",
+).strip() or "am_adam"
+_KOKORO_PIPELINE = None
+_KOKORO_CHECKED = False
+_KOKORO_READY = False
+_KOKORO_LOCK = threading.Lock()
 
 # ── Edge-TTS (online neural voice) ─────────────────────────────────────────
 # FIX: default changed to "1" so Guy neural voice works out of the box.
@@ -121,6 +135,92 @@ def _is_probably_mp3(path: str) -> bool:
         return False
 
 
+# ── Kokoro offline neural TTS ──────────────────────────────────────────────
+
+def _kokoro_voice(voice: Optional[str]) -> str:
+    candidate = (voice or "").strip()
+    if re.fullmatch(r"[a-z]{2}_[a-z0-9_]+", candidate, re.IGNORECASE):
+        return candidate
+    return _KOKORO_VOICE
+
+
+def _is_local_sapi_voice(description: str) -> bool:
+    lowered = description.lower()
+    return not any(marker in lowered for marker in _SAPI_ONLINE_MARKERS)
+
+
+def _kokoro_spoken_text(text: str) -> str:
+    stripped = text.strip()
+    if len(stripped) == 1 and stripped.isalpha():
+        return f"the letter {stripped.upper()}"
+    return text
+
+
+def _speak_text_kokoro(
+    text: str,
+    *,
+    wait: bool,
+    voice: Optional[str] = None,
+) -> bool:
+    if not _KOKORO_ENABLED:
+        return False
+
+    def _run() -> bool:
+        global _KOKORO_CHECKED, _KOKORO_PIPELINE, _KOKORO_READY
+        try:
+            with _KOKORO_LOCK:
+                if not _KOKORO_CHECKED:
+                    _KOKORO_CHECKED = True
+                    if _DEBUG_TTS:
+                        print("[tts] Kokoro initializing...", flush=True)
+                    from kokoro import KPipeline
+                    import soundfile as sf
+                    _KOKORO_PIPELINE = KPipeline(lang_code="a")
+                    _KOKORO_READY = True
+                    if _DEBUG_TTS:
+                        print(f"[tts] Kokoro ready: {_KOKORO_VOICE}", flush=True)
+                elif not _KOKORO_READY:
+                    return False
+                else:
+                    import soundfile as sf
+
+                selected_voice = _kokoro_voice(voice)
+                wav_path = None
+                try:
+                    fd, wav_path = tempfile.mkstemp(suffix=".wav", prefix="zv_kokoro_")
+                    os.close(fd)
+                    chunks = []
+                    generator = _KOKORO_PIPELINE(
+                        _kokoro_spoken_text(text),
+                        voice=selected_voice,
+                    )
+                    for _, _, audio in generator:
+                        chunks.append(audio)
+                    if not chunks:
+                        raise RuntimeError("Kokoro produced no audio")
+
+                    import numpy as np
+                    audio = np.concatenate([np.asarray(chunk) for chunk in chunks])
+                    sf.write(wav_path, audio, 24000)
+                    if _DEBUG_TTS:
+                        print(f"[tts] Kokoro speaking: {selected_voice}", flush=True)
+                    _mci_play_sync(wav_path)
+                    return True
+                finally:
+                    if wav_path and os.path.exists(wav_path):
+                        os.remove(wav_path)
+        except Exception as e:
+            _KOKORO_READY = False
+            if _DEBUG_TTS:
+                print(f"[tts] Kokoro failed: {e!r}", flush=True)
+            return False
+
+    if wait:
+        return _run()
+    threading.Thread(target=_run, daemon=True).start()
+    return True
+
+
 # ── Edge-TTS neural voice ───────────────────────────────────────────────────
 
 def _pick_edge_voice(voice: Optional[str]) -> str:
@@ -161,7 +261,7 @@ def _speak_text_ai_edge(text: str, voice: Optional[str], *, wait: bool) -> bool:
 
     selected_voice = _pick_edge_voice(voice)
 
-    def _run_ai() -> None:
+    def _run_ai() -> bool:
         global _AI_TTS_PROC
         media_path = None
         wav_path = None
@@ -196,13 +296,13 @@ def _speak_text_ai_edge(text: str, voice: Optional[str], *, wait: bool) -> bool:
             if rc != 0:
                 if _DEBUG_TTS:
                     print(f"[tts] edge-tts failed rc={rc} stderr:\n{err}", flush=True)
-                return
+                return False
 
             if not (media_path and _is_probably_mp3(media_path)):
                 if _DEBUG_TTS:
                     size = os.path.getsize(media_path) if media_path and os.path.exists(media_path) else -1
                     print(f"[tts] edge-tts produced invalid mp3 (size={size}):\n{err}", flush=True)
-                return
+                return False
 
             # Convert MP3 → WAV via ffmpeg, then play via MCI
             ff = shutil.which("ffmpeg") or shutil.which("ffmpeg.exe")
@@ -223,10 +323,12 @@ def _speak_text_ai_edge(text: str, voice: Optional[str], *, wait: bool) -> bool:
                 if _DEBUG_TTS:
                     print("[tts] ffmpeg not found — attempting direct mp3 play", flush=True)
                 _play_mp3_sync(media_path)
+            return True
 
         except Exception as e:
             if _DEBUG_TTS:
-                print(f"[tts] edge-tts run failed: {e!r}", flush=True)
+                print(f"[tts] Edge-TTS failed: {e!r}", flush=True)
+            return False
         finally:
             for p in (media_path, wav_path):
                 try:
@@ -238,7 +340,7 @@ def _speak_text_ai_edge(text: str, voice: Optional[str], *, wait: bool) -> bool:
                 _AI_TTS_PROC = None
 
     if wait:
-        _run_ai()
+        return _run_ai()
     else:
         threading.Thread(target=_run_ai, daemon=True).start()
     return True
@@ -325,7 +427,7 @@ def _speak_text_piper(text: str, *, wait: bool) -> bool:
     if not onnx_path or not json_path:
         return False
 
-    def _run_piper() -> None:
+    def _run_piper() -> bool:
         wav_path = None
         try:
             fd, wav_path = tempfile.mkstemp(suffix=".wav", prefix="zv_piper_")
@@ -367,10 +469,13 @@ def _speak_text_piper(text: str, *, wait: bool) -> bool:
 
             if wav_path and os.path.exists(wav_path) and os.path.getsize(wav_path) > 100:
                 _mci_play_sync(wav_path)
+                return True
+            return False
 
         except Exception as e:
             if _DEBUG_TTS:
-                print(f"[tts] piper synthesis failed: {e!r}", flush=True)
+                print(f"[tts] Piper failed: {e!r}", flush=True)
+            return False
         finally:
             if wav_path and os.path.exists(wav_path):
                 try:
@@ -379,13 +484,13 @@ def _speak_text_piper(text: str, *, wait: bool) -> bool:
                     pass
 
     if wait:
-        _run_piper()
+        return _run_piper()
     else:
         threading.Thread(target=_run_piper, daemon=True).start()
     return True
 
 
-def speak_text_windows(
+def _speak_text_windows_sync(
     text: str,
     rate: int = 0,
     volume: int = 100,
@@ -394,11 +499,21 @@ def speak_text_windows(
     wait: bool = False,
     prefer_local_sapi: bool = False,
 ) -> None:
-    text = (text or "").strip()
-    if not text:
+    # 1) Kokoro offline neural voice.
+    if _speak_text_kokoro(text=text, wait=True, voice=voice):
         return
 
-    # 1) Use Windows SAPI first again. Piper is opt-in only now.
+    # 2) Piper offline neural voice.
+    if _PIPER_ENABLED:
+        try:
+            if _speak_text_piper(text=text, wait=True):
+                return
+        except Exception as e:
+            if _DEBUG_TTS:
+                print(f"[tts] Piper failed: {e!r}", flush=True)
+
+    # 3) Local Windows SAPI voice. A requested Windows voice is allowed here,
+    # but Kokoro never receives that name.
     if os.name == "nt":
         try:
             import win32com.client  # type: ignore
@@ -411,57 +526,64 @@ def speak_text_windows(
             speaker.Rate = int(rate)
             speaker.Volume = int(volume)
 
-            # FIX: use _SAPI_FALLBACK_VOICE ("Guy") when no specific voice passed
             target_voice = voice or _SAPI_FALLBACK_VOICE
+            selected_voice = False
             if target_voice:
                 try:
                     for v in speaker.GetVoices():
-                        if target_voice.lower() in v.GetDescription().lower():
+                        description = str(v.GetDescription())
+                        if (
+                            _is_local_sapi_voice(description)
+                            and target_voice.lower() in description.lower()
+                        ):
                             speaker.Voice = v
+                            selected_voice = True
                             if _DEBUG_TTS:
-                                print(f"[tts] SAPI voice set to: {v.GetDescription()}", flush=True)
+                                print(f"[tts] SAPI voice set to: {description}", flush=True)
                             break
                 except Exception as e:
                     if _DEBUG_TTS:
                         print(f"[tts] SAPI voice selection failed: {e!r}", flush=True)
 
+            if not selected_voice:
+                for v in speaker.GetVoices():
+                    description = str(v.GetDescription())
+                    if _is_local_sapi_voice(description):
+                        speaker.Voice = v
+                        selected_voice = True
+                        if _DEBUG_TTS:
+                            print(f"[tts] SAPI local fallback voice: {description}", flush=True)
+                        break
+            if not selected_voice:
+                raise RuntimeError("No local SAPI voice is installed")
+
             flags = 0 if wait else _SAPI_ASYNC_FLAG
             speaker.Speak(text, flags)
+            if _DEBUG_TTS:
+                print("[tts] SAPI", flush=True)
             return
         except Exception as e:
             if _DEBUG_TTS:
                 print(f"[tts] SAPI failed: {e!r}", flush=True)
 
-    # 2) Try Piper only when explicitly enabled.
-    if _PIPER_ENABLED:
+    # 4) Edge-TTS online fallback.
+    if not prefer_local_sapi:
         try:
-            if _speak_text_piper(text=text, wait=wait):
+            if _speak_text_ai_edge(text=text, voice=voice, wait=True):
                 return
         except Exception as e:
             if _DEBUG_TTS:
-                print(f"[tts] piper-tts raised: {e!r}", flush=True)
+                print(f"[tts] Edge-TTS failed: {e!r}", flush=True)
 
-    # 3) Try edge-tts neural voice (online fallback if SAPI/Piper unavailable)
-    if os.name == "nt" and not prefer_local_sapi:
-        try:
-            if _speak_text_ai_edge(text=text, voice=voice, wait=wait):
-                return
-        except Exception as e:
-            if _DEBUG_TTS:
-                print(f"[tts] edge-tts raised: {e!r}", flush=True)
-
-    # 4) PowerShell last resort (no voice selection — system default)
+    # 5) PowerShell last resort (system default voice).
     if _DEBUG_TTS:
-        print("[tts] falling back to PowerShell", flush=True)
+        print("[tts] PowerShell", flush=True)
 
     text_b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
     ps = f"""
 $bytes=[System.Convert]::FromBase64String("{text_b64}")
 $text=[System.Text.Encoding]::UTF8.GetString($bytes)
 $v=New-Object -ComObject SAPI.SpVoice
-$v.GetVoices() | ForEach-Object {{
-    if ($_.GetDescription() -like "*Guy*") {{ $v.Voice = $_ }}
-}}
 $v.Speak($text) | Out-Null
 """.strip()
     encoded = base64.b64encode(ps.encode("utf-16le")).decode("ascii")
@@ -480,10 +602,37 @@ $v.Speak($text) | Out-Null
             with _TTS_LOCK:
                 _TTS_POPEN = None
 
+    _run()
+
+
+def speak_text_windows(
+    text: str,
+    rate: int = 0,
+    volume: int = 100,
+    voice: Optional[str] = None,
+    *,
+    wait: bool = False,
+    prefer_local_sapi: bool = False,
+) -> None:
+    text = (text or "").strip()
+    if not text:
+        return
+
     if wait:
-        _run()
+        _speak_text_windows_sync(
+            text,
+            rate=rate,
+            volume=volume,
+            voice=voice,
+            prefer_local_sapi=prefer_local_sapi,
+        )
     else:
-        threading.Thread(target=_run, daemon=True).start()
+        threading.Thread(
+            target=_speak_text_windows_sync,
+            args=(text, rate, volume, voice),
+            kwargs={"prefer_local_sapi": prefer_local_sapi},
+            daemon=True,
+        ).start()
 
 
 # ── Stop all active TTS ─────────────────────────────────────────────────────
