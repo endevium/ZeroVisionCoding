@@ -16,3 +16,8 @@ huggingface-hub
 piper-tts
 groq
 pyserial
+python-dotenv
+numpy
+kokoro
+soundfile
+pywin32
