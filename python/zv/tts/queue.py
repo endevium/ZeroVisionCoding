@@ -11,7 +11,7 @@ from .engine import speak_text_windows, stop_current_tts
 
 POP_TOKEN = "__ZV_POP__"
 
-QueueItem = Union[str, Tuple[int, str]]  # ("text") or (generation, "text")
+QueueItem = Union[str, Tuple[int, str, str]]  # ("text") or (generation, "text", mode)
 
 
 @dataclass
@@ -52,17 +52,17 @@ class TTSQueue:
             return None
         return self._voice_getter() if self._voice_getter else None
 
-    def enqueue(self, text: str) -> None:
+    def enqueue(self, text: str, *, speech_mode: str = "explanation") -> None:
         if not text:
             return
         with self._gen_lock:
             gen = self._gen
-        self._q.put((gen, text))
+        self._q.put((gen, text, speech_mode))
 
     def enqueue_pop(self) -> None:
         with self._gen_lock:
             gen = self._gen
-        self._q.put((gen, POP_TOKEN))
+        self._q.put((gen, POP_TOKEN, "explanation"))
 
     def clear(self) -> None:
         try:
@@ -77,12 +77,29 @@ class TTSQueue:
             self._gen += 1
         stop_current_tts()
 
-    def interrupt_and_speak(self, text: str) -> None:
+    def interrupt_and_speak(self, text: str, *, speech_mode: str = "explanation") -> None:
         with self._gen_lock:
             self._gen += 1
         stop_current_tts()
         self.clear()
-        speak_text_windows(text, rate=self._rate(), voice=self._voice(), wait=True)
+        speak_text_windows(
+            text,
+            rate=self._rate(),
+            voice=self._voice(),
+            wait=True,
+            speech_mode=speech_mode,
+        )
+
+    def replace_with(self, text: str, *, speech_mode: str = "explanation") -> None:
+        """Replace pending speech with one item from the newest interaction."""
+        if not text:
+            return
+
+        with self._gen_lock:
+            self._gen += 1
+            stop_current_tts()
+            self.clear()
+            self._q.put((self._gen, text, speech_mode))
 
     def stop(self) -> None:
         self.shutdown()
@@ -98,8 +115,13 @@ class TTSQueue:
 
     def _worker(self) -> None:
         while not self._stop:
-            gen, text = self._q.get()
+            item = self._q.get()
             try:
+                if len(item) == 2:
+                    gen, text = item
+                    speech_mode = "explanation"
+                else:
+                    gen, text, speech_mode = item
                 with self._gen_lock:
                     if gen != self._gen:
                         continue
@@ -119,6 +141,7 @@ class TTSQueue:
                     voice=self._voice(),
                     wait=wait_flag,
                     prefer_local_sapi=prefer_local_sapi,
+                    speech_mode=speech_mode,
                 )
                 time.sleep(self.config.gap)
             finally:

@@ -10,8 +10,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_UNCLEAR_RESPONSE_LOCK = threading.Lock()
-_UNCLEAR_RESPONSES = (
+_UNCLEAR_RESPONSES = [
     "Sorry, I didn't quite catch that. Can you repeat?",
     "Could you say that again?",
     "Sorry, can you repeat that?",
@@ -22,13 +21,27 @@ _UNCLEAR_RESPONSES = (
     "Could you clarify that for me?",
     "I'm not sure I understood. Can you explain it again?",
     "Sorry, I didn't hear you clearly. Can you repeat that?",
-)
+]
+
+_last_unclear_response = None
+_UNCLEAR_RESPONSE_LOCK = threading.Lock()
 
 
 def unclear_response() -> str:
-    """Return one randomly selected natural clarification prompt."""
+    """Return exactly ONE randomly selected clarification response."""
+    global _last_unclear_response
+
     with _UNCLEAR_RESPONSE_LOCK:
-        return random.choice(_UNCLEAR_RESPONSES)
+        choices = [
+            response
+            for response in _UNCLEAR_RESPONSES
+            if response != _last_unclear_response
+        ]
+
+        selected = random.choice(choices)
+        _last_unclear_response = selected
+
+        return selected
 
 # ---------------------------------------------------------------------------
 # Model configuration

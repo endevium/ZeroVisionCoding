@@ -15,6 +15,8 @@ from ctypes import wintypes
 from pathlib import Path
 from typing import Optional
 
+from .speech_formatter import format_code, format_explanation
+
 _TTS_LOCK = threading.Lock()
 _TTS_POPEN: Optional[subprocess.Popen] = None
 _TTS_SPEAKER = None
@@ -164,6 +166,9 @@ def _speak_text_kokoro(
 ) -> bool:
     if not _KOKORO_ENABLED:
         return False
+    text = (text or "").strip()
+    if not text:
+        return False
 
     def _run() -> bool:
         global _KOKORO_CHECKED, _KOKORO_PIPELINE, _KOKORO_READY
@@ -185,6 +190,10 @@ def _speak_text_kokoro(
                     import soundfile as sf
 
                 selected_voice = _kokoro_voice(voice)
+                if _DEBUG_TTS:
+                    print(f"[Kokoro] Input: {text!r}", flush=True)
+                    print(f"[Kokoro] Spoken text: {text!r}", flush=True)
+                    print(f"[Kokoro] Voice: {selected_voice}", flush=True)
                 wav_path = None
                 try:
                     fd, wav_path = tempfile.mkstemp(suffix=".wav", prefix="zv_kokoro_")
@@ -196,6 +205,8 @@ def _speak_text_kokoro(
                     )
                     for _, _, audio in generator:
                         chunks.append(audio)
+                    if _DEBUG_TTS:
+                        print(f"[Kokoro] Generated audio chunks: {len(chunks)}", flush=True)
                     if not chunks:
                         raise RuntimeError("Kokoro produced no audio")
 
@@ -498,15 +509,24 @@ def _speak_text_windows_sync(
     *,
     wait: bool = False,
     prefer_local_sapi: bool = False,
+    speech_mode: str = "explanation",
 ) -> None:
+    spoken_text = (
+        format_code(text)
+        if speech_mode == "code"
+        else format_explanation(text)
+    )
+    if not spoken_text:
+        return
+
     # 1) Kokoro offline neural voice.
-    if _speak_text_kokoro(text=text, wait=True, voice=voice):
+    if _speak_text_kokoro(text=spoken_text, wait=True, voice=voice):
         return
 
     # 2) Piper offline neural voice.
     if _PIPER_ENABLED:
         try:
-            if _speak_text_piper(text=text, wait=True):
+            if _speak_text_piper(text=spoken_text, wait=True):
                 return
         except Exception as e:
             if _DEBUG_TTS:
@@ -558,7 +578,7 @@ def _speak_text_windows_sync(
                 raise RuntimeError("No local SAPI voice is installed")
 
             flags = 0 if wait else _SAPI_ASYNC_FLAG
-            speaker.Speak(text, flags)
+            speaker.Speak(spoken_text, flags)
             if _DEBUG_TTS:
                 print("[tts] SAPI", flush=True)
             return
@@ -579,7 +599,7 @@ def _speak_text_windows_sync(
     if _DEBUG_TTS:
         print("[tts] PowerShell", flush=True)
 
-    text_b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
+    text_b64 = base64.b64encode(spoken_text.encode("utf-8")).decode("ascii")
     ps = f"""
 $bytes=[System.Convert]::FromBase64String("{text_b64}")
 $text=[System.Text.Encoding]::UTF8.GetString($bytes)
@@ -613,6 +633,7 @@ def speak_text_windows(
     *,
     wait: bool = False,
     prefer_local_sapi: bool = False,
+    speech_mode: str = "explanation",
 ) -> None:
     text = (text or "").strip()
     if not text:
@@ -625,12 +646,13 @@ def speak_text_windows(
             volume=volume,
             voice=voice,
             prefer_local_sapi=prefer_local_sapi,
+            speech_mode=speech_mode,
         )
     else:
         threading.Thread(
             target=_speak_text_windows_sync,
             args=(text, rate, volume, voice),
-            kwargs={"prefer_local_sapi": prefer_local_sapi},
+            kwargs={"prefer_local_sapi": prefer_local_sapi, "speech_mode": speech_mode},
             daemon=True,
         ).start()
 

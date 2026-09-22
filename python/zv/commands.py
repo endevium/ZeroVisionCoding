@@ -292,13 +292,18 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
             from api.services import llm_service
             resp = llm_service.chat(text)
             reply = resp.get("reply") or "I couldn't generate a reply."
+            is_unclear = resp.get("question_id") is None
         except Exception as e:
             reply = "Sorry, something went wrong."
+            is_unclear = False
 
         # deliver result back on UI thread (so TTS/UI use is safe)
         def _deliver() -> None:
             try:
-                app.interrupt_and_speak(reply)
+                if is_unclear:
+                    app.speak_unclear(reply)
+                else:
+                    app.interrupt_and_speak(reply)
             except Exception:
                 pass
 
@@ -562,9 +567,12 @@ def _handle_chat(app: "ZeroVisionAssistant", user_text: str) -> None:
         reply = (bot.get("reply") if isinstance(bot, dict) else "") or ""
         reply = reply.strip()
         if reply:
-            app.speak(reply)
+            if isinstance(bot, dict) and bot.get("question_id") is None:
+                app.speak_unclear(reply)
+            else:
+                app.speak(reply)
         else:
-            app.speak(llm_service.unclear_response())
+            app.speak_unclear(llm_service.unclear_response())
     except Exception:
         app.speak("Chat failed.")
     

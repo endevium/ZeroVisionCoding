@@ -822,6 +822,18 @@ class ZeroVisionAssistant(tk.Tk):
     def speak(self, text: str) -> None:
         self.tts.enqueue(text)
 
+    def speak_explanation(self, text: str) -> None:
+        self.tts.enqueue(text, speech_mode="explanation")
+
+    def speak_code(self, text: str) -> None:
+        self.tts.enqueue(text, speech_mode="code")
+
+    def speak_unclear(self, text: str) -> None:
+        self.tts.replace_with(text)
+
+    def interrupt_and_speak_code(self, text: str) -> None:
+        self.tts.interrupt_and_speak(text, speech_mode="code")
+
     def interrupt_and_speak(self, text: str) -> None:
         try:
             self.tts.stop_current()
@@ -1217,9 +1229,9 @@ class ZeroVisionAssistant(tk.Tk):
             chunks = [text[i: i + chunk_size] for i in range(0, len(text), chunk_size)]
             if not chunks:
                 return
-            self.interrupt_and_speak(chunks[0])   # cancel anything playing, speak first chunk
+            self.interrupt_and_speak_code(chunks[0])   # cancel anything playing, speak first chunk
             for chunk in chunks[1:]:
-                self.speak(chunk)                  # queue remaining chunks
+                self.speak_code(chunk)             # queue remaining chunks
         except Exception:
             self.interrupt_and_speak("Could not read the editor content.")
 
