@@ -170,6 +170,10 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         return
 
     # Navigation / readout
+    if any(phrase in t for phrase in ("read the line", "read current line")):
+        app.speak_current_line_content()
+        return
+
     if any(phrase in t for phrase in ("where am i", "current line", "where is my cursor", "cursor position", "where is cursor")):
         app.speak_current_line()
         return
@@ -359,6 +363,14 @@ def _handle_move_to_line(app: "ZeroVisionAssistant", line_number: int) -> None:
     if line_number < 1:
         app.interrupt_and_speak("Line numbers start at 1.")
         return
+
+    editor = app.client.editor()
+    text = editor.get("text")
+    if isinstance(text, str):
+        last_line = text.count("\n") + 1
+        if line_number > last_line:
+            app.interrupt_and_speak(f"The last line is {last_line}.")
+            return
 
     response = app.client.enqueue_command("move_to_line", {"line": line_number})
     command_id = response.get("id")

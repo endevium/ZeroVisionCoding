@@ -158,6 +158,36 @@ def _kokoro_spoken_text(text: str) -> str:
     return text
 
 
+def ensure_kokoro_ready() -> bool:
+    """Load Kokoro before startup continues when Kokoro TTS is enabled."""
+    global _KOKORO_CHECKED, _KOKORO_PIPELINE, _KOKORO_READY
+
+    if not _KOKORO_ENABLED:
+        return False
+
+    with _KOKORO_LOCK:
+        if _KOKORO_READY:
+            return True
+        if _KOKORO_CHECKED:
+            raise RuntimeError("Kokoro initialization previously failed")
+
+        _KOKORO_CHECKED = True
+        if _DEBUG_TTS:
+            print("[tts] Kokoro initializing...", flush=True)
+        try:
+            from kokoro import KPipeline
+
+            _KOKORO_PIPELINE = KPipeline(lang_code="a")
+            _KOKORO_READY = True
+            if _DEBUG_TTS:
+                print(f"[tts] Kokoro ready: {_KOKORO_VOICE}", flush=True)
+            return True
+        except Exception as exc:
+            _KOKORO_PIPELINE = None
+            _KOKORO_READY = False
+            raise RuntimeError(f"Kokoro failed to initialize: {exc}") from exc
+
+
 def _speak_text_kokoro(
     text: str,
     *,
@@ -171,23 +201,10 @@ def _speak_text_kokoro(
         return False
 
     def _run() -> bool:
-        global _KOKORO_CHECKED, _KOKORO_PIPELINE, _KOKORO_READY
         try:
+            ensure_kokoro_ready()
             with _KOKORO_LOCK:
-                if not _KOKORO_CHECKED:
-                    _KOKORO_CHECKED = True
-                    if _DEBUG_TTS:
-                        print("[tts] Kokoro initializing...", flush=True)
-                    from kokoro import KPipeline
-                    import soundfile as sf
-                    _KOKORO_PIPELINE = KPipeline(lang_code="a")
-                    _KOKORO_READY = True
-                    if _DEBUG_TTS:
-                        print(f"[tts] Kokoro ready: {_KOKORO_VOICE}", flush=True)
-                elif not _KOKORO_READY:
-                    return False
-                else:
-                    import soundfile as sf
+                import soundfile as sf
 
                 selected_voice = _kokoro_voice(voice)
                 if _DEBUG_TTS:

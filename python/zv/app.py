@@ -15,7 +15,7 @@ from typing import Optional
 from .server_process import ServerProcess
 from .speech import SpeechEngine
 from .tts.queue import TTSQueue, TTSConfig
-from .tts.engine import speak_text_windows
+from .tts.engine import ensure_kokoro_ready, speak_text_windows
 from . import sfx
 from .vscode_client import VSCodeClient
 from .error_parser import parse_python_traceback
@@ -519,6 +519,9 @@ class ZeroVisionAssistant(tk.Tk):
             self.after(0, lambda: self.subLabel.config(text="Checking libraries...", fg="yellow"))
             import llama_cpp
             import sentence_transformers
+            self.after(0, lambda: self.subLabel.config(text="Loading Kokoro...", fg="yellow"))
+            if not ensure_kokoro_ready():
+                raise RuntimeError("Kokoro TTS is disabled")
 
         except Exception as e:
             self.after(0, lambda e=e: self.subLabel.config(text=f"Resource check failed: {e}", fg="red"))
@@ -1205,6 +1208,26 @@ class ZeroVisionAssistant(tk.Tk):
             if len(line_content) > 220:
                 line_content = line_content[:220] + " ..."
             self.interrupt_and_speak(f"Line {line_index + 1}, column {col_index + 1}. {line_content}")
+        except Exception:
+            self.interrupt_and_speak("Could not read the current line.")
+
+    def speak_current_line_content(self) -> None:
+        try:
+            ed = self.client.editor()
+            text = str(ed.get("text") or "")
+            cursor = ed.get("cursor") or {}
+            line_index = 0
+            if isinstance(cursor, dict) and cursor.get("line") is not None:
+                line_index = int(cursor.get("line"))
+
+            lines = text.split("\n")
+            if not lines:
+                self.interrupt_and_speak("The current line is empty.")
+                return
+
+            line_index = max(0, min(line_index, len(lines) - 1))
+            line_content = lines[line_index].rstrip("\r").strip()
+            self.interrupt_and_speak(line_content or "The current line is empty.")
         except Exception:
             self.interrupt_and_speak("Could not read the current line.")
 
