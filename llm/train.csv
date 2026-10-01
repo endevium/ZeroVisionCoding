@@ -1,71 +1,530 @@
-question_id,question,answer
-Q001,hi,"Hello, I'm Zero! How can I help you today?"
-Q002,hello,"Hi, I'm Zero! How can I help you today?"
-Q003,hey,"Hey, I'm Zero! What would you like to do?"
-Q004,what's your name,My name is Zero. I'm here to assist you with coding by voice.
-Q005,available commands,"You can say things like: move to line ten, run program, stop program, save file, open file, explain this function, or list commands."
-Q006,what can you do,"I can navigate code, run and stop programs, explain code snippets, and speak editor changes."
-Q007,goodbye,"Goodbye. If you need me, just say a command"
-Q008,thanks,You're welcome
-Q009,thank you,No problem! I'm glad to help.
-Q010,how to run,Say 'run program'.
-Q011,how to stop,Say 'stop program' to terminate the running program.
-Q012,how to move to a line,"Say 'move to line' followed by a number, for example: move to line 42."
-Q013,good morning,Good morning. How can I assist you with your code today?
-Q014,good night,Good night. See you next time.
-Q015,what is zero,"Zero is a voice assistant for coding; I help navigate, run, and explain code."
-Q016,thanks for the help,You're welcome. Happy coding.
-Q017,what does code review do,"Code review checks your code for possible issues, mistakes, and areas for improvement, then gives suggestions through audio feedback."
-Q018,how to use code review,"Open the Python code you want to review, then say 'review my code'. Zero Vision Coding sends the relevant code to the AI and reads the review through audio feedback."
-Q019,what is code analysis,"Code analysis examines your code to identify possible problems, patterns, or areas that may need attention."
-Q020,how to analyze code,"Open or select the code you want to analyze, then use the code analysis voice command. Zero Vision Coding sends the relevant code to the AI and provides the result through audio feedback."
-Q021,analyze my code,Analyzing the relevant code. Please wait for the AI response.
-Q022,what does code explanation do,Code explanation describes what the selected code or function does in simpler terms and provides the explanation through audio feedback.
-Q023,how to explain code,"Select the code or place the cursor in the function you want explained, then say 'explain code' or 'explain this function'."
-Q024,what does code fixing do,Code fixing uses the AI to identify a programming error and suggest or apply a correction based on the available code and error information.
-Q025,how to fix code,Place the cursor on the code with the error and request code fixing. Zero Vision Coding uses the available code and error information to generate a correction.
-Q026,what does debugging do,Debugging starts the Visual Studio Code debugging process so you can investigate problems while the program is running.
-Q027,how to debug,Say 'debug' to start the Visual Studio Code debugging process.
-Q028,what does explain selection do,Explain selection reads the selected code and asks the AI to describe what it does.
-Q029,how to explain a selection,"Select the code you want explained, then say 'explain selection'."
-Q030,what does move to line do,Move to line takes the cursor directly to a specific line number in the current file.
-Q031,how to move to line,"Say 'move to line' followed by the line number, for example, 'move to line 42'."
-Q032,what does where am i do,Where am I tells you where your cursor is located.
-Q033,how do i know where i am,Say 'where am I' to hear the current file and cursor line.
-Q034,how to check my current line,Say 'what line am I on' to hear the current line number.
-Q035,what does delete line do,Delete line removes the line where the cursor is currently located.
-Q036,how to delete a line,"Place the cursor on the line you want to remove, then say 'delete line'."
-Q037,what does insert new line do,Insert new line adds a blank line below the current cursor position.
-Q038,how to insert a new line,"Place the cursor where you want the new line, then say 'insert new line'."
-Q039,what does undo do,Undo reverses the most recent edit.
-Q040,how to undo,Say 'undo' to reverse the last edit.
-Q041,what does redo do,Redo restores the most recent edit that was undone.
-Q042,how to redo,Say 'redo' to restore the last undone edit.
-Q043,what does run program do,Run program starts the current Python program so you can test its behavior.
-Q044,how to run a program,"Make sure the Python file is ready, then say 'run program'."
-Q045,what does stop program do,Stop program terminates the currently running program.
-Q046,how to stop a program,Say 'stop program' while the program is running.
-Q047,what does save file do,Save file saves the current file and its latest changes.
-Q048,how to save a file,Say 'save file' to save the current file.
-Q049,what does open file do,Open file opens a file so you can work with it in Visual Studio Code.
-Q050,how to open a file,Say 'open file' and provide the file name when requested.
-Q051,what does close file do,Close file closes the current editor file.
-Q052,how to close a file,Say 'close file' to close the current editor file.
-Q053,what happens if my voice command is not recognized,Zero Vision Coding should tell you that the command was not recognized and allow you to try again or ask for help.
-Q054,voice command not recognized,I didn't recognize that command. Please try again or say 'help' for available commands.
-Q055,what should i do if the ai has no code,"Make sure the relevant Python code or selection is available in Visual Studio Code, then try the AI command again."
-Q056,ai cannot process my request,"Check that Zero Vision Coding and its required services are running, make sure relevant code is available, and try the request again."
-Q057,what should i do if i forget a command,Say 'help' or 'available commands' to hear the supported commands.
-Q058,how do i get help,Say 'help' to hear available commands and examples.
-Q059,why did the system not do anything after my command,The command may not have been recognized or the required resource may be unavailable. Try the command again or say 'list commands' for supported commands.
-Q060,what programming language does zero vision coding support,Zero Vision Coding currently focuses on Python programming.
-Q061,what editor does zero vision coding use,Zero Vision Coding is designed to work within Visual Studio Code.
-Q062,does zero vision coding support frontend development,Zero Vision Coding currently focuses on foundational Python programming and does not provide full frontend development support.
-Q063,does zero vision coding support backend development,Zero Vision Coding currently focuses on foundational Python programming and does not provide full backend development support.
-Q064,does zero vision coding need internet,The current Zero Vision Coding setup requires an internet connection for the system's supported online requirements.
-Q065,what ai model does zero vision coding use,Zero Vision Coding uses the locally deployed Qwen2.5-Coder 3B model for AI-assisted programming functions.
-Q066,where does the ai run,The AI model is deployed locally on the computer through the Zero Vision Coding services.
-Q067,what is the braille keyboard for,"The Braille keyboard provides tactile input for entering letters, numbers, and symbols while programming."
-Q068,how do i use the braille keyboard,Use the six-key Braille keyboard to enter Braille combinations. The Arduino Pro Micro converts the key combinations into input for Zero Vision Coding.
-Q069,what does the ai do,"The AI can assist with code analysis, explanation, review, summarization, debugging, and error fixing."
-Q070,can i ask the ai questions,"Yes. Use the supported voice command for the AI function you need, such as explaining, reviewing, analyzing, or fixing code."
+question_id,question,answer,intent
+Q001,hi,"Hello, I'm Zero! How can I help you today?",chat
+Q002,hello,"Hi, I'm Zero! How can I help you today?",chat
+Q003,hey,"Hey, I'm Zero! What would you like to do?",chat
+Q004,what's your name,My name is Zero. I'm here to assist you with coding by voice.,chat
+Q005,available commands,"You can say things like: move to line ten, run program, stop program, save file, open file, explain this function, or list commands.",help
+Q006,what can you do,"I can navigate code, run and stop programs, explain code snippets, and speak editor changes.",chat
+Q007,goodbye,"Goodbye. If you need me, just say a command",close_application
+Q008,thanks,You're welcome,chat
+Q009,thank you,No problem! I'm glad to help.,chat
+Q010,how to run,Say 'run program'.,run_program
+Q011,how to stop,Say 'stop program' to terminate the running program.,chat
+Q012,how to move to a line,"Say 'move to line' followed by a number, for example: move to line 42.",move_to_line
+Q013,good morning,Good morning. How can I assist you with your code today?,chat
+Q014,good night,Good night. See you next time.,chat
+Q015,what is zero,"Zero is a voice assistant for coding; I help navigate, run, and explain code.",chat
+Q016,thanks for the help,You're welcome. Happy coding.,help
+Q017,what does code review do,"Code review checks your code for possible issues, mistakes, and areas for improvement, then gives suggestions through audio feedback.",code_review
+Q018,how to use code review,"Open the Python code you want to review, then say 'review my code'. Zero Vision Coding sends the relevant code to the AI and reads the review through audio feedback.",code_review
+Q019,what is code analysis,"Code analysis examines your code to identify possible problems, patterns, or areas that may need attention.",analyze_code
+Q020,how to analyze code,"Open or select the code you want to analyze, then use the code analysis voice command. Zero Vision Coding sends the relevant code to the AI and provides the result through audio feedback.",analyze_code
+Q021,analyze my code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q022,what does code explanation do,Code explanation describes what the selected code or function does in simpler terms and provides the explanation through audio feedback.,chat
+Q023,how to explain code,"Select the code or place the cursor in the function you want explained, then say 'explain code' or 'explain this function'.",explain_code
+Q024,what does code fixing do,Code fixing uses the AI to identify a programming error and suggest or apply a correction based on the available code and error information.,fix_code
+Q025,how to fix code,Place the cursor on the code with the error and request code fixing. Zero Vision Coding uses the available code and error information to generate a correction.,fix_code
+Q026,what does debugging do,Debugging starts the Visual Studio Code debugging process so you can investigate problems while the program is running.,chat
+Q027,how to debug,Say 'debug' to start the Visual Studio Code debugging process.,chat
+Q028,what does explain selection do,Explain selection reads the selected code and asks the AI to describe what it does.,explain_code
+Q029,how to explain a selection,"Select the code you want explained, then say 'explain selection'.",explain_code
+Q030,what does move to line do,Move to line takes the cursor directly to a specific line number in the current file.,move_to_line
+Q031,how to move to line,"Say 'move to line' followed by the line number, for example, 'move to line 42'.",move_to_line
+Q032,what does where am i do,Where am I tells you where your cursor is located.,cursor_position
+Q033,how do i know where i am,Say 'where am I' to hear the current file and cursor line.,chat
+Q034,how to check my current line,Say 'what line am I on' to hear the current line number.,move_to_line
+Q035,what does delete line do,Delete line removes the line where the cursor is currently located.,move_to_line
+Q036,how to delete a line,"Place the cursor on the line you want to remove, then say 'delete line'.",move_to_line
+Q037,what does insert new line do,Insert new line adds a blank line below the current cursor position.,move_to_line
+Q038,how to insert a new line,"Place the cursor where you want the new line, then say 'insert new line'.",move_to_line
+Q039,what does undo do,Undo reverses the most recent edit.,chat
+Q040,how to undo,Say 'undo' to reverse the last edit.,chat
+Q041,what does redo do,Redo restores the most recent edit that was undone.,chat
+Q042,how to redo,Say 'redo' to restore the last undone edit.,chat
+Q043,what does run program do,Run program starts the current Python program so you can test its behavior.,run_program
+Q044,how to run a program,"Make sure the Python file is ready, then say 'run program'.",run_program
+Q045,what does stop program do,Stop program terminates the currently running program.,chat
+Q046,how to stop a program,Say 'stop program' while the program is running.,chat
+Q047,what does save file do,Save file saves the current file and its latest changes.,save
+Q048,how to save a file,Say 'save file' to save the current file.,save
+Q049,what does open file do,Open file opens a file so you can work with it in Visual Studio Code.,open_file
+Q050,how to open a file,Say 'open file' and provide the file name when requested.,open_file
+Q051,what does close file do,Close file closes the current editor file.,close_application
+Q052,how to close a file,Say 'close file' to close the current editor file.,close_application
+Q053,what happens if my voice command is not recognized,Zero Vision Coding should tell you that the command was not recognized and allow you to try again or ask for help.,help
+Q054,voice command not recognized,I didn't recognize that command. Please try again or say 'help' for available commands.,help
+Q055,what should i do if the ai has no code,"Make sure the relevant Python code or selection is available in Visual Studio Code, then try the AI command again.",chat
+Q056,ai cannot process my request,"Check that Zero Vision Coding and its required services are running, make sure relevant code is available, and try the request again.",chat
+Q057,what should i do if i forget a command,Say 'help' or 'available commands' to hear the supported commands.,help
+Q058,how do i get help,Say 'help' to hear available commands and examples.,help
+Q059,why did the system not do anything after my command,The command may not have been recognized or the required resource may be unavailable. Try the command again or say 'list commands' for supported commands.,help
+Q060,what programming language does zero vision coding support,Zero Vision Coding currently focuses on Python programming.,chat
+Q061,what editor does zero vision coding use,Zero Vision Coding is designed to work within Visual Studio Code.,chat
+Q062,does zero vision coding support frontend development,Zero Vision Coding currently focuses on foundational Python programming and does not provide full frontend development support.,chat
+Q063,does zero vision coding support backend development,Zero Vision Coding currently focuses on foundational Python programming and does not provide full backend development support.,chat
+Q064,does zero vision coding need internet,The current Zero Vision Coding setup requires an internet connection for the system's supported online requirements.,chat
+Q065,what ai model does zero vision coding use,Zero Vision Coding uses the locally deployed Qwen2.5-Coder 3B model for AI-assisted programming functions.,chat
+Q066,where does the ai run,The AI model is deployed locally on the computer through the Zero Vision Coding services.,run_program
+Q067,what is the braille keyboard for,"The Braille keyboard provides tactile input for entering letters, numbers, and symbols while programming.",chat
+Q068,how do i use the braille keyboard,Use the six-key Braille keyboard to enter Braille combinations. The Arduino Pro Micro converts the key combinations into input for Zero Vision Coding.,chat
+Q069,what does the ai do,"The AI can assist with code analysis, explanation, review, summarization, debugging, and error fixing.",chat
+Q070,can i ask the ai questions,"Yes. Use the supported voice command for the AI function you need, such as explaining, reviewing, analyzing, or fixing code.",chat
+Q071,run the code,Run started. Reading terminal output.,run_program
+Q072,run my code,Run started. Reading terminal output.,run_program
+Q073,run this code,Run started. Reading terminal output.,run_program
+Q074,run the program,Run started. Reading terminal output.,run_program
+Q075,run my program,Run started. Reading terminal output.,run_program
+Q076,execute the code,Run started. Reading terminal output.,run_program
+Q077,execute my program,Run started. Reading terminal output.,run_program
+Q078,execute this program,Run started. Reading terminal output.,run_program
+Q079,start the program,Run started. Reading terminal output.,run_program
+Q080,start this program,Run started. Reading terminal output.,run_program
+Q081,launch the code,Run started. Reading terminal output.,run_program
+Q082,launch my program,Run started. Reading terminal output.,run_program
+Q083,make the program start,Run started. Reading terminal output.,run_program
+Q084,can you run this,Run started. Reading terminal output.,run_program
+Q085,please run the current program,Run started. Reading terminal output.,run_program
+Q086,I want to run the code,Run started. Reading terminal output.,run_program
+Q087,save the code,Save successful.,save
+Q088,save the current file,Save successful.,save
+Q089,save my file,Save successful.,save
+Q090,save this file,Save successful.,save
+Q091,please save my changes,Save successful.,save
+Q092,save my changes,Save successful.,save
+Q093,save the changes,Save successful.,save
+Q094,save my work,Save successful.,save
+Q095,keep my changes,Save successful.,save
+Q096,write the changes to disk,Save successful.,save
+Q097,can you save the file,Save successful.,save
+Q098,could you save what I changed,Save successful.,save
+Q099,I want to save,Save successful.,save
+Q100,store the current changes,Save successful.,save
+Q101,save everything in this file,Save successful.,save
+Q102,save the code as backup.py,Please say a file name.,save_as
+Q103,save the file as test.py,Please say a file name.,save_as
+Q104,save this file as example.py,Please say a file name.,save_as
+Q105,save as new_file.py,Please say a file name.,save_as
+Q106,save this as copy.py,Please say a file name.,save_as
+Q107,save a copy as backup.py,Please say a file name.,save_as
+Q108,save a new copy as version2.py,Please say a file name.,save_as
+Q109,please save as program.py,Please say a file name.,save_as
+Q110,can you save the file as main.py,Please say a file name.,save_as
+Q111,write this as hello.py,Please say a file name.,save_as
+Q112,make a copy of this file called draft.py,Please say a file name.,save_as
+Q113,save a duplicate as old.py,Please say a file name.,save_as
+Q114,I want to save this code as sample.py,Please say a file name.,save_as
+Q115,store this file under test.py,Please say a file name.,save_as
+Q116,save my changes as updated.py,Please say a file name.,save_as
+Q117,open file test.py,Open successful.,open_file
+Q118,open the file main.py,Open successful.,open_file
+Q119,open this file example.py,Open successful.,open_file
+Q120,open saved file notes.py,Open successful.,open_file
+Q121,open the saved file app.py,Open successful.,open_file
+Q122,load the file program.py,Open successful.,open_file
+Q123,load saved file backup.py,Open successful.,open_file
+Q124,open my file script.py,Open successful.,open_file
+Q125,please open file hello.py,Open successful.,open_file
+Q126,can you open the file called config.py,Open successful.,open_file
+Q127,I want to open file demo.py,Open successful.,open_file
+Q128,bring up the file test.py,Open successful.,open_file
+Q129,open my saved file utility.py,Open successful.,open_file
+Q130,load my file named runner.py,Open successful.,open_file
+Q131,open the Python file model.py,Open successful.,open_file
+Q132,create a new Python file,The new file was created.,create_file
+Q133,create a Python file named app.py,The new file was created.,create_file
+Q134,create a new file called notes.py,The new file was created.,create_file
+Q135,make a new Python file,The new file was created.,create_file
+Q136,make a Python file named hello.py,The new file was created.,create_file
+Q137,create new file test.py,The new file was created.,create_file
+Q138,make a new file called script.py,The new file was created.,create_file
+Q139,start a new Python file,The new file was created.,create_file
+Q140,start a new file named main.py,The new file was created.,create_file
+Q141,new Python file,The new file was created.,create_file
+Q142,new file called draft.py,The new file was created.,create_file
+Q143,please create a file named code.py,The new file was created.,create_file
+Q144,can you make a new file,The new file was created.,create_file
+Q145,I need a blank Python file,The new file was created.,create_file
+Q146,open a new empty file for me,The new file was created.,create_file
+Q147,begin a new Python file named runner.py,The new file was created.,create_file
+Q148,go to line 20,Moved to the requested line.,move_to_line
+Q149,move to line 10,Moved to the requested line.,move_to_line
+Q150,jump to line 42,Moved to the requested line.,move_to_line
+Q151,take me to line 5,Moved to the requested line.,move_to_line
+Q152,go directly to line 30,Moved to the requested line.,move_to_line
+Q153,move directly to line 18,Moved to the requested line.,move_to_line
+Q154,jump directly to line 7,Moved to the requested line.,move_to_line
+Q155,please go to line 25,Moved to the requested line.,move_to_line
+Q156,can you move me to line 12,Moved to the requested line.,move_to_line
+Q157,take the cursor to line 33,Moved to the requested line.,move_to_line
+Q158,put me on line 9,Moved to the requested line.,move_to_line
+Q159,I want to go to line 16,Moved to the requested line.,move_to_line
+Q160,navigate to line 21,Moved to the requested line.,move_to_line
+Q161,move the cursor to line 8,Moved to the requested line.,move_to_line
+Q162,take me directly to line 14,Moved to the requested line.,move_to_line
+Q163,focus the editor,The editor is focused.,focus_editor
+Q164,focus editor,The editor is focused.,focus_editor
+Q165,go to the editor,The editor is focused.,focus_editor
+Q166,go to editor,The editor is focused.,focus_editor
+Q167,open the editor,The editor is focused.,focus_editor
+Q168,switch to the editor,The editor is focused.,focus_editor
+Q169,switch to editor,The editor is focused.,focus_editor
+Q170,take me to the editor,The editor is focused.,focus_editor
+Q171,put focus on the code editor,The editor is focused.,focus_editor
+Q172,move me into the editor,The editor is focused.,focus_editor
+Q173,please focus the code area,The editor is focused.,focus_editor
+Q174,can you switch me to the editor,The editor is focused.,focus_editor
+Q175,I want to work in the editor,The editor is focused.,focus_editor
+Q176,return to the editor,The editor is focused.,focus_editor
+Q177,place my focus in the editor,The editor is focused.,focus_editor
+Q178,focus the terminal,The terminal is focused.,focus_terminal
+Q179,focus terminal,The terminal is focused.,focus_terminal
+Q180,go to the terminal,The terminal is focused.,focus_terminal
+Q181,go to terminal,The terminal is focused.,focus_terminal
+Q182,open the terminal,The terminal is focused.,focus_terminal
+Q183,switch to the terminal,The terminal is focused.,focus_terminal
+Q184,switch to terminal,The terminal is focused.,focus_terminal
+Q185,take me to the terminal,The terminal is focused.,focus_terminal
+Q186,go to the pseudoterminal,The terminal is focused.,focus_terminal
+Q187,focus the pseudoterminal,The terminal is focused.,focus_terminal
+Q188,focus pseudo terminal,The terminal is focused.,focus_terminal
+Q189,put focus on the terminal,The terminal is focused.,focus_terminal
+Q190,please move me to the terminal,The terminal is focused.,focus_terminal
+Q191,can you switch to terminal,The terminal is focused.,focus_terminal
+Q192,I want to work in the terminal,The terminal is focused.,focus_terminal
+Q193,read the current line,Reading the current line.,read_current_line
+Q194,read this line,Reading the current line.,read_current_line
+Q195,read my current line,Reading the current line.,read_current_line
+Q196,read the line,Reading the current line.,read_current_line
+Q197,tell me the current line,Reading the current line.,read_current_line
+Q198,tell me what's on this line,Reading the current line.,read_current_line
+Q199,what is on this line,Reading the current line.,read_current_line
+Q200,please read the line I am on,Reading the current line.,read_current_line
+Q201,can you read this line aloud,Reading the current line.,read_current_line
+Q202,what does the current line say,Reading the current line.,read_current_line
+Q203,speak the line under my cursor,Reading the current line.,read_current_line
+Q204,read the line under the cursor,Reading the current line.,read_current_line
+Q205,I need to hear the current line,Reading the current line.,read_current_line
+Q206,tell me what this line contains,Reading the current line.,read_current_line
+Q207,read aloud where my cursor is,Reading the current line.,read_current_line
+Q208,where am I,Your cursor is at the current file and line.,cursor_position
+Q209,what line am I on,Your cursor is at the current file and line.,cursor_position
+Q210,which line am I on,Your cursor is at the current file and line.,cursor_position
+Q211,where is my cursor,Your cursor is at the current file and line.,cursor_position
+Q212,cursor position,Your cursor is at the current file and line.,cursor_position
+Q213,what is my cursor position,Your cursor is at the current file and line.,cursor_position
+Q214,where is the cursor,Your cursor is at the current file and line.,cursor_position
+Q215,tell me my cursor position,Your cursor is at the current file and line.,cursor_position
+Q216,please tell me where I am in the file,Your cursor is at the current file and line.,cursor_position
+Q217,what line is the cursor on,Your cursor is at the current file and line.,cursor_position
+Q218,can you read my current position,Your cursor is at the current file and line.,cursor_position
+Q219,give me my line number,Your cursor is at the current file and line.,cursor_position
+Q220,where am I in this code,Your cursor is at the current file and line.,cursor_position
+Q221,tell me the cursor location,Your cursor is at the current file and line.,cursor_position
+Q222,which line is selected,Your cursor is at the current file and line.,cursor_position
+Q223,read the whole code,Reading the whole file.,read_code
+Q224,read all the code,Reading the whole file.,read_code
+Q225,read the code,Reading the whole file.,read_code
+Q226,read everything,Reading the whole file.,read_code
+Q227,read the entire code,Reading the whole file.,read_code
+Q228,read the whole thing,Reading the whole file.,read_code
+Q229,tell me the code,Reading the whole file.,read_code
+Q230,read my code,Reading the whole file.,read_code
+Q231,read the complete file,Reading the whole file.,read_code
+Q232,read this entire file aloud,Reading the whole file.,read_code
+Q233,can you read all of this,Reading the whole file.,read_code
+Q234,speak the whole program,Reading the whole file.,read_code
+Q235,read the full source file,Reading the whole file.,read_code
+Q236,I want to hear the complete code,Reading the whole file.,read_code
+Q237,read every line of the file,Reading the whole file.,read_code
+Q238,explain the code,Explaining the selected code.,explain_code
+Q239,explain this code,Explaining the selected code.,explain_code
+Q240,what does this code do,Explaining the selected code.,explain_code
+Q241,tell me what the code does,Explaining the selected code.,explain_code
+Q242,describe this code,Explaining the selected code.,explain_code
+Q243,what is happening in this code,Explaining the selected code.,explain_code
+Q244,can you explain my code,Explaining the selected code.,explain_code
+Q245,please explain the selected code,Explaining the selected code.,explain_code
+Q246,help me understand this code,Explaining the selected code.,explain_code
+Q247,give me an explanation of the code,Explaining the selected code.,explain_code
+Q248,what is this piece of code for,Explaining the selected code.,explain_code
+Q249,explain this section,Explaining the selected code.,explain_code
+Q250,walk me through this code,Explaining the selected code.,explain_code
+Q251,describe the selected code,Explaining the selected code.,explain_code
+Q252,I need this code explained,Explaining the selected code.,explain_code
+Q253,explain function calculate_total,Explaining the requested function.,explain_symbol
+Q254,explain the function calculate_total,Explaining the requested function.,explain_symbol
+Q255,what does this function do,Explaining the requested function.,explain_symbol
+Q256,what does the function do,Explaining the requested function.,explain_symbol
+Q257,tell me about this function,Explaining the requested function.,explain_symbol
+Q258,tell me what the function does,Explaining the requested function.,explain_symbol
+Q259,can you explain the function,Explaining the requested function.,explain_symbol
+Q260,can you explain this function,Explaining the requested function.,explain_symbol
+Q261,please explain this function,Explaining the requested function.,explain_symbol
+Q262,describe the function,Explaining the requested function.,explain_symbol
+Q263,what is this function for,Explaining the requested function.,explain_symbol
+Q264,help me understand the function,Explaining the requested function.,explain_symbol
+Q265,walk me through this function,Explaining the requested function.,explain_symbol
+Q266,I want to understand this function,Explaining the requested function.,explain_symbol
+Q267,read an explanation of the function,Explaining the requested function.,explain_symbol
+Q268,what does function calculate do,Explaining the requested function.,explain_symbol
+Q269,explain class User,Explaining the requested class.,explain_symbol
+Q270,explain the class User,Explaining the requested class.,explain_symbol
+Q271,what does this class do,Explaining the requested class.,explain_symbol
+Q272,what does the class do,Explaining the requested class.,explain_symbol
+Q273,tell me about this class,Explaining the requested class.,explain_symbol
+Q274,tell me about the class,Explaining the requested class.,explain_symbol
+Q275,can you explain the class,Explaining the requested class.,explain_symbol
+Q276,can you explain this class,Explaining the requested class.,explain_symbol
+Q277,please explain the class,Explaining the requested class.,explain_symbol
+Q278,describe this class,Explaining the requested class.,explain_symbol
+Q279,what is this class for,Explaining the requested class.,explain_symbol
+Q280,help me understand the class,Explaining the requested class.,explain_symbol
+Q281,walk me through this class,Explaining the requested class.,explain_symbol
+Q282,I want to understand the class,Explaining the requested class.,explain_symbol
+Q283,explain the User class,Explaining the requested class.,explain_symbol
+Q284,what does class Account do,Explaining the requested class.,explain_symbol
+Q285,explain variable count,Explaining the requested variable.,explain_symbol
+Q286,explain the variable count,Explaining the requested variable.,explain_symbol
+Q287,what is this variable,Explaining the requested variable.,explain_symbol
+Q288,what is the variable count,Explaining the requested variable.,explain_symbol
+Q289,tell me about this variable,Explaining the requested variable.,explain_symbol
+Q290,tell me about the variable,Explaining the requested variable.,explain_symbol
+Q291,what does the variable mean,Explaining the requested variable.,explain_symbol
+Q292,can you explain the variable,Explaining the requested variable.,explain_symbol
+Q293,can you explain this variable,Explaining the requested variable.,explain_symbol
+Q294,please explain the variable,Explaining the requested variable.,explain_symbol
+Q295,describe this variable,Explaining the requested variable.,explain_symbol
+Q296,what is this variable used for,Explaining the requested variable.,explain_symbol
+Q297,help me understand the variable,Explaining the requested variable.,explain_symbol
+Q298,what does variable total mean,Explaining the requested variable.,explain_symbol
+Q299,explain the value called count,Explaining the requested variable.,explain_symbol
+Q300,I want to understand this variable,Explaining the requested variable.,explain_symbol
+Q301,explain if,Explaining the requested if statement.,explain_symbol
+Q302,explain the if,Explaining the requested if statement.,explain_symbol
+Q303,explain this if statement,Explaining the requested if statement.,explain_symbol
+Q304,explain the conditional,Explaining the requested if statement.,explain_symbol
+Q305,what does this if do,Explaining the requested if statement.,explain_symbol
+Q306,what does the if do,Explaining the requested if statement.,explain_symbol
+Q307,what does the if statement do,Explaining the requested if statement.,explain_symbol
+Q308,tell me about the if statement,Explaining the requested if statement.,explain_symbol
+Q309,can you explain the if statement,Explaining the requested if statement.,explain_symbol
+Q310,please explain this conditional,Explaining the requested if statement.,explain_symbol
+Q311,describe the if condition,Explaining the requested if statement.,explain_symbol
+Q312,help me understand this if,Explaining the requested if statement.,explain_symbol
+Q313,what condition is this if checking,Explaining the requested if statement.,explain_symbol
+Q314,walk me through the if statement,Explaining the requested if statement.,explain_symbol
+Q315,what is the purpose of this if,Explaining the requested if statement.,explain_symbol
+Q316,explain for,Explaining the requested for loop.,explain_symbol
+Q317,explain the for loop,Explaining the requested for loop.,explain_symbol
+Q318,explain this for loop,Explaining the requested for loop.,explain_symbol
+Q319,what does this for do,Explaining the requested for loop.,explain_symbol
+Q320,what does the for do,Explaining the requested for loop.,explain_symbol
+Q321,what does the for loop do,Explaining the requested for loop.,explain_symbol
+Q322,tell me about the for loop,Explaining the requested for loop.,explain_symbol
+Q323,can you explain the for loop,Explaining the requested for loop.,explain_symbol
+Q324,please explain this loop,Explaining the requested for loop.,explain_symbol
+Q325,describe the for loop,Explaining the requested for loop.,explain_symbol
+Q326,help me understand the for loop,Explaining the requested for loop.,explain_symbol
+Q327,walk me through this for loop,Explaining the requested for loop.,explain_symbol
+Q328,what is this for loop iterating over,Explaining the requested for loop.,explain_symbol
+Q329,why does this for loop run,Explaining the requested for loop.,explain_symbol
+Q330,what is the purpose of this for loop,Explaining the requested for loop.,explain_symbol
+Q331,explain while,Explaining the requested while loop.,explain_symbol
+Q332,explain the while loop,Explaining the requested while loop.,explain_symbol
+Q333,explain this while loop,Explaining the requested while loop.,explain_symbol
+Q334,what does this while do,Explaining the requested while loop.,explain_symbol
+Q335,what does the while do,Explaining the requested while loop.,explain_symbol
+Q336,what does the while loop do,Explaining the requested while loop.,explain_symbol
+Q337,tell me about the while loop,Explaining the requested while loop.,explain_symbol
+Q338,can you explain the while loop,Explaining the requested while loop.,explain_symbol
+Q339,describe the while loop,Explaining the requested while loop.,explain_symbol
+Q340,help me understand the while loop,Explaining the requested while loop.,explain_symbol
+Q341,walk me through this while loop,Explaining the requested while loop.,explain_symbol
+Q342,what condition controls this loop,Explaining the requested while loop.,explain_symbol
+Q343,why does this while loop run,Explaining the requested while loop.,explain_symbol
+Q344,what is the purpose of this while loop,Explaining the requested while loop.,explain_symbol
+Q345,explain try,Explaining the requested try block.,explain_symbol
+Q346,explain try except,Explaining the requested try block.,explain_symbol
+Q347,explain this try block,Explaining the requested try block.,explain_symbol
+Q348,explain the try except block,Explaining the requested try block.,explain_symbol
+Q349,explain the exception handling,Explaining the requested try block.,explain_symbol
+Q350,what does this try do,Explaining the requested try block.,explain_symbol
+Q351,what does the try except block do,Explaining the requested try block.,explain_symbol
+Q352,tell me about this try block,Explaining the requested try block.,explain_symbol
+Q353,tell me about exception handling,Explaining the requested try block.,explain_symbol
+Q354,can you explain the try except,Explaining the requested try block.,explain_symbol
+Q355,please explain this exception block,Explaining the requested try block.,explain_symbol
+Q356,describe the try block,Explaining the requested try block.,explain_symbol
+Q357,help me understand this try statement,Explaining the requested try block.,explain_symbol
+Q358,why is this try except here,Explaining the requested try block.,explain_symbol
+Q359,what happens in this exception handler,Explaining the requested try block.,explain_symbol
+Q360,explain with,Explaining the requested with statement.,explain_symbol
+Q361,explain the with statement,Explaining the requested with statement.,explain_symbol
+Q362,explain this with statement,Explaining the requested with statement.,explain_symbol
+Q363,what does this with do,Explaining the requested with statement.,explain_symbol
+Q364,what does the with statement do,Explaining the requested with statement.,explain_symbol
+Q365,tell me about the with statement,Explaining the requested with statement.,explain_symbol
+Q366,tell me about this context manager,Explaining the requested with statement.,explain_symbol
+Q367,can you explain the with statement,Explaining the requested with statement.,explain_symbol
+Q368,please explain this with block,Explaining the requested with statement.,explain_symbol
+Q369,describe the with statement,Explaining the requested with statement.,explain_symbol
+Q370,explain the context manager,Explaining the requested with statement.,explain_symbol
+Q371,help me understand this with block,Explaining the requested with statement.,explain_symbol
+Q372,why is this with statement used,Explaining the requested with statement.,explain_symbol
+Q373,what does this context manager do,Explaining the requested with statement.,explain_symbol
+Q374,walk me through the with statement,Explaining the requested with statement.,explain_symbol
+Q375,explain import,Explaining the requested import.,explain_symbol
+Q376,explain the import,Explaining the requested import.,explain_symbol
+Q377,explain this import,Explaining the requested import.,explain_symbol
+Q378,what does this import do,Explaining the requested import.,explain_symbol
+Q379,what does the import do,Explaining the requested import.,explain_symbol
+Q380,tell me about the import,Explaining the requested import.,explain_symbol
+Q381,tell me about this import statement,Explaining the requested import.,explain_symbol
+Q382,can you explain the import,Explaining the requested import.,explain_symbol
+Q383,please explain this import,Explaining the requested import.,explain_symbol
+Q384,describe the import statement,Explaining the requested import.,explain_symbol
+Q385,why is this module imported,Explaining the requested import.,explain_symbol
+Q386,help me understand this import,Explaining the requested import.,explain_symbol
+Q387,what does importing this module do,Explaining the requested import.,explain_symbol
+Q388,walk me through the import,Explaining the requested import.,explain_symbol
+Q389,what is the purpose of this import,Explaining the requested import.,explain_symbol
+Q390,fix the code,I will try to fix the code.,fix_code
+Q391,fix my code,I will try to fix the code.,fix_code
+Q392,fix this code,I will try to fix the code.,fix_code
+Q393,please fix the code,I will try to fix the code.,fix_code
+Q394,can you fix my code,I will try to fix the code.,fix_code
+Q395,correct my code,I will try to fix the code.,fix_code
+Q396,repair the code,I will try to fix the code.,fix_code
+Q397,fix the error,I will try to fix the code.,fix_code
+Q398,fix this error,I will try to fix the code.,fix_code
+Q399,fix errors in my code,I will try to fix the code.,fix_code
+Q400,auto fix the code,I will try to fix the code.,fix_code
+Q401,please correct the syntax,I will try to fix the code.,fix_code
+Q402,repair my program,I will try to fix the code.,fix_code
+Q403,make the code work,I will try to fix the code.,fix_code
+Q404,can you correct this program,I will try to fix the code.,fix_code
+Q405,find errors in my code,Checking the code for errors.,find_errors
+Q406,find errors in the code,Checking the code for errors.,find_errors
+Q407,find error in code,Checking the code for errors.,find_errors
+Q408,check for errors,Checking the code for errors.,find_errors
+Q409,check my code for errors,Checking the code for errors.,find_errors
+Q410,check the code for errors,Checking the code for errors.,find_errors
+Q411,scan for errors,Checking the code for errors.,find_errors
+Q412,scan the code for errors,Checking the code for errors.,find_errors
+Q413,search for errors,Checking the code for errors.,find_errors
+Q414,find bugs,Checking the code for errors.,find_errors
+Q415,find a bug in my code,Checking the code for errors.,find_errors
+Q416,check for bugs,Checking the code for errors.,find_errors
+Q417,look for errors,Checking the code for errors.,find_errors
+Q418,are there any errors in my code,Checking the code for errors.,find_errors
+Q419,is there an error in this program,Checking the code for errors.,find_errors
+Q420,look for problems in the code,Checking the code for errors.,find_errors
+Q421,analyze the code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q422,analyze this code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q423,analyse my code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q424,examine the code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q425,examine my code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q426,inspect the code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q427,inspect my code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q428,analyze the program,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q429,please analyze this file,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q430,can you analyze my program,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q431,tell me what is happening in the code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q432,study this code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q433,give me an analysis of the code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q434,look deeply at my code,Analyzing the relevant code. Please wait for the AI response.,analyze_code
+Q435,review my code,"Generating code review, please wait.",code_review
+Q436,review the code,"Generating code review, please wait.",code_review
+Q437,review this code,"Generating code review, please wait.",code_review
+Q438,review my program,"Generating code review, please wait.",code_review
+Q439,review the program,"Generating code review, please wait.",code_review
+Q440,check my code,"Generating code review, please wait.",code_review
+Q441,look over my code,"Generating code review, please wait.",code_review
+Q442,look at my code,"Generating code review, please wait.",code_review
+Q443,go over my code,"Generating code review, please wait.",code_review
+Q444,give me a code review,"Generating code review, please wait.",code_review
+Q445,do a code review,"Generating code review, please wait.",code_review
+Q446,can you review my code,"Generating code review, please wait.",code_review
+Q447,can you look over my code,"Generating code review, please wait.",code_review
+Q448,please review this file,"Generating code review, please wait.",code_review
+Q449,tell me what you think of my code,"Generating code review, please wait.",code_review
+Q450,help,"You can say run program, save file, open file, explain code, or list commands.",help
+Q451,I need help,"You can say run program, save file, open file, explain code, or list commands.",help
+Q452,can you help me,"You can say run program, save file, open file, explain code, or list commands.",help
+Q453,what can I say,"You can say run program, save file, open file, explain code, or list commands.",help
+Q454,what commands can I use,"You can say run program, save file, open file, explain code, or list commands.",help
+Q455,what can I tell you,"You can say run program, save file, open file, explain code, or list commands.",help
+Q456,show me the commands,"You can say run program, save file, open file, explain code, or list commands.",help
+Q457,show commands,"You can say run program, save file, open file, explain code, or list commands.",help
+Q458,what are the commands,"You can say run program, save file, open file, explain code, or list commands.",help
+Q459,list available commands,"You can say run program, save file, open file, explain code, or list commands.",help
+Q460,tell me the available commands,"You can say run program, save file, open file, explain code, or list commands.",help
+Q461,how do I use this assistant,"You can say run program, save file, open file, explain code, or list commands.",help
+Q462,give me command help,"You can say run program, save file, open file, explain code, or list commands.",help
+Q463,which voice commands are available,"You can say run program, save file, open file, explain code, or list commands.",help
+Q464,speak faster,Speech speed changed.,speech_speed
+Q465,make your speech faster,Speech speed changed.,speech_speed
+Q466,speed up speech,Speech speed changed.,speech_speed
+Q467,increase speech speed,Speech speed changed.,speech_speed
+Q468,make your voice faster,Speech speed changed.,speech_speed
+Q469,talk faster,Speech speed changed.,speech_speed
+Q470,speak more quickly,Speech speed changed.,speech_speed
+Q471,slow down your speech,Speech speed changed.,speech_speed
+Q472,speak slower,Speech speed changed.,speech_speed
+Q473,speak slowly,Speech speed changed.,speech_speed
+Q474,decrease speech speed,Speech speed changed.,speech_speed
+Q475,make your voice slower,Speech speed changed.,speech_speed
+Q476,talk slower,Speech speed changed.,speech_speed
+Q477,speak more slowly,Speech speed changed.,speech_speed
+Q478,set speech to normal speed,Speech speed changed.,speech_speed
+Q479,return to normal speaking speed,Speech speed changed.,speech_speed
+Q480,close the app,Closing the application.,close_application
+Q481,close app,Closing the application.,close_application
+Q482,close this app,Closing the application.,close_application
+Q483,close the system,Closing the application.,close_application
+Q484,exit the app,Closing the application.,close_application
+Q485,exit app,Closing the application.,close_application
+Q486,exit this app,Closing the application.,close_application
+Q487,quit the app,Closing the application.,close_application
+Q488,quit app,Closing the application.,close_application
+Q489,quit this app,Closing the application.,close_application
+Q490,exit application,Closing the application.,close_application
+Q491,close application,Closing the application.,close_application
+Q492,shut down the app,Closing the application.,close_application
+Q493,shut down the application,Closing the application.,close_application
+Q494,stop the application,Closing the application.,close_application
+Q495,please close Zero Vision Coding,Closing the application.,close_application
+Q496,what is a Python list,I can help answer general programming questions.,chat
+Q497,how do functions work in Python,I can help answer general programming questions.,chat
+Q498,why do programmers use variables,I can help answer general programming questions.,chat
+Q499,what is a syntax error,I can help answer general programming questions.,chat
+Q500,how can I learn programming,I can help answer general programming questions.,chat
+Q501,what is the difference between a list and tuple,I can help answer general programming questions.,chat
+Q502,how do I write a loop,I can help answer general programming questions.,chat
+Q503,why is my program slow,I can help answer general programming questions.,chat
+Q504,what does debugging mean,I can help answer general programming questions.,chat
+Q505,how do I name a variable,I can help answer general programming questions.,chat
+Q506,what is object oriented programming,I can help answer general programming questions.,chat
+Q507,can you answer a programming question,I can help answer general programming questions.,chat
+Q508,tell me about Python,I can help answer general programming questions.,chat
+Q509,how should I organize a small program,I can help answer general programming questions.,chat
+Q510,what is a function parameter,I can help answer general programming questions.,chat
+Q511,I have a general coding question,I can help answer general programming questions.,chat
+Q512,explain function process_data,Explaining the requested function.,explain_symbol
+Q513,what does function process_data do,Explaining the requested function.,explain_symbol
+Q514,explain class Vehicle,Explaining the requested class.,explain_symbol
+Q515,what does class Vehicle do,Explaining the requested class.,explain_symbol
+Q516,explain variable result,Explaining the requested variable.,explain_symbol
+Q517,what does variable result mean,Explaining the requested variable.,explain_symbol
+Q518,explain conditional branch,Explaining the requested if statement.,explain_symbol
+Q519,what does the if condition do,Explaining the requested if statement.,explain_symbol
+Q520,explain for loop iteration,Explaining the requested for loop.,explain_symbol
+Q521,what does the for loop accomplish,Explaining the requested for loop.,explain_symbol
+Q522,explain while loop condition,Explaining the requested while loop.,explain_symbol
+Q523,what does the while loop accomplish,Explaining the requested while loop.,explain_symbol
+Q524,explain exception handling,Explaining the requested try block.,explain_symbol
+Q525,explain the try except block clearly,Explaining the requested try block.,explain_symbol
+Q526,explain with block,Explaining the requested with statement.,explain_symbol
+Q527,explain context manager,Explaining the requested with statement.,explain_symbol
+Q528,explain import statement,Explaining the requested import.,explain_symbol
+Q529,explain the import statement,Explaining the requested import.,explain_symbol

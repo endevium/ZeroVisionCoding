@@ -64,15 +64,34 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         ("explain function", "function"),
         ("explain the function", "function"),
         ("what does function", "function"),
+        ("what does this function do", "function"),
         ("what does the function", "function"),
+        ("tell me about the function", "function"),
+        ("tell me about this function", "function"),
+        ("what is this function for", "function"),
+        ("describe the function", "function"),
+        ("tell me what the function does", "function"),
+        ("can you explain the function", "function"),
+        ("can you explain this function", "function"),
 
         ("explain class", "class"),
         ("explain the class", "class"),
+        ("what does the class do", "class"),
+        ("what does this class do", "class"),
+        ("tell me about the class", "class"),
+        ("tell me about this class", "class"),
+        ("can you explain the class", "class"),
+        ("can you explain this class", "class"),
 
         ("explain variable", "variable"),
         ("explain the variable", "variable"),
         ("what is variable", "variable"),
         ("what is the variable", "variable"),
+        ("what is this variable", "variable"),
+        ("tell me about the variable", "variable"),
+        ("what does the variable mean", "variable"),
+        ("can you explain the variable", "variable"),
+        ("can you explain this variable", "variable"),
 
         ("explain if", "conditional"),
         ("explain the if", "conditional"),
@@ -80,26 +99,54 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         ("explain the conditional", "conditional"),
         ("what does if", "conditional"),
         ("what does the if", "conditional"),
+        ("what does the if statement do", "conditional"),
+        ("what does this if do", "conditional"),
+        ("tell me about the if statement", "conditional"),
+        ("can you explain the if statement", "conditional"),
 
         ("explain for loop", "loop"),
         ("explain the for loop", "loop"),
         ("explain for", "loop"),
         ("what does for", "loop"),
         ("what does the for", "loop"),
+        ("what does the for loop do", "loop"),
+        ("what does this for do", "loop"),
+        ("tell me about the for loop", "loop"),
+        ("can you explain the for loop", "loop"),
+        ("what does this for loop do", "loop"),
 
         ("explain while loop", "loop"),
         ("explain the while loop", "loop"),
         ("explain while", "loop"),
         ("what does while", "loop"),
         ("what does the while", "loop"),
+        ("what does the while loop do", "loop"),
+        ("what does this while do", "loop"),
+        ("tell me about the while loop", "loop"),
+        ("can you explain the while loop", "loop"),
+        ("what does this while loop do", "loop"),
 
         ("explain try", "exception"),
         ("explain try except", "exception"),
         ("explain exception", "exception"),
+        ("explain exception handling", "exception"),
+        ("explain the try except block", "exception"),
+        ("what does the try except block do", "exception"),
+        ("what does this try do", "exception"),
+        ("tell me about the try except block", "exception"),
 
         ("explain with", "context_manager"),
+        ("explain the with statement", "context_manager"),
+        ("explain with block", "context_manager"),
+        ("explain context manager", "context_manager"),
+        ("what does the with statement do", "context_manager"),
+        ("what does this with do", "context_manager"),
+        ("tell me about the context manager", "context_manager"),
         ("explain import", "import"),
         ("explain the import", "import"),
+        ("what does the import do", "import"),
+        ("what does this import do", "import"),
+        ("tell me about the import", "import"),
     ]
 
     for trig, kind in explain_triggers:
@@ -126,7 +173,16 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         return
 
     # Fixer
-    if any(phrase in t for phrase in ("fix it", "fix the error", "fix error", "fix code", "fix the code", "auto fix", "please fix", "fix this", "fix syntax")):
+    if any(phrase in t for phrase in (
+        "fix it", "fix the error", "fix error", "fix code", "fix the code",
+        "auto fix", "please fix", "fix this", "fix syntax", "fix this code",
+        "fix my code", "fix the errors", "fix errors", "fix the syntax",
+        "fix this error", "please fix this", "please fix the code",
+        "correct the error", "correct the errors", "correct my code",
+        "repair the code", "repair my code",
+        "make the code work", "correct this program", "repair my program",
+        "fix errors in my code", "please correct the syntax",
+    )):
         app.begin_fix_last_run_error()
         return
 
@@ -149,62 +205,140 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
             return
 
     # Cursor navigation
-    move_to_line_match = re.search(r"\b(?:move|go|jump)\s+to\s+line\s+(.+?)\s*$", t)
+    move_to_line_match = re.search(
+        r"\b(?:(?:move|go|jump)\s+(?:directly\s+)?to|take me\s+to|take\s+(?:the\s+)?cursor\s+to|put me on|navigate to|move the cursor to)\s+line\s+(.+?)\s*$",
+        t,
+    )
     if move_to_line_match:
         line_number = _spoken_line_number(move_to_line_match.group(1))
         if line_number is not None:
             app._awaiting_line_number = False
             _handle_move_to_line(app, line_number)
             return
-    if any(phrase in t for phrase in ("move to line", "go to line", "jump to line")):
+    if any(phrase in t for phrase in (
+        "move to line", "go to line", "jump to line",
+        "move directly to line", "go directly to line",
+        "jump directly to line", "take me to line",
+        "take the cursor to line", "put me on line", "navigate to line",
+        "move the cursor to line",
+    )):
         app._awaiting_line_number = True
         app.interrupt_and_speak("Please say a line number. For example, move to line 3.")
         return
 
-    if any(phrase in t for phrase in ("go to the editor", "go to editor", "focus the editor", "focus editor")):
+    if any(phrase in t for phrase in (
+        "go to the editor", "go to editor", "focus the editor", "focus editor",
+        "open the editor", "switch to the editor", "switch to editor",
+        "take me to the editor",
+        "put focus on the code editor", "move me into the editor",
+        "focus the code area", "return to the editor",
+        "place my focus in the editor",
+    )):
         _handle_focus_command(app, "focus_editor", "editor")
         return
 
-    if any(phrase in t for phrase in ("go to the terminal", "go to terminal", "focus the terminal", "focus terminal", "go to the pseudoterminal", "go to pseudoterminal", "go to the pseudo terminal", "go to pseudo terminal", "focus the pseudoterminal", "focus pseudo terminal")):
+    if any(phrase in t for phrase in (
+        "go to the terminal", "go to terminal", "focus the terminal", "focus terminal",
+        "open the terminal", "switch to the terminal", "switch to terminal",
+        "take me to the terminal", "go to the pseudoterminal",
+        "go to pseudoterminal", "go to the pseudo terminal",
+        "go to pseudo terminal", "focus the pseudoterminal",
+        "focus pseudo terminal",
+        "put focus on the terminal", "move me to the terminal",
+        "switch to terminal", "work in the terminal",
+    )):
         _handle_focus_command(app, "focus_terminal", "terminal")
         return
 
     # Navigation / readout
-    if any(phrase in t for phrase in ("read the line", "read current line")):
+    if any(phrase in t for phrase in (
+        "read the line", "read current line", "read this line",
+        "read my current line", "tell me the current line",
+        "tell me what's on this line", "what is on this line",
+        "please read the line I am on", "read this line aloud",
+        "what does the current line say", "speak the line under my cursor",
+        "read the line under the cursor", "read aloud where my cursor is",
+    )):
         app.speak_current_line_content()
         return
 
-    if any(phrase in t for phrase in ("where am i", "current line", "where is my cursor", "cursor position", "where is cursor")):
+    if any(phrase in t for phrase in (
+        "where am i", "current line", "what line am i on",
+        "which line am i on", "where is my cursor", "cursor position",
+        "what is my cursor position", "where is cursor",
+        "tell me my cursor position",
+        "where is the cursor", "what line is the cursor on",
+        "give me my line number", "where am i in this code",
+        "tell me the cursor location", "which line is selected",
+    )):
         app.speak_current_line()
         return
 
-    if "what file is this" in t:
+    if any(phrase in t for phrase in (
+        "what file is this", "what file am i in", "which file is this",
+        "what is this file", "tell me the file name", "what is the file name",
+    )):
         app.speak_active_file_name()
         return
 
-    if "read the whole thing" in t or "read the code" in t:
+    if any(phrase in t for phrase in (
+        "read the whole thing", "read the whole code", "read all the code",
+        "read the code", "read everything", "read the entire code",
+        "tell me the code", "read my code",
+        "read the complete file", "read this entire file aloud",
+        "can you read all of this", "speak the whole program",
+        "read the full source file", "hear the complete code",
+        "read every line of the file",
+    )):
         app.speak_full_editor()
         return
 
-    if ("help" in t) or ("what can i say" in t):
+    if any(phrase in t for phrase in (
+        "help", "i need help", "can you help me", "what can i say",
+        "what commands can i use", "what can i tell you",
+        "show me the commands", "show commands", "what can you do",
+        "what are the commands",
+        "list available commands", "tell me the available commands",
+        "how do i use this assistant", "give me command help",
+        "which voice commands are available",
+    )):
         app.speak_help()
         return
     
     # Speech speed
-    if any(phrase in t for phrase in ("speak faster", "faster speech", "speed up speech", "increase speech speed", "faster voice")):
+    if any(phrase in t for phrase in (
+        "speak faster", "faster speech", "speed up speech",
+        "increase speech speed", "faster voice", "talk faster",
+        "speak more quickly", "make your voice faster", "speed up your voice",
+        "make your speech faster",
+    )):
         app._speech_fast_mode = True
         # interrupt current and confirm
         app.interrupt_and_speak("Speech set to faster mode.")
         return
 
-    if any(phrase in t for phrase in ("speak slower", "speak slow", "normal speed", "default speed", "decrease speech speed", "slower voice")):
+    if any(phrase in t for phrase in (
+        "speak slower", "speak slow", "slower speech", "normal speed",
+        "default speed", "decrease speech speed", "slower voice",
+        "talk slower", "speak more slowly", "make your voice slower",
+        "slow down your voice",
+        "slow down your speech", "speak slowly", "set speech to normal speed",
+        "return to normal speaking speed",
+    )):
         app._speech_fast_mode = False
         app.interrupt_and_speak("Speech set to normal speed.")
         return
 
     # Save as
-    if ("save this file as" in t) or ("save file as" in t) or ("save as" in t):
-        remainder = extract_after_phrase(t, ["save this file as", "save file as", "save as"])
+    save_as_phrases = (
+        "save this file as", "save file as", "save as", "save this as",
+        "save the file as", "save a copy as", "save a new copy as",
+        "write this as", "make a copy of this file called",
+        "save a duplicate as", "store this file under",
+    )
+    save_as_phrase = next((phrase for phrase in save_as_phrases if phrase in t), None)
+    if save_as_phrase:
+        remainder = extract_after_phrase(t, [save_as_phrase])
         file_name = normalize_spoken_filename(remainder)
         if not file_name:
             app.interrupt_and_speak("Please say a file name.")
@@ -218,9 +352,21 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         "create new python file",
         "create a python file",
         "create python file",
+        "make a new python file",
+        "make new python file",
+        "make a python file",
+        "make python file",
         "create a new file",
         "create new file",
+        "make a new file",
+        "make new file",
         "new python file",
+        "new file",
+        "start a new python file",
+        "start a new file",
+        "create a new file called", "make a new file called",
+        "please create a file named", "begin a new python file named",
+        "open a new empty file",
     )
     create_file_phrase = next((phrase for phrase in create_file_phrases if phrase in t), None)
     if create_file_phrase:
@@ -231,8 +377,15 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         return
 
     # Open saved file
-    if "open file" in t:
-        remainder = extract_after_phrase(t, ["open file"]).strip()
+    open_file_phrases = (
+        "open file", "open the file", "open this file", "open saved file",
+        "open the saved file", "load the file", "load saved file", "open my file",
+        "bring up the file", "open the python file", "open my saved file",
+        "load my file named", "please open file",
+    )
+    open_file_phrase = next((phrase for phrase in open_file_phrases if phrase in t), None)
+    if open_file_phrase:
+        remainder = extract_after_phrase(t, [open_file_phrase]).strip()
         name = normalize_spoken_filename(remainder)
         if not name:
             app.interrupt_and_speak("Please say the file name to open.")
@@ -241,22 +394,69 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         return
 
     # Run code
-    if ("run the code" in t) or ("run code" in t) or ("run the program" in t) or ("run program" in t) or ("execute the code" in t) or ("execute code" in t) or ("execute the program" in t) or ("execute program" in t) or ("start the code" in t) or ("start code" in t) or ("start the program" in t) or ("start program" in t) or ("launch the code" in t) or ("launch code" in t) or ("launch the program" in t) or ("launch program" in t):
+    if t_reply == "run":
+        app.interrupt_and_speak("You can say 'run the code' to run the program.")
+        return
+
+    if any(phrase in t for phrase in (
+        "run the code", "run code", "run the program", "run program",
+        "run my program", "execute the code", "execute code",
+        "execute the program", "execute program", "execute my program",
+        "start the code", "start code", "start the program", "start program",
+        "start my program", "start this program", "launch the code",
+        "launch code", "launch the program", "launch program",
+        "launch my program", "launch this program", "make the program start",
+        "make this program start", "make the code run", "make this code run",
+        "run my code", "run this code", "execute this program",
+        "please run the current program", "i want to run the code",
+    )):
         _handle_run_program(app)
         return
 
     # Save (current file)
-    if t.strip() == "save" or ("save file" in t) or ("save work" in t):
+    if (
+        t_reply == "save"
+        or any(phrase in t for phrase in (
+            "save file", "save the file", "save this file", "save my file",
+            "save work", "save my work", "save changes", "save my changes",
+            "save the changes",
+            "keep my changes", "keep the changes",
+            "write the changes to disk", "can you save the file",
+            "could you save what i changed", "i want to save",
+            "store the current changes", "save everything in this file",
+        ))
+    ):
         _handle_save(app)
         return
 
     # Find errors
-    if any(phrase in t for phrase in ("find errors in the code", "find error in the code", "find errors in code", "find error in code", "find errors", "find error", "check for errors", "check errors", "scan for errors", "search for errors", "find bugs", "check for bugs")):
+    if any(phrase in t for phrase in (
+        "find errors in the code", "find error in the code",
+        "find errors in code", "find error in code", "find errors", "find error",
+        "check for errors", "check errors", "check my code for errors",
+        "check the code for errors", "scan for errors", "scan the code for errors",
+        "search for errors", "search the code for errors", "find bugs",
+        "find a bug", "find the bugs", "check for bugs", "check my code for bugs",
+        "check the code for bugs", "look for errors", "look for bugs",
+        "are there any errors", "are there any bugs",
+        "is there an error in my code",
+        "find problems in the code", "look for problems in the code",
+    )):
         app.find_errors_in_code()
         return
 
     # Analyze
-    if ("analyze the code" in t) or (("analyze" in t) or ("analyse" in t) and ("code" in t)):
+    if any(phrase in t for phrase in (
+        "analyze the code", "analyse the code", "analyze my code",
+        "analyse my code", "analyze this code", "analyse this code",
+        "analyze code", "analyse code", "analyze the program",
+        "analyse the program", "examine the code", "examine my code",
+        "inspect the code", "inspect my code",
+        "tell me what is happening in the code",
+        "please analyze this file", "can you analyze my program",
+        "study this code", "give me an analysis of the code",
+        "look deeply at my code",
+    )):
         _handle_analyze(app)
         return
 
@@ -266,14 +466,22 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         for phrase in (
             "close the app",
             "close app",
+            "close this app",
             "close the system",
             "close system",
             "exit the app",
             "exit app",
+            "exit this app",
             "quit the app",
             "quit app",
+            "quit this app",
             "exit application",
             "close application",
+            "shut down the app",
+            "shut down the application",
+            "stop the app",
+            "stop the application",
+            "please close zero vision coding",
         )
     ):
         app.interrupt_and_speak("Closing the application.")
@@ -285,7 +493,14 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         return
 
     # Code reviewer
-    if ("review my code" in t) or (("review" in t) and ("code" in t)):
+    if any(phrase in t for phrase in (
+        "review my code", "review the code", "review code", "review this code",
+        "review my program", "review the program", "check my code",
+        "look over my code", "look at my code", "go over my code",
+        "inspect my code", "give me a code review", "do a code review",
+        "can you review my code", "can you look over my code",
+        "please review this file", "tell me what you think of my code",
+    )):
         _handle_code_review(app)
         return
 
