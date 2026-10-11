@@ -1,71 +1,88 @@
 ---
-import { Image } from "astro:assets";
 import { StarfieldBackground } from "./ui/starfield.tsx";
-import Latest from "./releases/Latest.astro";
-import AppLatest from "./releases/application/AppLatest.astro";
-import ExtensionLatest from "./releases/extension/ExtensionLatest.astro";
-import OneZeroZero from "./releases/versions/OneZeroZero.astro";
 ---
 
-
-<div class="relative flex flex-col flex-1 min-h-screen lg:h-[125vh] justify-center items-center pt-32 lg:pt-15 px-6 lg:px-20 gap-5">
+<div class="relative flex flex-col flex-1 min-h-screen lg:h-[110vh] justify-center items-center pt-12 lg:pt-15 px-6 lg:px-20 gap-5">
     <div class="absolute inset-0 w-full h-full overflow-hidden hidden [body[data-theme='night']_&]:block">
         <StarfieldBackground client:load />
     </div>
 
-    <div class="flex flex-col gap-2 justify-center items-center z-10">
-        <h2 id="title" class="text-4xl lg:text-[45px] font-orbitron font-black tracking-wide text-center drop-shadow-md [body[data-theme='night']_&]:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] text-lavender [body[data-theme='night']_&]:text-purple">
-            Releases
-        </h2>
+    <div id="demo-section" class="flex flex-col lg:flex-row w-full max-w-6xl z-10 gap-12 lg:gap-20 items-center lg:items-start">
+        <div class="flex flex-col gap-6 w-full lg:w-1/2 text-center lg:text-left">
+            <h2 id="title" class="text-4xl lg:text-[45px] font-orbitron font-black tracking-wide drop-shadow-md [body[data-theme='night']_&]:drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] text-lavender [body[data-theme='night']_&]:text-purple leading-tight">
+                Book a demo today
+            </h2>
 
-        <p id="description" class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-lg lg:text-[21px] text-center max-w-2xl mt-2 px-4 lg:px-0">
-            Everything you need to download, set up, and introduce <br class="hidden lg:block" />
-            Zero Vision Coding to your learners.
-        </p>
-    </div>
+            <p id="description" class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 font-inter font-light text-lg lg:text-[19px] max-w-xl">
+                We're all ears! Talk to us about your needs, and we'll provide the best possible solution for your learners.
+            </p>
 
-    <div id="releases" class="flex flex-col lg:flex-row bg-white/70 backdrop-blur-xl [body[data-theme='night']_&]:bg-[#0a0a0f]/70 border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 shadow-2xl [body[data-theme='night']_&]:shadow-[0_0_40px_rgba(200,36,236,0.15)] w-full min-h-[80vh] lg:h-170 z-1 overflow-hidden rounded-3xl mt-6">
-        <!-- Tabs aaaa -->
-        <div class="flex flex-col w-full lg:w-auto lg:min-w-[250px] border-b lg:border-b-0 lg:border-r border-gray-200 [body[data-theme='night']_&]:border-purple-500/20 h-auto lg:h-full bg-gray-50/50 [body[data-theme='night']_&]:bg-black/20">
-            <div class="flex flex-col h-auto lg:h-45 w-full border-b border-b-gray-200 [body[data-theme='night']_&]:border-b-purple-500/20 text-gray-800 [body[data-theme='night']_&]:text-gray-200 pb-4 lg:pb-0">
-                <div class="flex flex-col min-h-12 p-4">
-                    <p class="font-orbitron pl-2 text-[15px]">CHANNELS</p>
+            <div id="highlights" class="flex flex-col gap-5 mt-4">
+                <div class="flex flex-row items-center gap-4">
+                    <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-lavender/15 [body[data-theme='night']_&]:bg-purple/20 shrink-0">
+                        <svg class="w-6 h-6 text-lavender [body[data-theme='night']_&]:text-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                    <span class="font-inter font-semibold text-[17px] text-gray-800 [body[data-theme='night']_&]:text-white tracking-wide">Braille Keyboard Demonstration</span>
                 </div>
 
-                <div class="flex flex-col">
-                    <button id="general-latest-btn" class="bg-gray-200/80 [body[data-theme='night']_&]:bg-purple-500/20 border-l-4 border-purple-500 text-left hover:bg-gray-200/80 [body[data-theme='night']_&]:hover:bg-purple-500/20 transition-all duration-300 cursor-pointer pl-6 items-center h-10 font-inter text-[15px] font-medium">All</button>
-                    <button id="app-latest-btn" class="border-l-4 border-transparent text-left hover:bg-gray-200/80 [body[data-theme='night']_&]:hover:bg-purple-500/20 transition-all duration-300 cursor-pointer pl-6 hover:pl-8 items-center h-10 font-inter text-[15px] font-medium">Zero Vision Coding</button>
-                    <button id="extension-latest-btn" class="border-l-4 border-transparent text-left hover:bg-gray-200/80 [body[data-theme='night']_&]:hover:bg-purple-500/20 transition-all duration-300 cursor-pointer pl-6 hover:pl-8 items-center h-10 font-inter text-[15px] font-medium">VS Code Extension</button>
-                </div>
-            </div>
-            <div class="flex flex-col h-auto lg:h-105 w-full text-gray-800 [body[data-theme='night']_&]:text-gray-200 pb-4 lg:pb-0">
-                <div class="flex flex-col min-h-12 p-4">
-                    <p class="font-orbitron pl-2 text-[15px]">VERSIONS</p>
+                <div class="flex flex-row items-center gap-4">
+                    <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-lavender/15 [body[data-theme='night']_&]:bg-purple/20 shrink-0">
+                        <svg class="w-6 h-6 text-lavender [body[data-theme='night']_&]:text-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <span class="font-inter font-semibold text-[17px] text-gray-800 [body[data-theme='night']_&]:text-white tracking-wide">Voice & Audio Interaction</span>
                 </div>
 
-                <div class="flex flex-col">
-                    <button id="one-zero-zero-btn" class="border-l-4 border-transparent text-left hover:bg-gray-200/80 [body[data-theme='night']_&]:hover:bg-purple-500/20 transition-all duration-300 cursor-pointer pl-6 hover:pl-8 items-center h-10 font-inter text-[15px] font-medium">1.0.0</button>
+                <div class="flex flex-row items-center gap-4">
+                    <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-lavender/15 [body[data-theme='night']_&]:bg-purple/20 shrink-0">
+                        <svg class="w-6 h-6 text-lavender [body[data-theme='night']_&]:text-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <span class="font-inter font-semibold text-[17px] text-gray-800 [body[data-theme='night']_&]:text-white tracking-wide">Accessibility Solutions</span>
                 </div>
             </div>
         </div>
 
-        <!--Versions aaaaaaa -->
-        <div class="flex flex-col w-full h-full">
-            <div id="general-latest">
-                <Latest />
-            </div>
-            
-            <div id="app-latest" hidden>
-                <AppLatest />
-            </div>
+        <div id="form-card" class="flex flex-col w-[100vh] lg:w-[100vh] bg-white/70 backdrop-blur-xl [body[data-theme='night']_&]:bg-[#0a0a0f]/70 border border-gray-200/50 [body[data-theme='night']_&]:border-purple-500/30 shadow-2xl [body[data-theme='night']_&]:shadow-[0_0_40px_rgba(200,36,236,0.15)] rounded-3xl lg:p-8">
+            <form id="demo-form" class="flex flex-col gap-5 w-full" action="https://api.web3forms.com/submit" method="POST">
+                <input type="hidden" name="access_key" value="38653c24-5adf-46c2-bdb9-3a3b1006f6fa" />
+                <input type="hidden" name="subject" value="New Demo Booking Request - Zero Vision Coding" />
 
-            <div id="extension-latest" hidden>
-                <ExtensionLatest /> 
-            </div>
+                <div class="flex flex-col sm:flex-row gap-4 w-full">
+                    <div class="flex flex-col gap-2 w-full sm:w-1/2">
+                        <label class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 text-[14px] font-inter font-medium">First Name</label>
+                        <input name="first_name" required class="border border-gray-300 [body[data-theme='night']_&]:border-purple-500/30 h-11 w-full rounded-lg text-gray-800 [body[data-theme='night']_&]:text-white px-4 bg-white/80 [body[data-theme='night']_&]:bg-black/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-inter text-[14px]" placeholder="Your first name" />
+                    </div>
+                    <div class="flex flex-col gap-2 w-full sm:w-1/2">
+                        <label class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 text-[14px] font-inter font-medium">Last Name</label>
+                        <input name="last_name" required class="border border-gray-300 [body[data-theme='night']_&]:border-purple-500/30 h-11 w-full rounded-lg text-gray-800 [body[data-theme='night']_&]:text-white px-4 bg-white/80 [body[data-theme='night']_&]:bg-black/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-inter text-[14px]" placeholder="Your last name" />
+                    </div>
+                </div>
 
-            <div id="one-zero-zero" hidden>
-                <OneZeroZero />
-            </div>
+                <div class="flex flex-col sm:flex-row gap-4 w-full">
+                    <div class="flex flex-col gap-2 w-full sm:w-1/2">
+                        <label class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 text-[14px] font-inter font-medium">Email</label>
+                        <input name="email_address" type="email" required class="border border-gray-300 [body[data-theme='night']_&]:border-purple-500/30 h-11 w-full rounded-lg text-gray-800 [body[data-theme='night']_&]:text-white px-4 bg-white/80 [body[data-theme='night']_&]:bg-black/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-inter text-[14px]" placeholder="Enter work email" />
+                    </div>
+                    <div class="flex flex-col gap-2 w-full sm:w-1/2">
+                        <label class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 text-[14px] font-inter font-medium">Organization Name</label>
+                        <input name="organization" class="border border-gray-300 [body[data-theme='night']_&]:border-purple-500/30 h-11 w-full rounded-lg text-gray-800 [body[data-theme='night']_&]:text-white px-4 bg-white/80 [body[data-theme='night']_&]:bg-black/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-inter text-[14px]" placeholder="Your organization name" />
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2 w-full">
+                    <label class="text-gray-700 [body[data-theme='night']_&]:text-gray-300 text-[14px] font-inter font-medium">How can we help you?</label>
+                    <textarea name="message" rows="4" required class="border border-gray-300 [body[data-theme='night']_&]:border-purple-500/30 w-full rounded-lg text-gray-800 [body[data-theme='night']_&]:text-white p-4 bg-white/80 [body[data-theme='night']_&]:bg-black/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all resize-none font-inter text-[14px]" placeholder="Tell us about your needs, learners, or specific goals..."></textarea>
+                </div>
+
+                <div class="flex justify-center lg:justify-start">
+                    <input type="submit" id="demo-form-submit" value="Submit" class="flex bg-lavender [body[data-theme='night']_&]:bg-purple text-white font-inter font-bold text-[15px] h-12 w-40 items-center justify-center rounded-xl cursor-pointer hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 [body[data-theme='night']_&]:hover:shadow-[0_0_20px_rgba(200,36,236,0.5)] transition-all duration-300" />
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -101,94 +118,54 @@ import OneZeroZero from "./releases/versions/OneZeroZero.astro";
             ease: "power3.out",
             stagger: 0.04
         }, "-=0.4")
-        .from("#releases", {
-            x: -50,
+        .from("#highlights", {
+            y: 30,
             opacity: 0,
             duration: 0.6,
             ease: "power3.out"
         }, "-=0.8")
+        .from("#form-card", {
+            x: 50,
+            opacity: 0,
+            duration: 0.8,
+            ease: "power3.out"
+        }, "-=0.6")
     })
 
-    // Functionality
-    type State = "general-latest" | "app-latest" | "extension-latest" |
-                "one-zero-zero";
-    let state: State;
+    // Form submission
+    const demoForm = document.getElementById("demo-form") as HTMLFormElement | null;
+    const demoSubmitBtn = document.getElementById("demo-form-submit") as HTMLInputElement | null;
 
-    const generalLatest = document.getElementById("general-latest");
-    const applicationLatest = document.getElementById("app-latest");
-    const extensionLatest = document.getElementById("extension-latest");
-    const oneZeroZero = document.getElementById("one-zero-zero");
+    demoForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(demoForm);
 
-    const generalLatestBtn = document.getElementById("general-latest-btn");
-    const applicationLatestBtn = document.getElementById("app-latest-btn");
-    const extensionLatestBtn = document.getElementById("extension-latest-btn");
-    const oneZeroZeroBtn = document.getElementById("one-zero-zero-btn");
-
-    function setState(newState: State) {
-        state = newState;
-
-        generalLatest?.setAttribute("hidden", "");
-        applicationLatest?.setAttribute("hidden", "");
-        extensionLatest?.setAttribute("hidden", "");
-        oneZeroZero?.setAttribute("hidden", "");
-
-        const activeClasses = ["bg-gray-200/80", "[body[data-theme='night']_&]:bg-purple-500/20", "border-purple-500"];
-        
-        generalLatestBtn?.classList.remove(...activeClasses);
-        generalLatestBtn?.classList.add("border-transparent");
-        applicationLatestBtn?.classList.remove(...activeClasses);
-        applicationLatestBtn?.classList.add("border-transparent");
-        extensionLatestBtn?.classList.remove(...activeClasses);
-        extensionLatestBtn?.classList.add("border-transparent");
-        oneZeroZeroBtn?.classList.remove(...activeClasses);
-        oneZeroZeroBtn?.classList.add("border-transparent");
-
-        if (state === "general-latest") {
-            generalLatest?.removeAttribute("hidden");
-            generalLatestBtn?.classList.add(...activeClasses);
-            generalLatestBtn?.classList.remove("border-transparent");
+        if (demoSubmitBtn) {
+            demoSubmitBtn.value = "Sending...";
+            demoSubmitBtn.disabled = true;
         }
 
-        if (state === "app-latest") {
-            applicationLatest?.removeAttribute("hidden");
-            applicationLatestBtn?.classList.add(...activeClasses);
-            applicationLatestBtn?.classList.remove("border-transparent");
-        }
+        try {
+            const response = await fetch("https://api.web3forms.com/submit", {
+                method: "POST",
+                body: formData,
+            });
 
-        if (state === "extension-latest") {
-            extensionLatest?.removeAttribute("hidden");
-            extensionLatestBtn?.classList.add(...activeClasses);
-            extensionLatestBtn?.classList.remove("border-transparent");
-        }
+            const data = await response.json();
 
-        if (state === "one-zero-zero") {
-            oneZeroZero?.removeAttribute("hidden");
-            oneZeroZeroBtn?.classList.add(...activeClasses);
-            oneZeroZeroBtn?.classList.remove("border-transparent");
-        }
-    }
-
-    generalLatestBtn?.addEventListener("click", () => {
-        if (state != "general-latest") {
-            setState("general-latest");
-        }
-    });
-
-    applicationLatestBtn?.addEventListener("click", () => {
-        if (state != "app-latest") {
-            setState("app-latest");
-        }
-    });
-
-    extensionLatestBtn?.addEventListener("click", () => {
-        if (state != "extension-latest") {
-            setState("extension-latest");
-        }
-    });
-
-    oneZeroZeroBtn?.addEventListener("click", () => {
-        if (state != "one-zero-zero") {
-            setState("one-zero-zero");
+            if (response.ok) {
+                alert("Success! We'll reach out to you shortly to schedule your demo.");
+                demoForm.reset();
+            } else {
+                alert("Error: " + data.message);
+            }
+        } catch (error) {
+            alert("Something went wrong. Please try again.");
+        } finally {
+            if (demoSubmitBtn) {
+                demoSubmitBtn.value = "Submit";
+                demoSubmitBtn.disabled = false;
+            }
         }
     });
 </script>
