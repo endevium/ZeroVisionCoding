@@ -11,14 +11,38 @@ dist/
 # dependencies
 node_modules/
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
 # logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
 
 # environment variables
 .env
+.env.*
+!.env.example
 .env.production
 
 # macOS-specific files
@@ -26,3 +50,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# downloaded model files
+models/*.gguf
+
+# generated test cases
+tests/ai_test_cases/*/*.json
