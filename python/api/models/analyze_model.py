@@ -17,6 +17,7 @@ class AnalyzeRequest(BaseModel):
 class ExplainResponse(BaseModel):
     steps: list[str]
     narration: str
+    issues: list[dict] = []
 
 class ExplainSymbolRequest(BaseModel):
     code: str

@@ -143,6 +143,11 @@ ANALYZE_SYSTEM_PROMPT = (
 
     "After the steps, produce one narration paragraph that smoothly connects all steps.\n"
     "The narration must sound natural when spoken aloud, like explaining to a beginner.\n"
+    "\n"
+    "Also check for semantic or logical problems, including calculations that produce the "
+    "wrong result even when the code runs successfully. Do not invent a problem when the "
+    "intended behavior is unclear. For each confident problem, include its approximate "
+    "one-based line number, a concise explanation, and the kind of problem.\n"
 
     "IMPORTANT RULES:\n"
     "- Do NOT read symbols or punctuation literally unless necessary.\n"
@@ -154,7 +159,8 @@ ANALYZE_SYSTEM_PROMPT = (
     "Return ONLY valid JSON with this exact schema:\n"
     "{\n"
     '  "steps": [string, ...],\n'
-    '  "narration": string\n'
+    '  "narration": string,\n'
+    '  "issues": [{"line": number, "message": string, "kind": "logical" | "semantic"}]\n'
     "}\n"
 
     "No markdown. No extra text."
@@ -526,13 +532,17 @@ def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predi
         )
         raw = result["choices"][0]["message"]["content"]
     except Exception as e:
-        return {"steps": [], "narration": "Code analysis failed. The local LLM service returned an error."}
+        return {
+            "steps": [],
+            "narration": "Code analysis failed. The local LLM service returned an error.",
+            "issues": [],
+        }
     data = _to_json(raw)
     if not data:
         text = _strip_code_fences(raw).strip()
         if len(text) > 1400:
             text = text[:1400] + " ..."
-        return {"steps": [], "narration": text or "I could not parse the analysis output."}
+        return {"steps": [], "narration": text or "I could not parse the analysis output.", "issues": []}
 
     steps = data.get("steps")
     narration = data.get("narration")
@@ -543,7 +553,33 @@ def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predi
     if not isinstance(narration, str):
         narration = ""
 
-    return {"steps": steps, "narration": narration}
+    raw_issues = data.get("issues")
+    issues = []
+    if isinstance(raw_issues, list):
+        for issue in raw_issues:
+            if not isinstance(issue, dict):
+                continue
+            try:
+                line = int(issue.get("line", 1))
+            except (TypeError, ValueError):
+                line = 1
+            message = issue.get("message")
+            kind = issue.get("kind")
+            if isinstance(message, str) and message.strip():
+                issues.append({
+                    "line": max(1, line),
+                    "message": message.strip(),
+                    "kind": kind if kind in ("logical", "semantic") else "logical",
+                })
+
+    if language in ("python", "py"):
+        static_issues = _python_logical_analysis_issues(code)
+        existing_messages = {issue["message"] for issue in issues}
+        for issue in static_issues:
+            if issue["message"] not in existing_messages:
+                issues.insert(0, issue)
+
+    return {"steps": steps, "narration": narration, "issues": issues}
 
 def llm_explain_symbol(code: str, language: str, symbol: str, kind: str = "", seed: int = 42) -> dict:
     messages = [
@@ -857,6 +893,43 @@ def _python_static_review_issues(code: str) -> list[dict]:
             self.generic_visit(node)
 
     Collector().visit(tree)
+    return issues
+
+
+def _python_logical_analysis_issues(code: str) -> list[dict]:
+    """Find a small set of unambiguous logical mistakes without relying on the LLM."""
+    import ast
+
+    try:
+        tree = ast.parse(code or "")
+    except SyntaxError:
+        return []
+
+    issues: list[dict] = []
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Return) or not isinstance(node.value, ast.BinOp):
+            continue
+        if not isinstance(node.value.op, ast.Add):
+            continue
+
+        names = {
+            child.id.lower()
+            for child in ast.walk(node.value)
+            if isinstance(child, ast.Name)
+        }
+        has_discount = any("discount" in name for name in names)
+        has_subtotal = any("subtotal" in name or "total" in name for name in names)
+        if has_discount and has_subtotal:
+            issues.append({
+                "line": node.lineno,
+                "message": (
+                    "The discount is added to the subtotal, which increases the total. "
+                    "A discount should normally be subtracted."
+                ),
+                "kind": "logical",
+            })
+
     return issues
 
 def chat(message: str) -> dict:

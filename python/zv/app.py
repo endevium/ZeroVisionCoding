@@ -1322,7 +1322,11 @@ class ZeroVisionAssistant(tk.Tk):
             "path": err.get("path", ""),
             "line": line,
             "column": column,
-            "stderr": message,
+            "stderr": (
+                f"{kind.capitalize()} error at line {line}: {message}"
+                if kind in ("logical", "semantic")
+                else message
+            ),
         }
         self._awaiting_fix_offer = True
 
@@ -1377,9 +1381,15 @@ class ZeroVisionAssistant(tk.Tk):
             code_sample = text
 
         def _do() -> None:
-            data = self.client.analyze_code(code_sample, language=lang)
-            narration = str(data.get("narration") or "").strip()
-            steps = data.get("steps") or []
+            try:
+                data = self.client.analyze_code(code_sample, language=lang)
+                narration = str(data.get("narration") or "").strip()
+                steps = data.get("steps") or []
+                issues = data.get("issues") or []
+            except Exception:
+                narration = ""
+                steps = []
+                issues = []
 
             def _deliver() -> None:
                 if narration:
@@ -1388,6 +1398,19 @@ class ZeroVisionAssistant(tk.Tk):
                     self.interrupt_and_speak(f"Error analysis result: {steps[0]}")
                 else:
                     self.interrupt_and_speak("No errors found in the active code.")
+
+                if isinstance(issues, list) and issues:
+                    issue = issues[0]
+                    self.offer_fix_for_found_error(
+                        {
+                            "path": path,
+                            "line": issue.get("line", 1),
+                            "column": 1,
+                            "message": issue.get("message", "a logical error"),
+                            "kind": issue.get("kind", "logical"),
+                        },
+                        interrupt=False,
+                    )
 
             self.after(0, _deliver)
 

@@ -744,9 +744,11 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
         ed = app.client.editor()
         editor_text = str(ed.get("text") or "")
         lang = str(ed.get("language") or "python")
+        editor_path = str(ed.get("path") or "")
     except Exception:
         editor_text = ""
         lang = "python"
+        editor_path = ""
 
     # Cap input to protect RAM / llama.cpp
     MAX_CHARS = 12000
@@ -767,6 +769,7 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
             data = app.client.analyze_code(code, language=lang)
             narration = str(data.get("narration") or "").strip()
             steps = data.get("steps") or []
+            issues = data.get("issues") or []
             result_text = (
                 narration
                 if narration
@@ -776,12 +779,25 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
             )
         except Exception:
             result_text = "I couldn't complete the code analysis. Please try again."
+            issues = []
 
         def _deliver() -> None:
             app.after_cancel(reminder_after_id)
             app.speech.set_paused(False)
             sfx.play_ding()
             app.interrupt_and_speak(result_text)
+            if isinstance(issues, list) and issues:
+                issue = issues[0]
+                app.offer_fix_for_found_error(
+                    {
+                        "path": editor_path,
+                        "line": issue.get("line", 1),
+                        "column": 1,
+                        "message": issue.get("message", "a logical error"),
+                        "kind": issue.get("kind", "logical"),
+                    },
+                    interrupt=False,
+                )
 
         app.after(0, _deliver)
 
