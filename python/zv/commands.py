@@ -699,6 +699,7 @@ def _handle_open_saved_file(app: "ZeroVisionAssistant", name: str) -> None:
 
 def _handle_run_program(app: "ZeroVisionAssistant") -> None:
     app._pending_fix_request = None
+    app.prepare_run_semantic_issue()
     try:
         app.client.terminal_reset()
     except Exception:
@@ -713,12 +714,15 @@ def _handle_run_program(app: "ZeroVisionAssistant") -> None:
     app.interrupt_and_speak("Running code, please wait.")
     app.start_terminal_reader()
 
-    res = _wait_command_result(app, str(cmd_id), timeout_s=30.0)
-    if res.get("ok"):
-        app.speak("Run started. Reading terminal output.")
-    else:
-        msg = (res.get("message") or "").strip()
-        app.interrupt_and_speak("Run failed." + ((" " + msg) if msg else ""))
+    def _wait_run() -> None:
+        res = _wait_command_result(app, str(cmd_id), timeout_s=30.0)
+        if res.get("ok"):
+            app.speak("Run started. Reading terminal output.")
+        else:
+            msg = (res.get("message") or "").strip()
+            app.interrupt_and_speak("Run failed." + ((" " + msg) if msg else ""))
+
+    threading.Thread(target=_wait_run, daemon=True).start()
 
 
 def _handle_save(app: "ZeroVisionAssistant") -> None:
@@ -759,10 +763,14 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
     else:
         code = editor_text
 
-    reminder_after_id = app.after(
-        15000,
-        lambda: app.interrupt_and_speak("Code analysis is still in progress."),
-    )
+    reminder_after_id = None
+    try:
+        reminder_after_id = app.after(
+            15000,
+            lambda: app.interrupt_and_speak("Code analysis is still in progress."),
+        )
+    except Exception:
+        pass
 
     def _do() -> None:
         try:
@@ -782,24 +790,41 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
             issues = []
 
         def _deliver() -> None:
-            app.after_cancel(reminder_after_id)
-            app.speech.set_paused(False)
-            sfx.play_ding()
+            try:
+                if reminder_after_id:
+                    app.after_cancel(reminder_after_id)
+            except Exception:
+                pass
+            try:
+                app.speech.set_paused(False)
+            except Exception:
+                pass
+            try:
+                sfx.play_ding()
+            except Exception:
+                pass
             app.interrupt_and_speak(result_text)
             if isinstance(issues, list) and issues:
                 issue = issues[0]
-                app.offer_fix_for_found_error(
-                    {
-                        "path": editor_path,
-                        "line": issue.get("line", 1),
-                        "column": 1,
-                        "message": issue.get("message", "a logical error"),
-                        "kind": issue.get("kind", "logical"),
-                    },
-                    interrupt=False,
-                )
+                if isinstance(issue, dict):
+                    app.offer_fix_for_found_error(
+                        {
+                            "path": editor_path,
+                            "line": issue.get("line", 1),
+                            "column": 1,
+                            "message": issue.get("message", "a logical error"),
+                            "kind": issue.get("kind", "logical"),
+                        },
+                        interrupt=False,
+                    )
 
-        app.after(0, _deliver)
+        try:
+            app.after(0, _deliver)
+        except Exception:
+            try:
+                app.speech.set_paused(False)
+            except Exception:
+                pass
 
     threading.Thread(target=_do, daemon=True).start()
 

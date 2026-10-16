@@ -1308,6 +1308,31 @@ class ZeroVisionAssistant(tk.Tk):
 
         return None
 
+    def detect_semantic_error(self, text: str, lang: str, path: str) -> Optional[dict]:
+        if not text.strip() or not (
+            str(lang or "").lower() in ("python", "py")
+            or str(path or "").lower().endswith(".py")
+        ):
+            return None
+
+        # Fast static logical/semantic analysis issues
+        try:
+            from api.services.llm_service import _python_logical_analysis_issues
+            static_issues = _python_logical_analysis_issues(text)
+            if static_issues:
+                first = static_issues[0]
+                return {
+                    "path": path,
+                    "line": first.get("line", 1),
+                    "column": 1,
+                    "message": first.get("message", "a logical error"),
+                    "kind": first.get("kind", "semantic"),
+                }
+        except Exception as exc:
+            print(f"[detect_semantic_error] static analysis error: {exc!r}", flush=True)
+
+        return None
+
     def offer_fix_for_found_error(self, err: dict, *, interrupt: bool = True) -> None:
         """Store the found error as a pending fix request and ask the user
         whether they'd like it fixed, speaking either immediately
@@ -1370,9 +1395,13 @@ class ZeroVisionAssistant(tk.Tk):
                 self.offer_fix_for_found_error(err, interrupt=True)
                 return
 
+            semantic_err = self.detect_semantic_error(text, lang, path)
+            if semantic_err:
+                self.offer_fix_for_found_error(semantic_err, interrupt=True)
+                return
+
         # 2. Advanced LLM / static error analysis in background thread
         MAX_CHARS = 12000
-        ...
         if len(text) > MAX_CHARS:
             head = text[: MAX_CHARS // 2]
             tail = text[-MAX_CHARS // 2 :]
@@ -1499,6 +1528,14 @@ class ZeroVisionAssistant(tk.Tk):
         self._terminal_last_out = ""
         self._terminal_last_err = ""
         self._pending_fix_request = None
+        self._run_finished_cleanly = False
+        if not hasattr(self, "_run_semantic_issue"):
+            self._run_semantic_issue = None
+        if not hasattr(self, "_semantic_issue_offered"):
+            self._semantic_issue_offered = False
+        if not hasattr(self, "_run_semantic_analysis_done"):
+            self._run_semantic_analysis_done = threading.Event()
+            self._run_semantic_analysis_done.set()
 
         def _loop() -> None:
             try:
@@ -1586,7 +1623,35 @@ class ZeroVisionAssistant(tk.Tk):
                                 self._dispatch_to_ui(lambda t=delta: self.interrupt_and_speak(t))
                                 self._terminal_last_out = out
 
-                            self._dispatch_to_ui(lambda c=code_i: self.speak(f"Program finished with exit code {c}."))
+                        self._run_finished_cleanly = True
+                        self._dispatch_to_ui(lambda c=code_i: self.speak(f"Program finished with exit code {c}."))
+                        self._dispatch_to_ui(lambda: self.speak("Checking code for logical errors, please wait."))
+
+                        # Wait for in-flight analysis if still running
+                        if hasattr(self, "_run_semantic_analysis_done") and not self._run_semantic_analysis_done.is_set():
+                            self._run_semantic_analysis_done.wait(timeout=25.0)
+
+                        if not getattr(self, "_semantic_issue_offered", False):
+                            self._semantic_issue_offered = True
+                            narration = getattr(self, "_run_semantic_narration", "")
+                            issue = getattr(self, "_run_semantic_issue", None)
+                            if not issue:
+                                cur_text = getattr(self, "_run_code_text", "")
+                                cur_lang = getattr(self, "_run_code_lang", "python")
+                                cur_path = getattr(self, "_run_code_path", "")
+                                if cur_text:
+                                    issue = self.detect_semantic_error(cur_text, cur_lang, cur_path)
+                                    if issue:
+                                        self._run_semantic_issue = issue
+
+                            def _deliver(narr=narration, iss=issue):
+                                if narr:
+                                    self.speak(narr)
+                                if iss:
+                                    self.offer_fix_for_found_error(iss, interrupt=False)
+                                else:
+                                    self.speak("No logical errors found.")
+                            self._dispatch_to_ui(_deliver)
                         return
 
                     time.sleep(0.4)
@@ -1597,6 +1662,115 @@ class ZeroVisionAssistant(tk.Tk):
 
     def stop_terminal_reader(self) -> None:
         self._terminal_reader_running = False
+
+    def prepare_run_semantic_issue(self) -> None:
+        self._run_semantic_issue = None
+        self._run_semantic_narration = ""
+        self._semantic_issue_offered = False
+        self._run_finished_cleanly = False
+        self._run_code_text = ""
+        self._run_code_lang = "python"
+        self._run_code_path = ""
+        self._run_semantic_analysis_done = threading.Event()
+        try:
+            ed = self.client.editor()
+            text = str(ed.get("text") or "")
+            lang = str(ed.get("language") or "python").lower()
+            path = str(ed.get("path") or "")
+            if text.strip():
+                self._run_code_text = text
+                self._run_code_lang = lang
+                self._run_code_path = path
+        except Exception as exc:
+            print(f"[prepare_run_semantic_issue] failed: {exc!r}", flush=True)
+
+        if getattr(self, "_run_code_text", "").strip():
+            threading.Thread(target=self._prepare_run_semantic_analysis, daemon=True).start()
+        else:
+            self._run_semantic_analysis_done.set()
+
+    def _prepare_run_semantic_analysis(self) -> None:
+        try:
+            text = getattr(self, "_run_code_text", "")
+            lang = getattr(self, "_run_code_lang", "python")
+            path = getattr(self, "_run_code_path", "")
+            if not text.strip():
+                try:
+                    ed = self.client.editor()
+                    text = str(ed.get("text") or "")
+                    lang = str(ed.get("language") or "python").lower()
+                    path = str(ed.get("path") or "")
+                except Exception:
+                    pass
+            if not text.strip():
+                return
+
+            max_chars = 12000
+            if len(text) > max_chars:
+                head = text[: max_chars // 2]
+                tail = text[-max_chars // 2 :]
+                code = head + "\n\n... truncated ...\n\n" + tail
+            else:
+                code = text
+
+            data = None
+            try:
+                data = self.client.analyze_code(code, language=lang)
+            except Exception as exc:
+                print(f"[_prepare_run_semantic_analysis] analyze_code failed: {exc!r}", flush=True)
+                data = None
+
+            if isinstance(data, dict):
+                narration = str(data.get("narration") or "").strip()
+                steps = data.get("steps") or []
+                self._run_semantic_narration = (
+                    narration
+                    if narration
+                    else str(steps[0])
+                    if isinstance(steps, list) and steps
+                    else ""
+                )
+                issues = data.get("issues") or []
+                if isinstance(issues, list):
+                    for item in issues:
+                        if not isinstance(item, dict):
+                            continue
+                        kind = item.get("kind")
+                        message = item.get("message")
+                        if kind in ("logical", "semantic") and isinstance(message, str) and message.strip():
+                            self._run_semantic_issue = {
+                                "path": path,
+                                "line": item.get("line", 1),
+                                "column": 1,
+                                "message": message.strip(),
+                                "kind": kind,
+                            }
+                            break
+
+            if not getattr(self, "_run_semantic_issue", None):
+                static_issue = self.detect_semantic_error(text, lang, path)
+                if static_issue:
+                    self._run_semantic_issue = static_issue
+
+            self._notify_run_semantic_issue_if_ready()
+        except Exception as exc:
+            print(f"[_prepare_run_semantic_analysis] failed: {exc!r}", flush=True)
+        finally:
+            self._run_semantic_analysis_done.set()
+
+    def _notify_run_semantic_issue_if_ready(self) -> None:
+        if getattr(self, "_run_finished_cleanly", False) and not getattr(self, "_semantic_issue_offered", False):
+            self._semantic_issue_offered = True
+            narration = getattr(self, "_run_semantic_narration", "")
+            issue = getattr(self, "_run_semantic_issue", None)
+            def _deliver(narr=narration, iss=issue):
+                if narr:
+                    self.speak(narr)
+                if iss:
+                    self.offer_fix_for_found_error(iss, interrupt=False)
+                else:
+                    self.speak("No logical errors found.")
+            self._dispatch_to_ui(_deliver)
 
     def find_errors_and_fix(self) -> None:
         """Find syntax or logical errors in active file and fix immediately."""

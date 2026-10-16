@@ -46,10 +46,11 @@ def unclear_response() -> str:
 # ---------------------------------------------------------------------------
 # Model configuration
 # ---------------------------------------------------------------------------
-MODEL_REPO = "Qwen/Qwen2.5-Coder-3B-Instruct-GGUF"
-MODEL_FILENAME = "qwen2.5-coder-3b-instruct-q4_k_m.gguf"
+MODEL_REPO = "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF"
+MODEL_FILENAME = "qwen2.5-coder-7b-instruct-q4_k_m.gguf"
 
 _llm = None
+_LLM_LOCK = threading.Lock()
 
 def _models_dir() -> Path:
     """Return <repo_root>/models."""
@@ -82,18 +83,29 @@ def _get_llm():
     global _llm
     if _llm is not None:
         return _llm
-    model_file = _ensure_model_downloaded()
-    # pyrefly: ignore [missing-import]
-    from llama_cpp import Llama
-    _llm = Llama(
-        model_path=str(model_file),
-        n_ctx=4096,
-        n_threads=4,
-        n_gpu_layers=0,  # CPU-only
-        verbose=False,
-    )
-    print("[llm_service] Model loaded.")
-    return _llm
+    with _LLM_LOCK:
+        if _llm is not None:
+            return _llm
+        model_file = _ensure_model_downloaded()
+        # pyrefly: ignore [missing-import]
+        from llama_cpp import Llama
+        _llm = Llama(
+            model_path=str(model_file),
+            n_ctx=4096,
+            n_threads=4,
+            n_gpu_layers=0,  # CPU-only
+            verbose=False,
+        )
+        print("[llm_service] Model loaded.")
+        return _llm
+
+
+def _chat_completion(**kwargs):
+    """Thread-safe chat completion using llama.cpp singleton."""
+    llm = _get_llm()
+    with _LLM_LOCK:
+        return llm.create_chat_completion(**kwargs)
+
 
 ''' 
 FOR CHATBOT 
@@ -112,57 +124,81 @@ CHAT_SYSTEM_PROMPT = (
 FOR CODE ANALYSIS 
 '''
 ANALYZE_SYSTEM_PROMPT = (
-    "You are a code explanation assistant designed for blind and visually-impaired programmers.\n"
-    "Your goal is to convert code into clear, easy-to-follow spoken explanations.\n"
+    "You are an expert code explanation and error detection assistant for blind and visually-impaired programmers.\n"
+    "Your highest priority is to rigorously detect any semantic, calculation, or logical errors in the code, and explain the code clearly.\n\n"
 
-    "FIRST, silently analyze the code:\n"
-    "- Determine the main purpose of the code\n"
-    "- Identify key parts (functions, loops, conditions, variables)\n"
-    "- Understand how data flows from start to end\n"
-    "Do NOT output this analysis.\n"
-    "- Do NOT use headings or labels like 'Steps:' or 'Narration:'.\n"
+    "FIRST: RIGOROUSLY AUDIT FOR SEMANTIC AND LOGICAL ERRORS:\n"
+    "Carefully inspect calculations, formulas, conditions, loops, and control flow for semantic and logical bugs that cause wrong results or unintended behavior even when the code runs without syntax crashes. Thoroughly check:\n"
+    "- Calculation & formula errors: adding discounts/deductions/coupons instead of subtracting them, subtracting taxes/tips/fees/surcharges instead of adding them, multiplying instead of dividing, inverted percentages, or incorrect formulas.\n"
+    "- Operator precedence errors: missing parentheses in calculations like averages ('a + b / 2' instead of '(a + b) / 2') or complex math.\n"
+    "- Average and aggregation bugs: dividing by the wrong number of terms (e.g. dividing by 2 when 3 terms are added), dividing inside an accumulation loop instead of after summing, or wrong count.\n"
+    "- Accumulator bugs: initializing multiplication or factorial accumulators to 0 instead of 1 (resulting in 0), or resetting sum/count accumulators inside loop bodies instead of before the loop.\n"
+    "- Loop logic bugs: returning on the first iteration of a loop unconditionally instead of processing all elements, or off-by-one errors in range/indexing.\n"
+    "- Min/Max logic errors: inverted comparisons when searching for maximum ('<' instead of '>') or minimum ('>' instead of '<').\n"
+    "- Condition & boolean logic bugs: using 'and' instead of 'or' (or vice versa), 'if x == 1 or 2' (comparing with truthy literal constant), conditions like 'x != \"a\" or x != \"b\"' which are always True, contradictory conditions like 'x > 10 and x < 5', inverted comparison operators ('<' instead of '>', '==' instead of '!='), or identity check 'is' instead of '==' on literals.\n"
+    "- State & variable bugs: overwriting a variable before reading it (like 'a = b; b = a'), using the wrong variable in a calculation, or swapping arguments.\n\n"
 
-    "THEN, explain the code using these rules:\n"
+    "For each confirmed semantic or logical problem:\n"
+    "- Provide the 1-based line number where the problem occurs.\n"
+    "- Provide a concise, spoken-friendly explanation of why the calculation or logic is wrong and what it should be.\n"
+    "- Set 'kind' to 'logical' or 'semantic'.\n"
+    "If the code has no semantic or logical errors, 'issues' MUST be an empty array [].\n\n"
 
-    "Break the code into small logical steps based on behavior, not line-by-line reading.\n"
-    "Each step must describe WHAT is happening, WHY it happens, and HOW it affects the flow.\n"
-
-    "Group related lines into meaningful actions instead of explaining every line.\n"
-
-    "Describe structure using spoken-friendly phrases like:\n"
-    "- 'the code starts by...'\n"
-    "- 'then it checks if...'\n"
-    "- 'inside the loop...'\n"
-    "- 'if the condition is true... otherwise...'\n"
-    "- 'finally, it returns...'\n"
-
-    "Track important variables and explain how their values change over time.\n"
-
-    "Keep steps short (1 sentence each), but meaningful.\n"
-    "Use simple language. Avoid jargon, or explain it briefly if necessary.\n"
-
-    "After the steps, produce one narration paragraph that smoothly connects all steps.\n"
-    "The narration must sound natural when spoken aloud, like explaining to a beginner.\n"
-    "\n"
-    "Also check for semantic or logical problems, including calculations that produce the "
-    "wrong result even when the code runs successfully. Do not invent a problem when the "
-    "intended behavior is unclear. For each confident problem, include its approximate "
-    "one-based line number, a concise explanation, and the kind of problem.\n"
+    "SECOND: EXPLAIN THE CODE:\n"
+    "- Break the code into small logical steps based on behavior, not line-by-line reading.\n"
+    "- Each step must describe WHAT is happening, WHY it happens, and HOW it affects the flow.\n"
+    "- Group related lines into meaningful actions instead of explaining every line.\n"
+    "- Describe structure using spoken-friendly phrases like 'the code starts by...', 'then it checks if...', 'inside the loop...'.\n"
+    "- Keep steps short (1 sentence each), but meaningful.\n"
+    "- After the steps, produce one narration paragraph that smoothly connects all steps.\n"
+    "- If any issue was found, clearly explain the mistake in the narration so the user is immediately aware of it.\n\n"
 
     "IMPORTANT RULES:\n"
     "- Do NOT read symbols or punctuation literally unless necessary.\n"
-    "- Do NOT say 'line 1', 'line 2', or refer to code visually.\n"
+    "- In 'steps' and 'narration', do NOT say 'line 1', 'line 2', or refer to code visually.\n"
     "- Do NOT repeat code.\n"
     "- Do NOT list syntax elements without explaining their purpose.\n"
-    "- Focus on behavior, flow, and intent.\n"
+    "- Focus on behavior, flow, and intent.\n\n"
 
+    "Return ONLY valid JSON with this exact schema (issues first):\n"
+    "{\n"
+    '  "issues": [{"line": number, "message": string, "kind": "logical" | "semantic"}],\n'
+    '  "steps": [string, ...],\n'
+    '  "narration": string\n'
+    "}\n\n"
+
+    "No markdown. No extra text."
+)
+
+''' 
+FOR FAST SEMANTIC CHECK (RUN CODE / VERIFICATION)
+'''
+SEMANTIC_CHECK_SYSTEM_PROMPT = (
+    "You are an expert Python logic and semantic error auditor for visually impaired programmers.\n"
+    "Your ONLY job is to identify potential semantic, calculation, or logical errors that cause incorrect results or behavior.\n"
+    "Check specifically for:\n"
+    "- Calculations: incorrect operators, formulas, discounts, taxes, tips, fees, and percentage calculations\n"
+    "- Precedence: missing parentheses or incorrect operator precedence\n"
+    "- Aggregations: incorrect counts, averages, totals, or division by the wrong value\n"
+    "- Accumulators: incorrect initialization, unintended resets, or missing updates\n"
+    "- Inverted logic: incorrect comparisons, min/max selection, or even/odd checks\n"
+    "- Loop bugs: off-by-one bounds, incorrect iteration, premature returns, or skipped items\n"
+    "- Conditions: contradictory conditions, incorrect Boolean operators, or conditions that are always true or false\n"
+    "- Variable usage: using the wrong variable, stale values, or incorrect assignments\n"
+    "- Return behavior: returning an intermediate or incorrect value\n"
+    "- Indexing and collections: accessing the wrong element, incorrect filtering, or processing only part of a collection\n"
+    "- Function calls: passing arguments in the wrong order when this causes incorrect behavior\n"
+    "- Boundary cases: incorrect behavior for empty collections, single elements, zero, negative values, or threshold values\n"
+    "- Data flow: using a value before the intended update or failing to propagate a calculated result\n\n"
+    "Only report an issue when the code provides reasonable evidence of a potential error. Do not assume that a valid operator, variable name, or programming style is incorrect without supporting evidence.\n"
+    "If an intended behavior or requirement is provided, compare the code against it. If the intended behavior is unclear, do not invent requirements; report only clearly supported issues.\n"
+    "Do not report syntax errors, formatting preferences, or ordinary code-quality suggestions unless they directly cause incorrect behavior.\n\n"
     "Return ONLY valid JSON with this exact schema:\n"
     "{\n"
-    '  "steps": [string, ...],\n'
-    '  "narration": string,\n'
     '  "issues": [{"line": number, "message": string, "kind": "logical" | "semantic"}]\n'
     "}\n"
-
+    "Use the relevant line number for each issue. If no supported issues are found, return exactly:\n"
+    '{"issues": []}\n'
     "No markdown. No extra text."
 )
 
@@ -186,13 +222,15 @@ EXPLAIN_SYMBOL_PROMPT = (
 FIX_PYTHON_ERROR_PROMPT = (
     "You are an expert Python debugging assistant.\n"
     "You will receive Python code and an error report. The report may be a Python traceback, a syntax error, "
-    "a runtime error, or a static type-checker diagnostic such as Pyright output.\n"
+    "a runtime error, a static type-checker diagnostic such as Pyright output, or a logical or semantic error report "
+    "(such as an incorrect calculation, wrong operator, or flawed condition).\n"
     "Identify the exact line causing the error and propose the smallest possible fix. For a type-checker diagnostic, "
-    "fix the incompatible expression or annotation while preserving the intended behavior.\n"
+    "fix the incompatible expression or annotation while preserving the intended behavior. For a logical or semantic "
+    "error, correct the calculation or logic to match the intended behavior.\n"
     "\n"
     "RULES:\n"
-    "- Preserve the original program logic.\n"
-    "- Do not rewrite or refactor the code.\n"
+    "- Preserve the original program structure and intended behavior.\n"
+    "- Do not rewrite or refactor unrelated code.\n"
     "- Make only the changes necessary to fix the reported error.\n"
     "- Keep each search block as small as possible, preferably one line.\n"
     "- The 'search' text must exactly match the original code.\n"
@@ -491,7 +529,7 @@ def llm_chat(user_message: str, *, temperature: float = 0.3, num_predict: int = 
     ]
 
     try:
-        result = _get_llm().create_chat_completion(
+        result = _chat_completion(
             messages=messages,
             temperature=temperature,
             max_tokens=num_predict,
@@ -510,12 +548,15 @@ def llm_chat(user_message: str, *, temperature: float = 0.3, num_predict: int = 
 
     return {"reply": _strip_code_fences(raw).strip() or "No response.", "question_id": None}
 
-def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predict: int = 1500, seed: int = 42) -> dict:
+def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predict: int = 1200, seed: int = 42) -> dict:
     language = (language or "python").lower()
     if language in ("python", "py"):
-        outline = _python_outline(code)
-        snippet = (code or "")[:4000]
-        code_for_llm = f"OUTLINE:\n{outline}\n\nSNIPPET:\n{snippet}"
+        if len(code or "") <= 5000:
+            code_for_llm = code or ""
+        else:
+            outline = _python_outline(code)
+            snippet = (code or "")[:4000]
+            code_for_llm = f"OUTLINE:\n{outline}\n\nSNIPPET:\n{snippet}"
     else:
         code_for_llm = (code or "")[:8000]
 
@@ -525,7 +566,7 @@ def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predi
     ]
 
     try:
-        result = _get_llm().create_chat_completion(
+        result = _chat_completion(
             messages=messages,
             temperature=temperature,
             max_tokens=num_predict,
@@ -579,7 +620,68 @@ def llm_analyze(code: str, language: str, *, temperature: float = 0.1, num_predi
             if issue["message"] not in existing_messages:
                 issues.insert(0, issue)
 
+    if issues:
+        first_issue = issues[0]
+        issue_msg = first_issue.get("message", "")
+        if issue_msg and not any(w in narration.lower() for w in ("error", "mistake", "issue", "bug", "wrong", "incorrect")):
+            line_no = first_issue.get("line")
+            loc_str = f"on line {line_no}" if line_no else "in your code"
+            if narration:
+                narration = f"Note: There is a logical error {loc_str}. {issue_msg} " + narration
+            else:
+                narration = f"Found a logical error {loc_str}: {issue_msg}"
+
     return {"steps": steps, "narration": narration, "issues": issues}
+
+
+def llm_check_semantic_errors(code: str, language: str = "python") -> list[dict]:
+    """Fast, lightweight semantic and logical error check without full code narration."""
+    language = (language or "python").lower()
+
+    # 1. Instant static analysis (<1ms)
+    if language in ("python", "py"):
+        static_issues = _python_logical_analysis_issues(code)
+        if static_issues:
+            return static_issues
+
+    # 2. Fast LLM check capped at 160 tokens
+    code_snippet = (code or "")[:4000]
+    messages = [
+        {"role": "system", "content": SEMANTIC_CHECK_SYSTEM_PROMPT},
+        {"role": "user", "content": f"Language: {language}\n\nCode:\n{code_snippet}"},
+    ]
+
+    try:
+        result = _chat_completion(
+            messages=messages,
+            temperature=0.1,
+            max_tokens=160,
+        )
+        raw = result["choices"][0]["message"]["content"]
+    except Exception:
+        return []
+
+    data = _to_json(raw)
+    raw_issues = data.get("issues") if isinstance(data, dict) else []
+    issues = []
+    if isinstance(raw_issues, list):
+        for issue in raw_issues:
+            if not isinstance(issue, dict):
+                continue
+            try:
+                line = int(issue.get("line", 1))
+            except (TypeError, ValueError):
+                line = 1
+            message = issue.get("message")
+            kind = issue.get("kind")
+            if isinstance(message, str) and message.strip():
+                issues.append({
+                    "line": max(1, line),
+                    "message": message.strip(),
+                    "kind": kind if kind in ("logical", "semantic") else "logical",
+                })
+
+    return issues
 
 def llm_explain_symbol(code: str, language: str, symbol: str, kind: str = "", seed: int = 42) -> dict:
     messages = [
@@ -596,7 +698,7 @@ def llm_explain_symbol(code: str, language: str, symbol: str, kind: str = "", se
     ]
 
     try:
-        result = _get_llm().create_chat_completion(
+        result = _chat_completion(
             messages=messages,
             temperature=0.1,
             max_tokens=640,
@@ -740,7 +842,7 @@ def llm_fix_python_error(*, code: str, error: str, temperature: float = 0.1, num
 
         raw = ""
         try:
-            result = _get_llm().create_chat_completion(
+            result = _chat_completion(
                 messages=messages,
                 temperature=temperature,
                 max_tokens=num_predict,
@@ -897,7 +999,7 @@ def _python_static_review_issues(code: str) -> list[dict]:
 
 
 def _python_logical_analysis_issues(code: str) -> list[dict]:
-    """Find a small set of unambiguous logical mistakes without relying on the LLM."""
+    """Find a comprehensive set of unambiguous logical/semantic mistakes without relying on the LLM."""
     import ast
 
     try:
@@ -907,30 +1009,408 @@ def _python_logical_analysis_issues(code: str) -> list[dict]:
 
     issues: list[dict] = []
 
+    # 1. Discount / deduction added to subtotal, total, price, or cost
+    DISCOUNT_WORDS = ("discount", "deduction", "coupon", "rebate", "markdown", "saving", "promo", "voucher")
+    TOTAL_WORDS = ("subtotal", "total", "price", "cost", "amount", "bill", "pay", "charge", "due", "fee")
+
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Return) or not isinstance(node.value, ast.BinOp):
-            continue
-        if not isinstance(node.value.op, ast.Add):
-            continue
+        if isinstance(node, (ast.Return, ast.Assign, ast.AugAssign)):
+            val = node.value
+            target_names = set()
+            if isinstance(node, ast.Assign):
+                for t in node.targets:
+                    if isinstance(t, ast.Name):
+                        target_names.add(t.id.lower())
+            elif isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name):
+                target_names.add(node.target.id.lower())
 
-        names = {
-            child.id.lower()
-            for child in ast.walk(node.value)
-            if isinstance(child, ast.Name)
-        }
-        has_discount = any("discount" in name for name in names)
-        has_subtotal = any("subtotal" in name or "total" in name for name in names)
-        if has_discount and has_subtotal:
-            issues.append({
-                "line": node.lineno,
-                "message": (
-                    "The discount is added to the subtotal, which increases the total. "
-                    "A discount should normally be subtracted."
-                ),
-                "kind": "logical",
-            })
+            if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
+                val_names = {c.id.lower() for c in ast.walk(val) if isinstance(c, ast.Name)}
+                has_discount = any(any(dw in n for dw in DISCOUNT_WORDS) for n in val_names | target_names)
+                if has_discount:
+                    issues.append({
+                        "line": node.lineno,
+                        "message": (
+                            "The discount is added to the total, which increases the price instead of reducing it. "
+                            "A discount should normally be subtracted."
+                        ),
+                        "kind": "logical",
+                    })
+            elif val and isinstance(val, ast.BinOp) and isinstance(val.op, ast.Add):
+                val_names = {c.id.lower() for c in ast.walk(val) if isinstance(c, ast.Name)}
+                all_names = val_names | target_names
+                has_discount = any(any(dw in n for dw in DISCOUNT_WORDS) for n in all_names)
+                if has_discount:
+                    issues.append({
+                        "line": node.lineno,
+                        "message": (
+                            "The discount is added to the amount, which increases the total instead of reducing it. "
+                            "A discount should normally be subtracted."
+                        ),
+                        "kind": "logical",
+                    })
 
-    return issues
+    # 1b. Tax, tip, fee, surcharge, shipping subtracted from subtotal, total, price, or cost
+    SURCHARGE_WORDS = ("tax", "tip", "fee", "surcharge", "shipping", "delivery", "interest", "markup")
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Return, ast.Assign, ast.AugAssign)):
+            val = node.value
+            target_names = set()
+            if isinstance(node, ast.Assign):
+                for t in node.targets:
+                    if isinstance(t, ast.Name):
+                        target_names.add(t.id.lower())
+            elif isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name):
+                target_names.add(node.target.id.lower())
+
+            if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Sub):
+                val_names = {c.id.lower() for c in ast.walk(val) if isinstance(c, ast.Name)}
+                has_surcharge = any(any(sw in n for sw in SURCHARGE_WORDS) for n in val_names | target_names)
+                if has_surcharge:
+                    issues.append({
+                        "line": node.lineno,
+                        "message": (
+                            "The tax, tip, or fee is subtracted from the total, reducing the cost instead of adding to it. "
+                            "Taxes and fees should normally be added."
+                        ),
+                        "kind": "logical",
+                    })
+            elif val and isinstance(val, ast.BinOp) and isinstance(val.op, ast.Sub):
+                right_names = {c.id.lower() for c in ast.walk(val.right) if isinstance(c, ast.Name)}
+                if any(any(sw in n for sw in SURCHARGE_WORDS) for n in right_names):
+                    issues.append({
+                        "line": node.lineno,
+                        "message": (
+                            "The tax, tip, or fee is subtracted from the amount instead of added. "
+                            "Taxes, tips, and fees should normally be added to the total."
+                        ),
+                        "kind": "logical",
+                    })
+
+    # 2. Average / mean calculation mistakes
+    for node in ast.walk(tree):
+        # Operator precedence bug in average: e.g. a + b / 2
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            div_node = None
+            if isinstance(node.right, ast.BinOp) and isinstance(node.right.op, ast.Div):
+                div_node = node.right
+            elif isinstance(node.left, ast.BinOp) and isinstance(node.left.op, ast.Div):
+                div_node = node.left
+            if div_node:
+                denom = div_node.right
+                if isinstance(denom, ast.Constant) and isinstance(denom.value, (int, float)) and denom.value >= 2:
+                    issues.append({
+                        "line": node.lineno,
+                        "message": (
+                            "Due to operator precedence, division is calculated before addition. "
+                            "Wrap the addition in parentheses before dividing, such as (a + b) / 2."
+                        ),
+                        "kind": "logical",
+                    })
+
+    # Average divisor mismatch (e.g. (a + b + c) / 2) across both functions and top-level code
+    for node in ast.walk(tree):
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            numerator = node.left
+            denominator = node.right
+            if isinstance(denominator, ast.Constant) and isinstance(denominator.value, (int, float)):
+                terms = 1
+                for item in ast.walk(numerator):
+                    if isinstance(item, ast.BinOp) and isinstance(item.op, ast.Add):
+                        terms += 1
+                if terms > 1 and denominator.value != terms:
+                    val_str = str(int(denominator.value)) if isinstance(denominator.value, int) or getattr(denominator.value, "is_integer", lambda: False)() else str(denominator.value)
+                    issues.append({
+                        "line": node.lineno,
+                        "message": (
+                            f"The calculation adds {terms} values but divides by {val_str}; "
+                            f"an average should divide by {terms}."
+                        ),
+                        "kind": "semantic",
+                    })
+
+    # 3. Product accumulator initialized to 0
+    for func in ast.walk(tree):
+        if isinstance(func, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Module)):
+            zero_accumulators = {}
+            for stmt in getattr(func, "body", []):
+                if isinstance(stmt, ast.Assign):
+                    for target in stmt.targets:
+                        if isinstance(target, ast.Name):
+                            name_lower = target.id.lower()
+                            if any(w in name_lower for w in ("prod", "product", "mult", "factorial")):
+                                if isinstance(stmt.value, ast.Constant) and stmt.value.value == 0:
+                                    zero_accumulators[target.id] = stmt.lineno
+                elif isinstance(stmt, (ast.For, ast.While)):
+                    for sub in ast.walk(stmt):
+                        var_id = None
+                        is_mult = False
+                        if isinstance(sub, ast.AugAssign) and isinstance(sub.op, ast.Mult) and isinstance(sub.target, ast.Name):
+                            var_id = sub.target.id
+                            is_mult = True
+                        elif isinstance(sub, ast.Assign) and len(sub.targets) == 1 and isinstance(sub.targets[0], ast.Name):
+                            target_id = sub.targets[0].id
+                            if isinstance(sub.value, ast.BinOp) and isinstance(sub.value.op, ast.Mult):
+                                if any(isinstance(c, ast.Name) and c.id == target_id for c in ast.walk(sub.value)):
+                                    var_id = target_id
+                                    is_mult = True
+                        if is_mult and var_id in zero_accumulators:
+                            line = zero_accumulators[var_id]
+                            issues.append({
+                                "line": line,
+                                "message": (
+                                    f"The accumulator '{var_id}' is initialized to 0 and then multiplied, "
+                                    "which will always produce 0. Initialize it to 1 instead."
+                                ),
+                                "kind": "logical",
+                            })
+                            del zero_accumulators[var_id]
+
+    # 4. Accumulator reset inside loop
+    for loop in ast.walk(tree):
+        if isinstance(loop, (ast.For, ast.While)):
+            body = loop.body
+            for i, stmt in enumerate(body):
+                if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
+                    t_name = stmt.targets[0].id
+                    if any(w in t_name.lower() for w in ("total", "sum", "count", "accum", "tally")):
+                        if isinstance(stmt.value, ast.Constant) and stmt.value.value in (0, 0.0):
+                            for rest in body[i + 1:]:
+                                for sub in ast.walk(rest):
+                                    if isinstance(sub, ast.AugAssign) and isinstance(sub.target, ast.Name) and sub.target.id == t_name:
+                                        issues.append({
+                                            "line": stmt.lineno,
+                                            "message": (
+                                                f"'{t_name}' is reset to 0 inside the loop on each iteration. "
+                                                "It should be initialized outside the loop before iterating."
+                                            ),
+                                            "kind": "logical",
+                                        })
+                                        break
+
+    # 5. Contradictory conditions: x > A and x < B where A >= B
+    for node in ast.walk(tree):
+        if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.And):
+            comps = [v for v in node.values if isinstance(v, ast.Compare)]
+            for i in range(len(comps)):
+                for j in range(i + 1, len(comps)):
+                    c1, c2 = comps[i], comps[j]
+                    if len(c1.ops) == 1 and len(c2.ops) == 1 and len(c1.comparators) == 1 and len(c2.comparators) == 1:
+                        if isinstance(c1.left, ast.Name) and isinstance(c2.left, ast.Name) and c1.left.id == c2.left.id:
+                            op1, op2 = type(c1.ops[0]), type(c2.ops[0])
+                            v1, v2 = c1.comparators[0], c2.comparators[0]
+                            if isinstance(v1, ast.Constant) and isinstance(v2, ast.Constant) and isinstance(v1.value, (int, float)) and isinstance(v2.value, (int, float)):
+                                if (op1 is ast.Gt and op2 is ast.Lt and v1.value >= v2.value) or (op1 is ast.Lt and op2 is ast.Gt and v2.value >= v1.value):
+                                    issues.append({
+                                        "line": node.lineno,
+                                        "message": f"The condition on '{c1.left.id}' is contradictory and can never be true.",
+                                        "kind": "logical",
+                                    })
+
+    # 5b. Always-true disjunction with != on distinct constants: e.g. x != 'a' or x != 'b'
+    for node in ast.walk(tree):
+        if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.Or):
+            comps = [v for v in node.values if isinstance(v, ast.Compare)]
+            for i in range(len(comps)):
+                for j in range(i + 1, len(comps)):
+                    c1, c2 = comps[i], comps[j]
+                    if len(c1.ops) == 1 and isinstance(c1.ops[0], ast.NotEq) and len(c2.ops) == 1 and isinstance(c2.ops[0], ast.NotEq):
+                        if isinstance(c1.left, ast.Name) and isinstance(c2.left, ast.Name) and c1.left.id == c2.left.id:
+                            v1 = c1.comparators[0] if c1.comparators else None
+                            v2 = c2.comparators[0] if c2.comparators else None
+                            if isinstance(v1, ast.Constant) and isinstance(v2, ast.Constant) and v1.value != v2.value:
+                                issues.append({
+                                    "line": node.lineno,
+                                    "message": (
+                                        f"The condition '{c1.left.id} != {repr(v1.value)} or {c2.left.id} != {repr(v2.value)}' "
+                                        "is always True because a variable cannot equal two different values at once. Use 'and' instead of 'or'."
+                                    ),
+                                    "kind": "logical",
+                                })
+
+    # 6. Truthy constant in boolean OR (e.g. if x == 1 or 2: or if s == 'y' or 'yes':)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.Or):
+            for val in node.values[1:]:
+                if isinstance(val, ast.Constant) and bool(val.value):
+                    issues.append({
+                        "line": node.lineno,
+                        "message": (
+                            f"The 'or' condition includes a constant '{val.value}' which is always truthy. "
+                            f"This makes the entire condition evaluate to True every time. "
+                            f"Write each comparison explicitly, such as variable == {repr(val.value)}."
+                        ),
+                        "kind": "logical",
+                    })
+                    break
+
+    # 7. Unconditional return at start of loop
+    for loop in ast.walk(tree):
+        if isinstance(loop, (ast.For, ast.While)):
+            if loop.body and isinstance(loop.body[0], ast.Return):
+                issues.append({
+                    "line": loop.body[0].lineno,
+                    "message": (
+                        "The return statement is placed unconditionally inside the loop. "
+                        "This causes the loop to exit on the very first iteration."
+                    ),
+                    "kind": "logical",
+                })
+
+    # 8. Variable swap overwritten before reading (e.g. a = b; b = a)
+    for parent in ast.walk(tree):
+        body = getattr(parent, "body", None)
+        if isinstance(body, list) and len(body) >= 2:
+            for i in range(len(body) - 1):
+                s1, s2 = body[i], body[i + 1]
+                if (isinstance(s1, ast.Assign) and len(s1.targets) == 1 and isinstance(s1.targets[0], ast.Name)
+                    and isinstance(s1.value, ast.Name)):
+                    if (isinstance(s2, ast.Assign) and len(s2.targets) == 1 and isinstance(s2.targets[0], ast.Name)
+                        and isinstance(s2.value, ast.Name)):
+                        if s1.targets[0].id == s2.value.id and s1.value.id == s2.targets[0].id:
+                            issues.append({
+                                "line": s2.lineno,
+                                "message": (
+                                    f"Attempted to swap '{s1.targets[0].id}' and '{s1.value.id}', but '{s1.targets[0].id}' "
+                                    f"was already overwritten on the previous line. Use tuple unpacking 'a, b = b, a' instead."
+                                ),
+                                "kind": "logical",
+                            })
+
+    # 9. Inverted min/max logic:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.If):
+            test = node.test
+            if isinstance(test, ast.Compare) and len(test.ops) == 1 and len(test.comparators) == 1:
+                op = test.ops[0]
+                left = test.left
+                right = test.comparators[0]
+                if isinstance(left, ast.Name) and isinstance(right, ast.Name):
+                    left_lower = left.id.lower()
+                    right_lower = right.id.lower()
+                    # finding max: if val < max_val: max_val = val
+                    if any(w in right_lower for w in ("max", "largest", "highest")) and isinstance(op, (ast.Lt, ast.LtE)):
+                        for s in node.body:
+                            if isinstance(s, ast.Assign) and any(isinstance(t, ast.Name) and t.id == right.id for t in s.targets):
+                                issues.append({
+                                    "line": node.lineno,
+                                    "message": (
+                                        f"When tracking the maximum value '{right.id}', the condition checks if '{left.id} < {right.id}'. "
+                                        "This inverts the maximum logic; it should check if the new value is greater than the current maximum."
+                                    ),
+                                    "kind": "logical",
+                                })
+                                break
+                    # finding min: if val > min_val: min_val = val
+                    elif any(w in right_lower for w in ("min", "smallest", "lowest")) and isinstance(op, (ast.Gt, ast.GtE)):
+                        for s in node.body:
+                            if isinstance(s, ast.Assign) and any(isinstance(t, ast.Name) and t.id == right.id for t in s.targets):
+                                issues.append({
+                                    "line": node.lineno,
+                                    "message": (
+                                        f"When tracking the minimum value '{right.id}', the condition checks if '{left.id} > {right.id}'. "
+                                        "This inverts the minimum logic; it should check if the new value is less than the current minimum."
+                                    ),
+                                    "kind": "logical",
+                                })
+                                break
+
+    # 10. Function formula bugs: area adding, perimeter multiplying, inverted even/odd
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            fname = node.name.lower()
+            if "area" in fname and not any(w in fname for w in ("surface", "trapezoid", "triangle")):
+                for ret in ast.walk(node):
+                    if isinstance(ret, ast.Return) and isinstance(ret.value, ast.BinOp) and isinstance(ret.value.op, ast.Add):
+                        issues.append({
+                            "line": ret.lineno,
+                            "message": (
+                                f"The function '{node.name}' adds dimensions instead of multiplying them. "
+                                "Calculating area typically requires multiplying dimensions."
+                            ),
+                            "kind": "semantic",
+                        })
+            elif "perimeter" in fname:
+                for ret in ast.walk(node):
+                    if isinstance(ret, ast.Return) and isinstance(ret.value, ast.BinOp) and isinstance(ret.value.op, ast.Mult):
+                        issues.append({
+                            "line": ret.lineno,
+                            "message": (
+                                f"The function '{node.name}' multiplies dimensions instead of adding them. "
+                                "Calculating perimeter requires adding the sides."
+                            ),
+                            "kind": "semantic",
+                        })
+            elif "even" in fname:
+                for ret in ast.walk(node):
+                    if isinstance(ret, ast.Return) and isinstance(ret.value, ast.Compare):
+                        cmp = ret.value
+                        if len(cmp.ops) == 1 and isinstance(cmp.ops[0], ast.Eq) and len(cmp.comparators) == 1:
+                            if isinstance(cmp.left, ast.BinOp) and isinstance(cmp.left.op, ast.Mod):
+                                if isinstance(cmp.left.right, ast.Constant) and cmp.left.right.value == 2:
+                                    if isinstance(cmp.comparators[0], ast.Constant) and cmp.comparators[0].value == 1:
+                                        issues.append({
+                                            "line": ret.lineno,
+                                            "message": f"The function '{node.name}' checks if the number modulo 2 equals 1, which identifies odd numbers, not even numbers.",
+                                            "kind": "logical",
+                                        })
+            elif "odd" in fname:
+                for ret in ast.walk(node):
+                    if isinstance(ret, ast.Return) and isinstance(ret.value, ast.Compare):
+                        cmp = ret.value
+                        if len(cmp.ops) == 1 and isinstance(cmp.ops[0], ast.Eq) and len(cmp.comparators) == 1:
+                            if isinstance(cmp.left, ast.BinOp) and isinstance(cmp.left.op, ast.Mod):
+                                if isinstance(cmp.left.right, ast.Constant) and cmp.left.right.value == 2:
+                                    if isinstance(cmp.comparators[0], ast.Constant) and cmp.comparators[0].value == 0:
+                                        issues.append({
+                                            "line": ret.lineno,
+                                            "message": f"The function '{node.name}' checks if the number modulo 2 equals 0, which identifies even numbers, not odd numbers.",
+                                            "kind": "logical",
+                                        })
+
+    # 11. Identity check on literal: 'x is 5' or 'x is "hello"'
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Compare):
+            for op, comp in zip(node.ops, node.comparators):
+                if isinstance(op, (ast.Is, ast.IsNot)) and isinstance(comp, ast.Constant) and comp.value is not None:
+                    word = "is" if isinstance(op, ast.Is) else "is not"
+                    issues.append({
+                        "line": node.lineno,
+                        "message": (
+                            f"The code uses '{word}' to compare with literal {repr(comp.value)}. "
+                            "In Python, 'is' checks object identity, not equality. Use '==' or '!=' instead."
+                        ),
+                        "kind": "logical",
+                    })
+
+    # 12. Off-by-one in range loops: for i in range(len(lst) + 1): ... lst[i]
+    for loop in ast.walk(tree):
+        if isinstance(loop, ast.For) and isinstance(loop.target, ast.Name):
+            iter_node = loop.iter
+            if isinstance(iter_node, ast.Call) and isinstance(iter_node.func, ast.Name) and iter_node.func.id == "range":
+                if iter_node.args:
+                    arg = iter_node.args[-1]
+                    if isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Add) and isinstance(arg.right, ast.Constant) and arg.right.value == 1:
+                        if isinstance(arg.left, ast.Call) and isinstance(arg.left.func, ast.Name) and arg.left.func.id == "len":
+                            issues.append({
+                                "line": loop.lineno,
+                                "message": (
+                                    "The range bound is set to len(...) + 1. "
+                                    "Because Python uses 0-based indexing up to len - 1, accessing elements by this index will raise an IndexError."
+                                ),
+                                "kind": "semantic",
+                            })
+
+    # Deduplicate issues by line and message
+    seen = set()
+    unique_issues = []
+    for issue in issues:
+        key = (issue.get("line"), issue.get("message"))
+        if key not in seen:
+            seen.add(key)
+            unique_issues.append(issue)
+
+    return unique_issues
 
 def chat(message: str) -> dict:
     _ensure_qa_loaded()
@@ -1025,7 +1505,7 @@ def llm_code_review(code: str, language: str, *, temperature: float = 0.1, num_p
     }
 
     try:
-        result = _get_llm().create_chat_completion(
+        result = _chat_completion(
             messages=messages,
             temperature=temperature,
             max_tokens=num_predict,
