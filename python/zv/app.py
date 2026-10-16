@@ -344,6 +344,8 @@ class ZeroVisionAssistant(tk.Tk):
         self._typing_letter_buffer: list[str] = []
         self._typing_letter_flush_after_id: Optional[str] = None
         self._typing_letter_flush_ms: int = 140
+        self._typing_tab_events: list[float] = []
+        self._typing_tab_hook: Optional[object] = None
         self._startup_connection_announced: bool = False
         self._keyboard_connection_announced: bool = False
         self._last_editor_version: int = -1
@@ -363,6 +365,7 @@ class ZeroVisionAssistant(tk.Tk):
             on_error=self._on_speech_error,
         )
         self._register_voice_hotkey()
+        self._register_typing_tab_hook()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -478,6 +481,22 @@ class ZeroVisionAssistant(tk.Tk):
                 )
         except Exception as exc:
             print(f"[voice] Could not register Space + Enter hotkey: {exc!r}", flush=True)
+
+    def _register_typing_tab_hook(self) -> None:
+        try:
+            self._typing_tab_hook = keyboard.on_press_key(
+                "tab",
+                self._on_typing_tab_key,
+                suppress=False,
+            )
+        except Exception as exc:
+            print(f"[typing] Could not register Tab key hook: {exc!r}", flush=True)
+
+    def _on_typing_tab_key(self, _event: object) -> None:
+        if not self._typing_echo_enabled:
+            return
+        self._typing_tab_events.append(time.monotonic())
+        self.speak_typing_echo("tab")
 
     def _start_voice_activation_delay(self) -> None:
         with self._voice_activation_lock:
@@ -807,7 +826,12 @@ class ZeroVisionAssistant(tk.Tk):
                         else:
                             self.speak_typing_echo("deleted " + deleted_text)
                 elif text != last_text:
-                    self._typing_echo_after(last_text, self._typing_echo_mode)
+                    self._typing_echo_after(
+                        last_text,
+                        self._typing_echo_mode,
+                        current_text=text,
+                        cursor=cursor,
+                    )
 
             last_text = text
             self._typing_last_editor_text = text
@@ -934,14 +958,24 @@ class ZeroVisionAssistant(tk.Tk):
         name = self._current_voice() or "unknown"
         self.interrupt_and_speak(f"Voice changed to {name}.")
 
-    def _on_typing_echo(self, prev_text: str) -> None:
+    def _on_typing_echo(
+        self,
+        prev_text: str,
+        *,
+        current_text: Optional[str] = None,
+        cursor: Optional[dict] = None,
+    ) -> None:
         """Debounced handler: speak the recent typing delta or current line."""
-        try:
-            ed = self.client.editor()
-            cur = str(ed.get("text") or "")
-            cursor = ed.get("cursor") or {}
-        except Exception:
-            return
+        if current_text is None:
+            try:
+                ed = self.client.editor()
+                cur = str(ed.get("text") or "")
+                cursor = ed.get("cursor") or {}
+            except Exception:
+                return
+        else:
+            cur = current_text
+            cursor = cursor or {}
 
         if abs(len(cur) - len(prev_text)) > 1000:
             return
@@ -971,68 +1005,49 @@ class ZeroVisionAssistant(tk.Tk):
             if "\n" in delta or "\r" in delta:
                 self.speak_typing_echo("new line")
             else:
-                self.speak_typing_echo("space")
+                self._speak_typing_characters(delta)
             return
-
-        symbol_map = {
-            "(": "open parenthesis",
-            ")": "close parenthesis",
-            "[": "open bracket",
-            "]": "close bracket",
-            "{": "open brace",
-            "}": "close brace",
-            '"': "double quote",
-            "'": "single quote",
-            ",": "comma",
-            ".": "dot",
-            ":": "colon",
-            ";": "semicolon",
-            "_": "underscore",
-            "-": "dash",
-            "+": "plus",
-            "*": "star",
-            "/": "slash",
-            "\\": "backslash",
-            "=": "equals",
-        }
 
         d = delta
-        if len(d) <= 6:
-            wordish = d.strip()
-            if wordish and any(ch.isalnum() for ch in wordish) and all(not ch.isspace() for ch in wordish):
-                try:
-                    self.tts.interrupt_and_speak(wordish)
-                except Exception:
-                    try:
-                        self.speak_typing_echo(wordish)
-                    except Exception:
-                        pass
-                return
-
-            parts: list[str] = []
-            for ch in d:
-                if ch == " ":
-                    parts.append("space")
-                elif ch == "\t":
-                    parts.append("tab")
-                elif ch in ("\n", "\r"):
-                    parts.append("new line")
-                else:
-                    parts.append(symbol_map.get(ch, ch))
-            self.speak_typing_echo(" ".join(parts))
-            return
-
         if len(d) > 200:
             d = d[-200:]
-        self.speak_typing_echo(d.replace("\t", " tab "))
+        self._speak_typing_characters(d)
 
-    def _on_word_echo(self, prev_text: str) -> None:
-        """Debounced handler: speak the last completed word."""
-        try:
-            ed = self.client.editor()
-            cur = str(ed.get("text") or "")
-        except Exception:
+    def _speak_typing_characters(self, text: str) -> None:
+        """Speak one token for each character in an editor change."""
+        now = time.monotonic()
+        pending_tabs = [
+            event_time
+            for event_time in self._typing_tab_events
+            if now - event_time <= 1.0
+        ]
+        self._typing_tab_events = pending_tabs
+
+        if text and text.strip(" ") == "" and pending_tabs:
             return
+
+        for ch in text:
+            if ch == "\t" and pending_tabs:
+                pending_tabs.pop(0)
+                self._typing_tab_events.pop(0)
+                continue
+            self._push_letter_echo(self._typing_symbol_to_words(ch))
+
+    def _on_word_echo(
+        self,
+        prev_text: str,
+        *,
+        current_text: Optional[str] = None,
+    ) -> None:
+        """Debounced handler: speak the last completed word."""
+        if current_text is None:
+            try:
+                ed = self.client.editor()
+                cur = str(ed.get("text") or "")
+            except Exception:
+                return
+        else:
+            cur = current_text
 
         if abs(len(cur) - len(prev_text)) > 1000:
             return
@@ -1066,7 +1081,14 @@ class ZeroVisionAssistant(tk.Tk):
                 except Exception:
                     pass
 
-    def _typing_echo_after(self, prev_text: str, mode: str) -> None:
+    def _typing_echo_after(
+        self,
+        prev_text: str,
+        mode: str,
+        *,
+        current_text: Optional[str] = None,
+        cursor: Optional[dict] = None,
+    ) -> None:
         self._typing_echo_after_id = None
         if not self._typing_echo_enabled:
             return
@@ -1074,10 +1096,14 @@ class ZeroVisionAssistant(tk.Tk):
             return
 
         if (mode or "pause").lower() == "word":
-            self._on_word_echo(prev_text)
+            self._on_word_echo(prev_text, current_text=current_text)
             return
 
-        self._on_typing_echo(prev_text)
+        self._on_typing_echo(
+            prev_text,
+            current_text=current_text,
+            cursor=cursor,
+        )
 
     def set_typing_echo(self, enabled: bool, mode: Optional[str] = None) -> None:
         self._typing_echo_enabled = bool(enabled)
@@ -1100,8 +1126,14 @@ class ZeroVisionAssistant(tk.Tk):
             except Exception:
                 pass
             self._typing_echo_after_id = None
+            self._typing_tab_events.clear()
 
     def _typing_symbol_to_words(self, ch: str) -> str:
+        if len(ch) == 1 and ch.isalpha() and ch.isupper():
+            # Keep the descriptor lowercase so neural voices pronounce it as
+            # one word rather than interpreting the capitals as initials.
+            return f"uppercase {ch}"
+
         symbol_map = {
             " ": "space",
             "\t": "tab",
@@ -1466,6 +1498,12 @@ class ZeroVisionAssistant(tk.Tk):
                 except Exception as exc:
                     print(f"[voice] Could not unregister key release hook: {exc!r}", flush=True)
             self._voice_release_hooks.clear()
+            if self._typing_tab_hook is not None:
+                try:
+                    keyboard.unhook(self._typing_tab_hook)
+                except Exception as exc:
+                    print(f"[typing] Could not unregister Tab key hook: {exc!r}", flush=True)
+                self._typing_tab_hook = None
             if self._voice_hotkey is not None:
                 try:
                     keyboard.remove_hotkey(self._voice_hotkey)
