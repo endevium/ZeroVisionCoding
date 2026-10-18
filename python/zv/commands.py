@@ -172,6 +172,51 @@ def handle_text(app: "ZeroVisionAssistant", text: str) -> None:
         _handle_pending_overwrite(app, t)
         return
 
+    if getattr(app, "_pending_intended_behavior_confirmation", None):
+        behavior = str(app._pending_intended_behavior_confirmation)
+        if _is_yes(t_reply):
+            app._pending_intended_behavior_confirmation = None
+            app.begin_fix_for_intended_behavior(behavior)
+            return
+        if _is_no(t_reply):
+            app._pending_intended_behavior_confirmation = None
+            app._awaiting_intended_behavior = True
+            app.interrupt_and_speak(
+                "Please tell me the intended behavior again."
+            )
+            return
+        app.interrupt_and_speak(
+            "Please say yes if that is correct, or no to repeat the intended behavior."
+        )
+        return
+
+    if getattr(app, "_pending_analysis_confirmation", None):
+        if _is_yes(t_reply):
+            app._pending_analysis_confirmation = None
+            app.interrupt_and_speak(
+                "Understood. The analysis matches the intended behavior, so I will not change the code."
+            )
+            return
+        if _is_no(t_reply):
+            app._awaiting_intended_behavior = True
+            app.interrupt_and_speak(
+                "Please tell me the intended behavior, and I will update the active code to match it."
+            )
+            return
+
+    if getattr(app, "_awaiting_intended_behavior", False):
+        if _is_no(t_reply) or t_reply in ("cancel", "stop"):
+            app._awaiting_intended_behavior = False
+            app._pending_analysis_confirmation = None
+            app.interrupt_and_speak("Okay. I will not change the code.")
+            return
+        app._awaiting_intended_behavior = False
+        app._pending_intended_behavior_confirmation = t_raw
+        app.interrupt_and_speak(
+            f"You said: {t_raw}. Is that correct? Say yes to continue or no to repeat the intended behavior."
+        )
+        return
+
     # Fixer
     if any(phrase in t for phrase in (
         "fix it", "fix the error", "fix error", "fix code", "fix the code",
@@ -699,7 +744,6 @@ def _handle_open_saved_file(app: "ZeroVisionAssistant", name: str) -> None:
 
 def _handle_run_program(app: "ZeroVisionAssistant") -> None:
     app._pending_fix_request = None
-    app.prepare_run_semantic_issue()
     try:
         app.client.terminal_reset()
     except Exception:
@@ -740,6 +784,9 @@ def _handle_save(app: "ZeroVisionAssistant") -> None:
 
 
 def _handle_analyze(app: "ZeroVisionAssistant") -> None:
+    app._pending_analysis_confirmation = None
+    app._awaiting_intended_behavior = False
+    app._pending_intended_behavior_confirmation = None
     app.speech.set_paused(True)
     sfx.play_pop()
     app.interrupt_and_speak("Analyzing your code.")
@@ -753,6 +800,16 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
         editor_text = ""
         lang = "python"
         editor_path = ""
+
+    if lang.lower() in ("python", "py") or editor_path.lower().endswith(".py"):
+        blocking_error = app.detect_code_error(editor_text, lang, editor_path)
+        if blocking_error:
+            try:
+                app.speech.set_paused(False)
+            except Exception:
+                pass
+            app.offer_fix_for_found_error(blocking_error)
+            return
 
     # Cap input to protect RAM / llama.cpp
     MAX_CHARS = 12000
@@ -773,8 +830,10 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
         pass
 
     def _do() -> None:
+        analysis_succeeded = False
         try:
             data = app.client.analyze_code(code, language=lang)
+            analysis_succeeded = True
             narration = str(data.get("narration") or "").strip()
             steps = data.get("steps") or []
             issues = data.get("issues") or []
@@ -803,20 +862,22 @@ def _handle_analyze(app: "ZeroVisionAssistant") -> None:
                 sfx.play_ding()
             except Exception:
                 pass
-            app.interrupt_and_speak(result_text)
-            if isinstance(issues, list) and issues:
-                issue = issues[0]
-                if isinstance(issue, dict):
-                    app.offer_fix_for_found_error(
-                        {
-                            "path": editor_path,
-                            "line": issue.get("line", 1),
-                            "column": 1,
-                            "message": issue.get("message", "a logical error"),
-                            "kind": issue.get("kind", "logical"),
-                        },
-                        interrupt=False,
-                    )
+            if analysis_succeeded:
+                app._pending_analysis_confirmation = {
+                    "path": editor_path,
+                    "line": (
+                        issues[0].get("line", 1)
+                        if isinstance(issues, list) and issues and isinstance(issues[0], dict)
+                        else 1
+                    ),
+                    "column": 1,
+                    "analysis": result_text,
+                }
+                app.interrupt_and_speak(
+                    f"{result_text} Was this the intended behavior? Say yes to use this behavior, or no to tell me what the intended behavior should be."
+                )
+            else:
+                app.interrupt_and_speak(result_text)
 
         try:
             app.after(0, _deliver)
