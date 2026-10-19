@@ -1,5 +1,2 @@
-a = 10
-b = 0
-
-total = a / b
-print(total)
+result = 1 - 1
+print(result)

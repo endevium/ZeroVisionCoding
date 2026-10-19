@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import queue
+import shutil
 import subprocess
 import json
 import tempfile
@@ -164,8 +165,12 @@ def create_rounded_rectangle(canvas, x1, y1, x2, y2, radius, fill, outline, widt
 class ZeroVisionAssistant(tk.Tk):
     def _run_pyright(self, code: str) -> list:
         """
-        Returns a list of diagnostics from Pyright.
+        Returns diagnostics when Pyright is installed; otherwise returns no
+        diagnostics because the checker is optional.
         """
+        executable = shutil.which("pyright") or shutil.which("pyright.cmd")
+        if not executable:
+            return []
 
         with tempfile.NamedTemporaryFile(
             suffix=".py",
@@ -177,30 +182,28 @@ class ZeroVisionAssistant(tk.Tk):
             temp_file = f.name
 
         try:
-            import sys
             result = subprocess.run(
                 [
-                    "pyright",
+                    executable,
                     "--outputjson",
                     temp_file,
                 ],
                 capture_output=True,
                 text=True,
-                shell=sys.platform.startswith("win"),
+                shell=False,
             )
 
-            data = json.loads(result.stdout)
+            if result.returncode not in (0, 1):
+                return []
 
+            data = json.loads(result.stdout or "{}")
             return data.get("generalDiagnostics", [])
 
         except FileNotFoundError:
-            print("[_run_pyright] pyright not found on PATH")
             return []
         except json.JSONDecodeError:
-            print(f"[_run_pyright] pyright output not valid JSON: {result.stdout[:200]!r} stderr: {result.stderr[:200]!r}")
             return []
-        except Exception as e:
-            print(f"[_run_pyright] unexpected error: {e!r}")
+        except (OSError, subprocess.SubprocessError):
             return []
 
         finally:
@@ -1791,7 +1794,18 @@ class ZeroVisionAssistant(tk.Tk):
                 summary = str(fix.get("summary") or "").strip()
 
                 if not new_content.strip():
-                    self.after(0, lambda: self.interrupt_and_speak(summary or "I could not generate a fix."))
+                    self.after(0, lambda: self.interrupt_and_speak(
+                        "I could not make a verified code change for the requested behavior."
+                    ))
+                    self._pending_fix_request = None
+                    return
+
+                normalized_original = original_code.replace("\r\n", "\n")
+                normalized_new = new_content.replace("\r\n", "\n")
+                if normalized_new == normalized_original:
+                    self.after(0, lambda: self.interrupt_and_speak(
+                        "I could not identify a code change that matches the intended behavior."
+                    ))
                     self._pending_fix_request = None
                     return
 
@@ -1829,6 +1843,26 @@ class ZeroVisionAssistant(tk.Tk):
                             "I generated a fix but couldn't apply it."
                             + ((" " + msg) if msg else "")
                         )
+
+                if ok:
+                    verified = False
+                    verification_deadline = time.time() + 5.0
+                    while time.time() < verification_deadline:
+                        current = self.client.editor()
+                        current_path = str(current.get("path") or "").strip()
+                        current_code = str(current.get("text") or "")
+                        if (
+                            (not current_path or current_path == path)
+                            and current_code.replace("\r\n", "\n") == normalized_new
+                        ):
+                            verified = True
+                            break
+                        time.sleep(0.25)
+                    if not verified:
+                        ok = False
+                        res = {
+                            "message": "The editor did not reflect the generated content."
+                        }
 
                 self.after(0, _deliver)
 
