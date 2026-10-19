@@ -1,5 +1,5 @@
-a = 11
-b = 6
+a = 10
+b = 0
 
-result = a + b
-print(result)
+total = a / b
+print(total)

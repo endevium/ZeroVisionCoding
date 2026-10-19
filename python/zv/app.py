@@ -1864,7 +1864,7 @@ class ZeroVisionAssistant(tk.Tk):
                 f"{behavior}"
             ),
         }
-        self.begin_fix_last_run_error(announce_generation=False)
+        self.begin_fix_last_run_error()
 
     def confirm_fix(self) -> None:
         info = self._pending_fix_confirmation
